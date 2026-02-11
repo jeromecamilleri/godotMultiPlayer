@@ -45,7 +45,7 @@ var sync_delta: float
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		# Debug : quel code la touche renvoie
-		print("Key pressed: scancode =", event)
+		#print("Key pressed: scancode =", event)
 
 		# Exemple : KEY_1 ou remplace par le scancode correct
 		if event.pressed and event.keycode == KEY_B:

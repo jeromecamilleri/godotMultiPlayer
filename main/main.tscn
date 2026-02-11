@@ -73,7 +73,7 @@ spawn_points = NodePath("../HubLevel/SpawnPoints")
 
 [node name="FallChecker" type="Node" parent="." unique_id=1173911427 node_paths=PackedStringArray("player_spawner")]
 script = ExtResource("9_vk48u")
-fall_height = -20.0
+fall_height = -11.0
 player_spawner = NodePath("../PlayerSpawner")
 
 [node name="HubLevel" parent="." unique_id=1150027112 instance=ExtResource("3_0cpj8")]

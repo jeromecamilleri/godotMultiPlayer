@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://levels/fall_respawn_zone.gd" id="1_6r7t5"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_8x81n"]
+size = Vector3(140, 1, 140)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_j2w08"]
+size = Vector3(140, 1, 140)
+
+[node name="FallRespawnZone" type="Area3D"]
+script = ExtResource("1_6r7t5")
+collision_mask = 2147483647
+monitoring = true
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_j2w08")
+
+[node name="StopFloor" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StopFloor"]
+shape = SubResource("BoxShape3D_j2w08")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StopFloor"]
+mesh = SubResource("BoxMesh_8x81n")
