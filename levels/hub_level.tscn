@@ -154,13 +154,13 @@ transform = Transform3D(1, 0, -7.10543e-15, 0, 1, 0, 7.10543e-15, 0, 1, 0, 4, 12
 transform = Transform3D(1, 0, -7.10543e-15, 0, 1, 0, 7.10543e-15, 0, 1, 21, 4, -9)
 
 [node name="tree2" parent="Env" unique_id=1396597241 instance=ExtResource("9_k5p1f")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, 4, 9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.619639, 3.8738828, -1.4268332)
 
 [node name="tree3" parent="Env" unique_id=600571742 instance=ExtResource("9_k5p1f")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, -6)
 
 [node name="treePine2" parent="Env" unique_id=1555962731 instance=ExtResource("10_ivsks")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1.7451496, -9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 4.1167974, -9)
 
 [node name="treePineSmall2" parent="Env" unique_id=1166346028 instance=ExtResource("11_ija7e")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, 8)
@@ -256,9 +256,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 8, -18)
 
 [node name="Portal" parent="Portals" unique_id=878852613 instance=ExtResource("25_yv8ub")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 8, -26)
+linked_portal_path = NodePath("../Portal2")
 
 [node name="Portal2" parent="Portals" unique_id=351602746 instance=ExtResource("25_yv8ub")]
-transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 22, 4, -3)
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 22.80854, 4, -3)
+linked_portal_path = NodePath("../Portal")
+exit_distance = -2.0
 
 [node name="FallRespawnZone" parent="." unique_id=909691664 instance=ExtResource("26_8w4m6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -30, 0)

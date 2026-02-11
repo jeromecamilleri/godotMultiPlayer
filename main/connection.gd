@@ -3,8 +3,11 @@ class_name Connection
 
 signal connected
 signal disconnected
+signal server_status_changed(status_text: String)
 
 static var is_peer_connected: bool
+var _connected_clients: Dictionary = {}
+var _status_timer: Timer
 
 @export var port: int
 @export var max_clients: int
@@ -40,6 +43,8 @@ func start_server() -> void:
 	multiplayer.multiplayer_peer = peer
 	multiplayer.peer_connected.connect(peer_connected)
 	multiplayer.peer_disconnected.connect(peer_disconnected)
+	_start_server_status_output()
+	_print_server_status("server_started")
 
 
 func start_client() -> void:
@@ -73,10 +78,48 @@ func server_connection_failure() -> void:
 
 func peer_connected(id: int) -> void:
 	print("Peer connected: " + str(id))
+	if not multiplayer.is_server():
+		return
+	_connected_clients[id] = true
+	_print_server_status("peer_connected")
 
 
 func peer_disconnected(id: int) -> void:
 	print("Peer disconnected: " + str(id))
+	if not multiplayer.is_server():
+		return
+	_connected_clients.erase(id)
+	_print_server_status("peer_disconnected")
+
+
+func _start_server_status_output() -> void:
+	if not multiplayer.is_server():
+		return
+	if _status_timer != null:
+		return
+	_status_timer = Timer.new()
+	_status_timer.wait_time = 1.0
+	_status_timer.autostart = true
+	_status_timer.timeout.connect(func(): _print_server_status("heartbeat"))
+	add_child(_status_timer)
+
+
+func _print_server_status(reason: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var client_ids := PackedInt32Array(_connected_clients.keys())
+	client_ids.sort()
+	var status_text := "SERVER STATUS\nreason: %s\nclients_connected: %d\nclient_ids: %s" % [
+		reason,
+		client_ids.size(),
+		str(client_ids)
+	]
+	server_status_changed.emit(status_text)
+	print("===== SERVER STATUS =====")
+	print("reason: ", reason)
+	print("clients_connected: ", client_ids.size())
+	print("client_ids: ", client_ids)
+	print("=========================")
 
 
 func disconnect_all() -> void:

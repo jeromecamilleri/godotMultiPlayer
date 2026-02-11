@@ -4,9 +4,14 @@ signal start_server
 signal connect_client
 
 @export var hide_ui_and_connect: bool
+@onready var _server_status_label: Label = $InGameUI/ServerStatus
+@onready var _connection: Connection = get_node("../Connection") as Connection
 
 
 func _ready():
+	_connection.server_status_changed.connect(_on_server_status_changed)
+	_refresh_server_status_visibility()
+
 	if Connection.is_server(): return
 	
 	if hide_ui_and_connect:
@@ -18,6 +23,8 @@ func _ready():
 func start_server_emit() -> void:
 	start_server.emit()
 	$MainMenu.visible = false
+	$InGameUI.visible = true
+	_refresh_server_status_visibility()
 
 
 func connect_client_emit() -> void:
@@ -28,8 +35,19 @@ func connect_client_emit() -> void:
 func hide_ui() -> void:
 	$MainMenu.visible = false
 	$InGameUI.visible = true
+	_refresh_server_status_visibility()
 
 
 func show_ui() -> void:
 	$MainMenu.visible = true
 	$InGameUI.visible = false
+	_refresh_server_status_visibility()
+
+
+func _on_server_status_changed(status_text: String) -> void:
+	_server_status_label.text = status_text
+	_refresh_server_status_visibility()
+
+
+func _refresh_server_status_visibility() -> void:
+	_server_status_label.visible = multiplayer.is_server() and $InGameUI.visible

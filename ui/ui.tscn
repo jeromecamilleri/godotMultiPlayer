@@ -40,7 +40,7 @@ offset_bottom = 52.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Servertoto" type="Button" parent="MainMenu/Buttons" unique_id=1861961801]
+[node name="Server" type="Button" parent="MainMenu/Buttons" unique_id=1861961801]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "Server"
@@ -63,6 +63,20 @@ mouse_filter = 1
 anchors_preset = 0
 script = ExtResource("2_rhohj")
 
+[node name="ServerStatus" type="Label" parent="InGameUI" unique_id=1305537441]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 120.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 18
+text = "SERVER STATUS"
+horizontal_alignment = 2
+
 [node name="MarginContainer" type="MarginContainer" parent="InGameUI" unique_id=1650429252]
 custom_minimum_size = Vector2(350, 0)
 layout_mode = 1
@@ -83,5 +97,5 @@ script = ExtResource("4_0te8w")
 user_data_events = ExtResource("5_tmjbr")
 player_panel = ExtResource("6_lta7j")
 
-[connection signal="pressed" from="MainMenu/Buttons/Servertoto" to="." method="start_server_emit"]
+[connection signal="pressed" from="MainMenu/Buttons/Server" to="." method="start_server_emit"]
 [connection signal="pressed" from="MainMenu/Buttons/Client" to="." method="connect_client_emit"]
