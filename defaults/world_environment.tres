@@ -1,4 +1,4 @@
-[gd_resource type="Environment" load_steps=2 format=3 uid="uid://cgqlrwpgos8m3"]
+[gd_resource type="Environment" format=3 uid="uid://cgqlrwpgos8m3"]
 
 [ext_resource type="Sky" uid="uid://jonn5eom7asv" path="res://defaults/sky/blue_sky.tres" id="1_x1dgc"]
 

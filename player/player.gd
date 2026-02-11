@@ -1,5 +1,6 @@
 extends CharacterBody3D
 class_name Player
+var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 
 ## Character maximum run speed on the ground.
 @export var move_speed := 8.0
@@ -41,8 +42,19 @@ var position_before_sync: Vector3
 var last_sync_time_ms: int
 var sync_delta: float
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		# Debug : quel code la touche renvoie
+		print("Key pressed: scancode =", event)
+
+		# Exemple : KEY_1 ou remplace par le scancode correct
+		if event.pressed and event.keycode == KEY_B:
+			print("place_bomb détectée !")
+			place_bomb()
 
 func _ready() -> void:
+	print("👤 Player ready | peer=", multiplayer.get_unique_id(),
+		  " authority=", is_multiplayer_authority())
 	if is_multiplayer_authority():
 		_camera_controller.setup(self)
 	else:
@@ -51,7 +63,20 @@ func _ready() -> void:
 		_synchronizer.synchronized.connect(on_synchronized)
 		on_synchronized()
 
+func place_bomb() -> void:
+	print("🔹 place_bomb called, authority=", is_multiplayer_authority())
+	if is_multiplayer_authority():
+		print("🔹 spawning via RPC")
+		spawn_bomb.rpc(global_position)
 
+@rpc("any_peer", "call_local", "reliable")
+func spawn_bomb(pos: Vector3):
+	print("💣 Bomb creating")
+	var bomb = BombScene.instantiate()
+	get_parent().add_child(bomb)
+	bomb.global_position = pos + transform.basis.z * 1.0
+	print("💣 Bomb spawned at ", bomb.global_position)
+	
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority(): interpolate_client(delta); return
 	
@@ -124,6 +149,22 @@ func _physics_process(delta: float) -> void:
 		global_position += get_wall_normal() * 0.1
 	
 	set_sync_properties()
+		
+	for i in get_slide_collision_count():
+		var collision = get_slide_collision(i)
+		if collision.get_collider() is RigidBody3D:
+			var body := collision.get_collider() as RigidBody3D
+			var push_dir: Vector3 = -collision.get_normal()
+			var impulse: Vector3 = push_dir * 1.5
+			var body_authority: int = body.get_multiplayer_authority()
+			if body.has_method("request_push"):
+				if body_authority == multiplayer.get_unique_id():
+					body.request_push(impulse)
+				else:
+					body.request_push.rpc_id(body_authority, impulse)
+			elif body_authority == multiplayer.get_unique_id():
+				body.apply_central_impulse(impulse)
+
 
 
 func set_sync_properties() -> void:
@@ -140,8 +181,7 @@ func on_synchronized() -> void:
 	var sync_time_ms = Time.get_ticks_msec()
 	sync_delta = clampf(float(sync_time_ms - last_sync_time_ms) / 1000, 0, sync_delta_max)
 	last_sync_time_ms = sync_time_ms
-
-
+	
 func interpolate_client(delta: float) -> void:
 	_orient_character_to_direction(_strong_direction, delta)
 	

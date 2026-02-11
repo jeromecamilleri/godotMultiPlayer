@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://mqnlrs6hn6g6"]
+[gd_scene format=3 uid="uid://mqnlrs6hn6g6"]
 
 [ext_resource type="Script" uid="uid://0md441jj7nd1" path="res://main/connection.gd" id="1_hlrxf"]
 [ext_resource type="Script" uid="uid://ccjxxprksl8a3" path="res://voip/voip_manager.gd" id="2_u8axh"]
@@ -10,47 +10,100 @@
 [ext_resource type="PackedScene" uid="uid://ciqrpd5675boy" path="res://player/player.tscn" id="5_wb2xi"]
 [ext_resource type="Script" uid="uid://c80b7p8uwqx3y" path="res://voip/microphone.gd" id="6_fgpqb"]
 [ext_resource type="Script" uid="uid://bxld3dpqvf1jf" path="res://main/fall_checker.gd" id="9_vk48u"]
+[ext_resource type="PackedScene" uid="uid://bcq3e3y5hlap5" path="res://main/static_body_3d_bomb.tscn" id="11_bsumw"]
+[ext_resource type="Script" uid="uid://fi1th2ns0hx2" path="res://main/rigid_body_3d.gd" id="12_fwcvl"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
-[node name="Main" type="Node"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bsumw"]
 
-[node name="Connection" type="Node" parent="."]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_fwcvl"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_na0o7"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_73k8k"]
+albedo_color = Color(0.2627451, 1, 0, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bsumw"]
+size = Vector3(1.1534424, 1.1063538, 1.2269287)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_fwcvl"]
+properties/0/path = NodePath(".:global_transform")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:linear_velocity")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:angular_velocity")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+
+[node name="Main" type="Node" unique_id=2042604208]
+
+[node name="Connection" type="Node" parent="." unique_id=1432001397]
 script = ExtResource("1_hlrxf")
 port = 5050
+host = "127.0.0.1"
 use_localhost_in_editor = true
 
-[node name="UserDataManager" parent="." instance=ExtResource("3_rwvlu")]
+[node name="UserDataManager" parent="." unique_id=930632718 instance=ExtResource("3_rwvlu")]
 
-[node name="VoipManager" type="Node" parent="." node_paths=PackedStringArray("player_spawner")]
+[node name="VoipManager" type="Node" parent="." unique_id=113474187 node_paths=PackedStringArray("player_spawner")]
 script = ExtResource("2_u8axh")
 user_scn = ExtResource("3_tfkyd")
 player_spawner = NodePath("../PlayerSpawner")
 
-[node name="Microphone" type="AudioStreamPlayer" parent="."]
+[node name="Microphone" type="AudioStreamPlayer" parent="." unique_id=1741440737]
 stream = SubResource("AudioStreamMicrophone_40kex")
 autoplay = true
 bus = &"Record"
 script = ExtResource("6_fgpqb")
 
-[node name="UI" parent="." instance=ExtResource("4_fvou2")]
+[node name="UI" parent="." unique_id=2058958318 instance=ExtResource("4_fvou2")]
 hide_ui_and_connect = false
 
-[node name="Players" type="Node3D" parent="."]
+[node name="Players" type="Node3D" parent="." unique_id=345903872]
 
-[node name="PlayerSpawner" type="MultiplayerSpawner" parent="." node_paths=PackedStringArray("spawn_points")]
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1066874070 node_paths=PackedStringArray("spawn_points")]
 _spawnable_scenes = PackedStringArray("uid://ciqrpd5675boy")
 spawn_path = NodePath("../Players")
 script = ExtResource("4_edyrb")
 player_scene = ExtResource("5_wb2xi")
 spawn_points = NodePath("../HubLevel/SpawnPoints")
 
-[node name="FallChecker" type="Node" parent="." node_paths=PackedStringArray("player_spawner")]
+[node name="FallChecker" type="Node" parent="." unique_id=1173911427 node_paths=PackedStringArray("player_spawner")]
 script = ExtResource("9_vk48u")
 fall_height = -20.0
 player_spawner = NodePath("../PlayerSpawner")
 
-[node name="HubLevel" parent="." instance=ExtResource("3_0cpj8")]
+[node name="HubLevel" parent="." unique_id=1150027112 instance=ExtResource("3_0cpj8")]
+
+[node name="StaticBody3DBomb" parent="HubLevel/Env" index="0" unique_id=1209369374 instance=ExtResource("11_bsumw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.054689, 4.4073243, 0)
+physics_material_override = SubResource("PhysicsMaterial_bsumw")
+
+[node name="tree2" parent="HubLevel/Env" index="7"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, -9.607263)
+
+[node name="RigidBody3D" type="RigidBody3D" parent="HubLevel/Env" index="40" unique_id=1479604479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.095, 0)
+physics_material_override = SubResource("PhysicsMaterial_fwcvl")
+script = ExtResource("12_fwcvl")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/RigidBody3D" unique_id=1019711160]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5251834, 0)
+mesh = SubResource("BoxMesh_na0o7")
+surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/RigidBody3D" unique_id=1916469910]
+transform = Transform3D(0.9999721, 0.00746994, 0, -0.00746994, 0.9999721, 0, 0, 0, 1, 0.09905216, 2.5241086, 0.06903076)
+shape = SubResource("BoxShape3D_bsumw")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/RigidBody3D" unique_id=243062562]
+replication_interval = 0.157
+delta_interval = 0.175
+replication_config = SubResource("SceneReplicationConfig_fwcvl")
+visibility_update_mode = 1
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]

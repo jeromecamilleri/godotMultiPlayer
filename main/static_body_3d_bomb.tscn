@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bcq3e3y5hlap5"]
+
+[ext_resource type="Script" uid="uid://ysssd3hfp0s6" path="res://main/bomb.gd" id="1_cw60m"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_vjuha"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mepss"]
+albedo_color = Color(1, 0.023529412, 1, 1)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_jyac8"]
+
+[node name="StaticBody3DBomb" type="StaticBody3D" unique_id=1209369374]
+script = ExtResource("1_cw60m")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1476454050]
+mesh = SubResource("SphereMesh_vjuha")
+surface_material_override/0 = SubResource("StandardMaterial3D_mepss")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=20347229]
+shape = SubResource("SphereShape3D_jyac8")
+debug_color = Color(0.87415385, 0.2596475, 0.5846524, 0.41960785)
