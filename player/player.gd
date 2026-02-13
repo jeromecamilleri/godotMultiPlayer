@@ -25,6 +25,9 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 @onready var _ground_shapecast: ShapeCast3D = $GroundShapeCast
 @onready var _character_skin: CharacterSkin = $CharacterRotationRoot/CharacterSkin
 @onready var _synchronizer: MultiplayerSynchronizer = $MultiplayerSynchronizer
+@onready var _lives_overlay: CanvasLayer = $LivesOverlay
+@onready var _lives_label: Label = $LivesOverlay/LivesLabel
+@onready var _death_overlay: CanvasLayer = $DeathOverlay
 
 @onready var _move_direction := Vector3.ZERO
 @onready var _last_strong_direction := Vector3.FORWARD
@@ -41,8 +44,12 @@ var position_before_sync: Vector3
 
 var last_sync_time_ms: int
 var sync_delta: float
+var _is_dead := false
+var _lives := 5
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _is_dead:
+		return
 	if event is InputEventKey and event.pressed:
 		# Debug : quel code la touche renvoie
 		#print("Key pressed: scancode =", event)
@@ -55,6 +62,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _ready() -> void:
 	print("👤 Player ready | peer=", multiplayer.get_unique_id(),
 		  " authority=", is_multiplayer_authority())
+	_lives_overlay.visible = is_multiplayer_authority()
+	_update_lives_label()
+	_death_overlay.visible = false
 	if is_multiplayer_authority():
 		_camera_controller.setup(self)
 	else:
@@ -79,6 +89,11 @@ func spawn_bomb(pos: Vector3):
 	
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority(): interpolate_client(delta); return
+	if _is_dead:
+		_move_direction = Vector3.ZERO
+		velocity = Vector3.ZERO
+		set_sync_properties()
+		return
 	
 	# Calculate ground height for camera controller
 	if _ground_shapecast.get_collision_count() > 0:
@@ -229,3 +244,23 @@ func _orient_character_to_direction(direction: Vector3, delta: float) -> void:
 func respawn(spawn_position: Vector3) -> void:
 	global_position = spawn_position
 	velocity = Vector3.ZERO
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func set_dead_state(dead: bool) -> void:
+	_is_dead = dead
+	velocity = Vector3.ZERO
+	_move_direction = Vector3.ZERO
+	if is_multiplayer_authority():
+		_death_overlay.visible = dead
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func set_lives(lives: int) -> void:
+	_lives = maxi(0, lives)
+	if is_multiplayer_authority():
+		_update_lives_label()
+
+
+func _update_lives_label() -> void:
+	_lives_label.text = "Vies: %d" % _lives
