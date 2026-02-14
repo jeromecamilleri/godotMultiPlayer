@@ -21,7 +21,7 @@ func create_player(id: int):
 	
 	var spawn_position = spawn_points.get_spawn_position()
 	spawn([id, spawn_position])
-	print("Player %d spawned at " % [id] + str(spawn_position))
+	DebugLog.gameplay("Player %d spawned at %s" % [id, str(spawn_position)])
 
 
 func destroy_player(id: int):
@@ -34,8 +34,12 @@ func destroy_player(id: int):
 func respawn_player(id: int) -> void:
 	var player = get_node(spawn_path).get_node(str(id)) as Player
 	var spawn_position = spawn_points.get_spawn_position()
+	# Keep server-side position tracking in sync immediately to avoid repeated
+	# fall detections while waiting for authority state replication.
+	player.global_position = spawn_position
+	player.velocity = Vector3.ZERO
 	player.respawn.rpc_id(id, spawn_position)
-	print("Respawn player %d at " % [id] + str(spawn_position))
+	DebugLog.gameplay("Respawn player %d at %s" % [id, str(spawn_position)])
 
 
 func custom_spawn(vars) -> Node:

@@ -33,11 +33,11 @@ func start_server() -> void:
 	var peer = ENetMultiplayerPeer.new()
 	var err = peer.create_server(port, max_clients)
 	if err != OK:
-		print("Cannot start server. Err: " + str(err))
+		DebugLog.net("Cannot start server. Err: " + str(err))
 		disconnected.emit()
 		return
 	else:
-		print("Server started")
+		DebugLog.net("Server started")
 		connected.emit()
 	
 	multiplayer.multiplayer_peer = peer
@@ -55,10 +55,10 @@ func start_client() -> void:
 	var peer = ENetMultiplayerPeer.new()
 	var err = peer.create_client(address, port)
 	if err != OK:
-		print("Cannot start client. Err: " + str(err))
+		DebugLog.net("Cannot start client. Err: " + str(err))
 		disconnected.emit()
 		return
-	else: print("Connecting to server...")
+	else: DebugLog.net("Connecting to server...")
 	
 	multiplayer.multiplayer_peer = peer
 	multiplayer.connected_to_server.connect(connected_to_server)
@@ -74,17 +74,17 @@ func disconnect_peer() -> void:
 
 
 func connected_to_server() -> void:
-	print("Connected to server")
+	DebugLog.net("Connected to server")
 	connected.emit()
 
 
 func server_connection_failure() -> void:
-	print("Disconnected")
+	DebugLog.net("Disconnected")
 	disconnected.emit()
 
 
 func peer_connected(id: int) -> void:
-	print("Peer connected: " + str(id))
+	DebugLog.net("Peer connected: " + str(id))
 	if not multiplayer.is_server():
 		return
 	_connected_clients[id] = true
@@ -92,7 +92,7 @@ func peer_connected(id: int) -> void:
 
 
 func peer_disconnected(id: int) -> void:
-	print("Peer disconnected: " + str(id))
+	DebugLog.net("Peer disconnected: " + str(id))
 	if not multiplayer.is_server():
 		return
 	_connected_clients.erase(id)
@@ -122,11 +122,11 @@ func _print_server_status(reason: String) -> void:
 		str(client_ids)
 	]
 	server_status_changed.emit(status_text)
-	print("===== SERVER STATUS =====")
-	print("reason: ", reason)
-	print("clients_connected: ", client_ids.size())
-	print("client_ids: ", client_ids)
-	print("=========================")
+	DebugLog.net("===== SERVER STATUS =====")
+	DebugLog.net("reason: " + reason)
+	DebugLog.net("clients_connected: " + str(client_ids.size()))
+	DebugLog.net("client_ids: " + str(client_ids))
+	DebugLog.net("=========================")
 
 
 func disconnect_all() -> void:

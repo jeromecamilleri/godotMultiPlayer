@@ -17,20 +17,20 @@ func _ready() -> void:
 		push_warning("FallRespawnZone: PlayerSpawner not found, respawn disabled.")
 	body_entered.connect(_on_body_entered)
 	if debug_respawn:
-		print("[FallRespawnZone] ready | monitoring=", monitoring, " mask=", collision_mask, " spawner_found=", player_spawner != null)
+		DebugLog.gameplay("[FallRespawnZone] ready | monitoring=%s mask=%s spawner_found=%s" % [str(monitoring), str(collision_mask), str(player_spawner != null)])
 
 
 func _on_body_entered(body: Node) -> void:
 	if debug_respawn:
-		print("[FallRespawnZone] body_entered=", body.name, " class=", body.get_class(), " multiplayer.is_server=", multiplayer.is_server())
+		DebugLog.gameplay("[FallRespawnZone] body_entered=%s class=%s multiplayer.is_server=%s" % [body.name, body.get_class(), str(multiplayer.is_server())])
 	if not multiplayer.is_server():
 		return
 	if player_spawner == null:
 		if debug_respawn:
-			print("[FallRespawnZone] missing PlayerSpawner, skip respawn")
+			DebugLog.gameplay("[FallRespawnZone] missing PlayerSpawner, skip respawn")
 		return
 	if body is Player:
 		var player := body as Player
 		if debug_respawn:
-			print("[FallRespawnZone] respawn trigger | player_authority=", player.get_multiplayer_authority())
+			DebugLog.gameplay("[FallRespawnZone] respawn trigger | player_authority=%d" % player.get_multiplayer_authority())
 		player_spawner.respawn_player(player.get_multiplayer_authority())

@@ -25,6 +25,8 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 @onready var _ground_shapecast: ShapeCast3D = $GroundShapeCast
 @onready var _character_skin: CharacterSkin = $CharacterRotationRoot/CharacterSkin
 @onready var _synchronizer: MultiplayerSynchronizer = $MultiplayerSynchronizer
+@onready var _character_collision_shape: CollisionShape3D = $CharacterCollisionShape
+@onready var _nickname: Control = $Nickname
 @onready var _lives_overlay: CanvasLayer = $LivesOverlay
 @onready var _lives_label: Label = $LivesOverlay/LivesLabel
 @onready var _death_overlay: CanvasLayer = $DeathOverlay
@@ -48,6 +50,8 @@ var sync_delta: float
 var _is_dead := false
 var _lives := 5
 var _last_hit_time_sec := -100.0
+var _default_collision_layer := 1
+var _default_collision_mask := 1
 
 const ENEMY_HIT_DAMAGE := 1
 const ENEMY_HIT_COOLDOWN := 0.35
@@ -63,13 +67,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		# Exemple : KEY_1 ou remplace par le scancode correct
 		if event.pressed and event.keycode == KEY_B:
-			print("place_bomb détectée !")
+			DebugLog.gameplay("place_bomb detectee")
 			place_bomb()
 
 func _ready() -> void:
 	add_to_group("players")
-	print("👤 Player ready | peer=", multiplayer.get_unique_id(),
-		  " authority=", is_multiplayer_authority())
+	_default_collision_layer = collision_layer
+	_default_collision_mask = collision_mask
+	DebugLog.gameplay("Player ready | peer=%d authority=%s" % [multiplayer.get_unique_id(), str(is_multiplayer_authority())])
 	_lives_overlay.visible = is_multiplayer_authority()
 	_update_lives_label()
 	_death_overlay.visible = false
@@ -82,18 +87,18 @@ func _ready() -> void:
 		on_synchronized()
 
 func place_bomb() -> void:
-	print("🔹 place_bomb called, authority=", is_multiplayer_authority())
+	DebugLog.gameplay("place_bomb called, authority=%s" % str(is_multiplayer_authority()))
 	if is_multiplayer_authority():
-		print("🔹 spawning via RPC")
+		DebugLog.gameplay("spawning bomb via RPC")
 		spawn_bomb.rpc(global_position)
 
 @rpc("any_peer", "call_local", "reliable")
 func spawn_bomb(pos: Vector3):
-	print("💣 Bomb creating")
+	DebugLog.gameplay("Bomb creating")
 	var bomb = BombScene.instantiate()
 	get_parent().add_child(bomb)
 	bomb.global_position = pos + transform.basis.z * 1.0
-	print("💣 Bomb spawned at ", bomb.global_position)
+	DebugLog.gameplay("Bomb spawned at %s" % str(bomb.global_position))
 	
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority(): interpolate_client(delta); return
@@ -252,14 +257,28 @@ func _orient_character_to_direction(direction: Vector3, delta: float) -> void:
 func respawn(spawn_position: Vector3) -> void:
 	global_position = spawn_position
 	velocity = Vector3.ZERO
+	if is_multiplayer_authority() and _is_dead:
+		_camera_controller.exit_spectator(self)
 
 
-@rpc("any_peer", "call_remote", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func set_dead_state(dead: bool) -> void:
 	_is_dead = dead
 	velocity = Vector3.ZERO
 	_move_direction = Vector3.ZERO
+	_character_collision_shape.disabled = dead
+	collision_layer = 0 if dead else _default_collision_layer
+	collision_mask = 0 if dead else _default_collision_mask
+	_rotation_root.visible = not dead
+	_nickname.visible = not dead
+	if dead and is_in_group("players"):
+		remove_from_group("players")
+	elif not dead and not is_in_group("players"):
+		add_to_group("players")
 	if is_multiplayer_authority():
+		_camera_controller.set_spectator_mode(dead)
+		if not dead:
+			_camera_controller.exit_spectator(self)
 		_death_overlay.visible = dead
 
 
@@ -311,8 +330,8 @@ func _apply_enemy_hit(force: Vector3) -> void:
 	_update_lives_label()
 	set_lives.rpc(_lives)
 	if _lives <= 0:
-		_is_dead = true
-		velocity = Vector3.ZERO
-		_move_direction = Vector3.ZERO
-		_death_overlay.visible = true
 		set_dead_state.rpc(true)
+
+
+func is_targetable() -> bool:
+	return not _is_dead

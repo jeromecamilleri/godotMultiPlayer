@@ -32,7 +32,7 @@ func _on_portal_entered(body):
 			body.velocity = Vector3.ZERO
 		return
 
-	print("Portal_entered: " + url)
+	DebugLog.gameplay("Portal_entered: " + url)
 	await get_tree().create_timer(0.2).timeout
 
 	if get_tree().has_method("open_gate"):

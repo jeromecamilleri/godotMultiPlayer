@@ -24,7 +24,7 @@ func _ready() -> void:
 	player_spawner.player_despawned.connect(player_despawned)
 	_emit_lives_status()
 	if debug_respawn:
-		print("[FallChecker] ready | multiplayer.is_server=", multiplayer.is_server(), " fall_height=", fall_height)
+		DebugLog.gameplay("[FallChecker] ready | multiplayer.is_server=%s fall_height=%s" % [str(multiplayer.is_server()), str(fall_height)])
 
 
 func player_spawned(id: int, player: Player) -> void:
@@ -35,7 +35,7 @@ func player_spawned(id: int, player: Player) -> void:
 	_sync_dead_state_to_player(player, id, false)
 	_emit_lives_status()
 	if debug_respawn:
-		print("[FallChecker] tracked player=", id, " y=", player.global_position.y, " lives=", int(lives_by_player[id]))
+		DebugLog.gameplay("[FallChecker] tracked player=%d y=%s lives=%d" % [id, str(player.global_position.y), int(lives_by_player[id])])
 
 
 func player_despawned(id: int) -> void:
@@ -44,7 +44,7 @@ func player_despawned(id: int) -> void:
 	last_fall_ms_by_player.erase(id)
 	_emit_lives_status()
 	if debug_respawn:
-		print("[FallChecker] untracked player=", id)
+		DebugLog.gameplay("[FallChecker] untracked player=%d" % id)
 
 
 func check_fallen() -> void:
@@ -67,7 +67,7 @@ func check_fallen() -> void:
 		_sync_lives_to_player(player, id, next_lives)
 		_emit_lives_status()
 		if debug_respawn:
-			print("[FallChecker] respawn trigger | player=", id, " y=", player.global_position.y, " threshold=", fall_height, " lives=", next_lives)
+			DebugLog.gameplay("[FallChecker] respawn trigger | player=%d y=%s threshold=%s lives=%d" % [id, str(player.global_position.y), str(fall_height), next_lives])
 		player_spawner.respawn_player(id)
 		if next_lives == 0:
 			_sync_dead_state_to_player(player, id, true)
@@ -95,7 +95,4 @@ func _sync_lives_to_player(player: Player, id: int, lives: int) -> void:
 
 
 func _sync_dead_state_to_player(player: Player, id: int, is_dead: bool) -> void:
-	if id == multiplayer.get_unique_id():
-		player.set_dead_state(is_dead)
-	else:
-		player.set_dead_state.rpc_id(id, is_dead)
+	player.set_dead_state.rpc(is_dead)

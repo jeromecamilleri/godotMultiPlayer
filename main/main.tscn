@@ -102,8 +102,8 @@ surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
 shape = SubResource("BoxShape3D_bsumw")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/RigidCube3D" unique_id=243062562]
-replication_interval = 0.157
-delta_interval = 0.175
+replication_interval = 0.033
+delta_interval = 0.033
 replication_config = SubResource("SceneReplicationConfig_fwcvl")
 visibility_update_mode = 1
 
@@ -112,6 +112,7 @@ transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.
 
 [node name="bee_bot" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="42" unique_id=1866323019 instance=ExtResource("14_73k8k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.038338, 5.3034263, 3.8952541)
+patrol_circle = true
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]
