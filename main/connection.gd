@@ -66,6 +66,13 @@ func start_client() -> void:
 	multiplayer.connection_failed.connect(server_connection_failure)
 
 
+func disconnect_peer() -> void:
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+	disconnected.emit()
+
+
 func connected_to_server() -> void:
 	print("Connected to server")
 	connected.emit()
@@ -123,8 +130,13 @@ func _print_server_status(reason: String) -> void:
 
 
 func disconnect_all() -> void:
-	multiplayer.peer_connected.disconnect(peer_connected)
-	multiplayer.peer_disconnected.disconnect(peer_disconnected)
-	multiplayer.connected_to_server.disconnect(connected_to_server)
-	multiplayer.server_disconnected.disconnect(server_connection_failure)
-	multiplayer.connection_failed.disconnect(server_connection_failure)
+	if multiplayer.peer_connected.is_connected(peer_connected):
+		multiplayer.peer_connected.disconnect(peer_connected)
+	if multiplayer.peer_disconnected.is_connected(peer_disconnected):
+		multiplayer.peer_disconnected.disconnect(peer_disconnected)
+	if multiplayer.connected_to_server.is_connected(connected_to_server):
+		multiplayer.connected_to_server.disconnect(connected_to_server)
+	if multiplayer.server_disconnected.is_connected(server_connection_failure):
+		multiplayer.server_disconnected.disconnect(server_connection_failure)
+	if multiplayer.connection_failed.is_connected(server_connection_failure):
+		multiplayer.connection_failed.disconnect(server_connection_failure)
