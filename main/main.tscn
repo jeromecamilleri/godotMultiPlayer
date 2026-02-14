@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://bcq3e3y5hlap5" path="res://main/static_body_3d_bomb.tscn" id="11_bsumw"]
 [ext_resource type="Script" uid="uid://fi1th2ns0hx2" path="res://main/rigid_body_3d.gd" id="12_fwcvl"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
+[ext_resource type="PackedScene" uid="uid://rn45gytkk6tv" path="res://enemies/bee_bot.tscn" id="14_73k8k"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -108,7 +109,9 @@ visibility_update_mode = 1
 
 [node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="41" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
-metadata/_edit_group_ = true
+
+[node name="bee_bot" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="42" unique_id=1866323019 instance=ExtResource("14_73k8k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.038338, 5.3034263, 3.8952541)
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]

@@ -28,6 +28,7 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 @onready var _lives_overlay: CanvasLayer = $LivesOverlay
 @onready var _lives_label: Label = $LivesOverlay/LivesLabel
 @onready var _death_overlay: CanvasLayer = $DeathOverlay
+@onready var _hit_sound: AudioStreamPlayer3D = $HitSound
 
 @onready var _move_direction := Vector3.ZERO
 @onready var _last_strong_direction := Vector3.FORWARD
@@ -46,6 +47,12 @@ var last_sync_time_ms: int
 var sync_delta: float
 var _is_dead := false
 var _lives := 5
+var _last_hit_time_sec := -100.0
+
+const ENEMY_HIT_DAMAGE := 1
+const ENEMY_HIT_COOLDOWN := 0.35
+const ENEMY_HIT_KNOCKBACK := 4.5
+const ENEMY_HIT_UPWARD_BONUS := 1.2
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_dead:
@@ -60,6 +67,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			place_bomb()
 
 func _ready() -> void:
+	add_to_group("players")
 	print("👤 Player ready | peer=", multiplayer.get_unique_id(),
 		  " authority=", is_multiplayer_authority())
 	_lives_overlay.visible = is_multiplayer_authority()
@@ -264,3 +272,47 @@ func set_lives(lives: int) -> void:
 
 func _update_lives_label() -> void:
 	_lives_label.text = "Vies: %d" % _lives
+
+
+func damage(_impact_point: Vector3, force: Vector3) -> void:
+	var authority_id := get_multiplayer_authority()
+	if multiplayer.get_unique_id() == authority_id:
+		_apply_enemy_hit(force)
+	else:
+		apply_enemy_hit.rpc_id(authority_id, force)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func apply_enemy_hit(force: Vector3) -> void:
+	_apply_enemy_hit(force)
+
+
+func _apply_enemy_hit(force: Vector3) -> void:
+	if not is_multiplayer_authority():
+		return
+	if _is_dead:
+		return
+
+	var now_sec := Time.get_ticks_msec() / 1000.0
+	if now_sec - _last_hit_time_sec < ENEMY_HIT_COOLDOWN:
+		return
+	_last_hit_time_sec = now_sec
+
+	var horizontal_push := Vector3(force.x, 0.0, force.z)
+	if not horizontal_push.is_zero_approx():
+		horizontal_push = horizontal_push.normalized() * ENEMY_HIT_KNOCKBACK
+	velocity += horizontal_push
+	velocity.y = maxf(velocity.y, ENEMY_HIT_UPWARD_BONUS)
+
+	_hit_sound.pitch_scale = randfn(1.0, 0.06)
+	_hit_sound.play()
+
+	_lives = maxi(0, _lives - ENEMY_HIT_DAMAGE)
+	_update_lives_label()
+	set_lives.rpc(_lives)
+	if _lives <= 0:
+		_is_dead = true
+		velocity = Vector3.ZERO
+		_move_direction = Vector3.ZERO
+		_death_overlay.visible = true
+		set_dead_state.rpc(true)

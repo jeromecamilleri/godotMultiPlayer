@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dqe82lcpxosaq" path="res://player/audio_listener.gd" id="2_4csdy"]
 [ext_resource type="Script" uid="uid://c54m6p83hnjyl" path="res://player/camera.gd" id="3_qxleh"]
 [ext_resource type="PackedScene" uid="uid://c0mo8tek77du4" path="res://player/model/character_skin.tscn" id="3_ufinh"]
+[ext_resource type="AudioStream" uid="uid://b30jq7w5y81v8" path="res://player/model/sounds/landing.wav" id="4_5g0ku"]
 [ext_resource type="Script" uid="uid://faj0ngyg1v7q" path="res://ui/floating_nickname.gd" id="6_f61mk"]
 [ext_resource type="Resource" uid="uid://rclnl7v8k722" path="res://user_data/user_data_events.res" id="7_bgpps"]
 
@@ -67,6 +68,10 @@ script = ExtResource("1_pdbxc")
 [node name="CharacterCollisionShape" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("CapsuleShape3D_8x2xm")
+
+[node name="HitSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("4_5g0ku")
+volume_db = 1.5
 
 [node name="AudioListener3D" type="AudioListener3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, -0.2)
