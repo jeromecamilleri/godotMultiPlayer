@@ -73,6 +73,16 @@ func disconnect_peer() -> void:
 	disconnected.emit()
 
 
+func shutdown_server() -> void:
+	if not multiplayer.is_server():
+		disconnect_peer()
+		return
+	# Ask connected clients to close their network session before server shutdown.
+	rpc("_rpc_shutdown_client_session")
+	await get_tree().create_timer(0.25).timeout
+	disconnect_peer()
+
+
 func connected_to_server() -> void:
 	DebugLog.net("Connected to server")
 	connected.emit()
@@ -140,3 +150,10 @@ func disconnect_all() -> void:
 		multiplayer.server_disconnected.disconnect(server_connection_failure)
 	if multiplayer.connection_failed.is_connected(server_connection_failure):
 		multiplayer.connection_failed.disconnect(server_connection_failure)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_shutdown_client_session() -> void:
+	if multiplayer.is_server():
+		return
+	disconnect_peer()

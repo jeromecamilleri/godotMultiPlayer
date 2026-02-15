@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://b6hul1wci17cm"]
+
+[ext_resource type="Shader" uid="uid://cluu610xjqvxf" path="res://defaults/water/ocean_water.gdshader" id="1"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1")
+shader_parameter/deep_color = Color(0.03, 0.2, 0.42, 0.75)
+shader_parameter/shallow_color = Color(0.08, 0.45, 0.68, 0.65)
+shader_parameter/metallic_amount = 0.0
+shader_parameter/roughness_amount = 0.08
+shader_parameter/fresnel_strength = 1.6
+shader_parameter/wave_height = 0.18
+shader_parameter/wave_speed = 2.2
+shader_parameter/wave_tiling = 8.0
+shader_parameter/choppy_strength = 0.25
+shader_parameter/normal_strength = 1.15
+shader_parameter/normal_detail = 1.76600008062512
+shader_parameter/normal_speed = 0.2130000101175

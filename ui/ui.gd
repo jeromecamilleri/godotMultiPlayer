@@ -11,6 +11,7 @@ signal connect_client
 var _connection_status_text := "SERVER STATUS\nreason: startup\nclients_connected: 0\nclient_ids: []"
 var _lives_status_text := "LIVES"
 var _is_exiting_client := false
+var _is_exiting_server := false
 
 
 func _ready():
@@ -33,9 +34,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if key_event.keycode != KEY_ESCAPE:
 		return
-	if _is_exiting_client:
+	if _is_server_instance():
+		if _is_exiting_server:
+			return
+		_is_exiting_server = true
+		_exit_server()
 		return
-	if multiplayer.is_server():
+	if _is_exiting_client:
 		return
 	if not Connection.is_peer_connected:
 		return
@@ -80,7 +85,7 @@ func _on_lives_status_changed(status_text: String) -> void:
 
 
 func _refresh_server_status_visibility() -> void:
-	_server_status_label.visible = multiplayer.is_server() and $InGameUI.visible
+	_server_status_label.visible = _is_server_instance() and $InGameUI.visible
 
 
 func _update_server_status_label() -> void:
@@ -93,3 +98,14 @@ func _exit_client() -> void:
 	get_window().visible = false
 	await get_tree().process_frame
 	get_tree().quit()
+
+
+func _exit_server() -> void:
+	await _connection.shutdown_server()
+	get_window().visible = false
+	await get_tree().process_frame
+	get_tree().quit()
+
+
+func _is_server_instance() -> bool:
+	return multiplayer.is_server()
