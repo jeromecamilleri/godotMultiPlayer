@@ -22,6 +22,7 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 
 @onready var _rotation_root: Node3D = $CharacterRotationRoot
 @onready var _camera_controller: CameraController = $CameraController
+@onready var _attack_animation_player: AnimationPlayer = $CharacterRotationRoot/MeleeAnchor/AnimationPlayer
 @onready var _ground_shapecast: ShapeCast3D = $GroundShapeCast
 @onready var _character_skin: CharacterSkin = $CharacterRotationRoot/CharacterSkin
 @onready var _synchronizer: MultiplayerSynchronizer = $MultiplayerSynchronizer
@@ -49,6 +50,7 @@ var last_sync_time_ms: int
 var sync_delta: float
 var _is_dead := false
 var _lives := 5
+var _coins := 0
 var _last_hit_time_sec := -100.0
 var _default_collision_layer := 1
 var _default_collision_mask := 1
@@ -118,6 +120,7 @@ func _physics_process(delta: float) -> void:
 		_ground_height = global_position.y
 	
 	# Get input and movement state
+	var is_just_attacking := Input.is_action_just_pressed("attack")
 	var is_just_jumping := Input.is_action_just_pressed("jump") and is_on_floor()
 	var is_air_boosting := Input.is_action_pressed("jump") and not is_on_floor() and velocity.y > 0.0
 	
@@ -144,6 +147,8 @@ func _physics_process(delta: float) -> void:
 	velocity.y = y_velocity
 	
 	# Update position
+	if is_just_attacking and not _attack_animation_player.is_playing():
+		attack()
 	
 	velocity.y += _gravity * delta
 	
@@ -193,6 +198,12 @@ func _physics_process(delta: float) -> void:
 			elif body_authority == multiplayer.get_unique_id():
 				body.apply_central_impulse(impulse)
 
+
+
+func attack() -> void:
+	_attack_animation_player.play("Attack")
+	_character_skin.punch.rpc()
+	velocity = _rotation_root.transform.basis * Vector3.BACK * attack_impulse
 
 
 func set_sync_properties() -> void:
@@ -291,6 +302,21 @@ func set_lives(lives: int) -> void:
 
 func _update_lives_label() -> void:
 	_lives_label.text = "Vies: %d" % _lives
+
+
+func collect_coin() -> void:
+	var authority_id := get_multiplayer_authority()
+	if multiplayer.get_unique_id() == authority_id:
+		_coins += 1
+	else:
+		_collect_coin.rpc_id(authority_id)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _collect_coin() -> void:
+	if not is_multiplayer_authority():
+		return
+	_coins += 1
 
 
 func damage(_impact_point: Vector3, force: Vector3) -> void:

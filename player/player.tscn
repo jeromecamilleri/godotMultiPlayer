@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://ciqrpd5675boy"]
+[gd_scene load_steps=24 format=3 uid="uid://ciqrpd5675boy"]
 
 [ext_resource type="Script" uid="uid://cwobjcper4xpu" path="res://player/player.gd" id="1_pdbxc"]
 [ext_resource type="Script" uid="uid://sv0oi6kpr4re" path="res://player/camera_controller.gd" id="2_2fob2"]
@@ -8,6 +8,7 @@
 [ext_resource type="AudioStream" path="res://player/model/sounds/landing.wav" id="4_5g0ku"]
 [ext_resource type="Script" uid="uid://faj0ngyg1v7q" path="res://ui/floating_nickname.gd" id="6_f61mk"]
 [ext_resource type="Resource" uid="uid://rclnl7v8k722" path="res://user_data/user_data_events.res" id="7_bgpps"]
+[ext_resource type="Script" path="res://player/melee_attack_area.gd" id="8_v1vve"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8x2xm"]
 
@@ -43,6 +44,64 @@ corner_radius_top_left = 25
 corner_radius_top_right = 25
 corner_radius_bottom_right = 25
 corner_radius_bottom_left = 25
+
+[sub_resource type="Animation" id="Animation_nl12d"]
+resource_name = "Attack"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeleeAnchor:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 3.14159, 0)]
+}
+tracks/1/type = "method"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MeleeAttackArea")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": [],
+"method": &"activate"
+}, {
+"args": [],
+"method": &"deactivate"
+}]
+}
+
+[sub_resource type="Animation" id="Animation_pts2o"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeleeAnchor:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_xvsui"]
+_data = {
+"Attack": SubResource("Animation_nl12d"),
+"RESET": SubResource("Animation_pts2o")
+}
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pcytg"]
+radius = 0.721485
+height = 2.65424
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_g0ye7"]
 properties/0/path = NodePath(".:_position")
@@ -118,6 +177,23 @@ max_results = 1
 debug_shape_custom_color = Color(0.658824, 1, 0, 1)
 
 [node name="CharacterRotationRoot" type="Node3D" parent="."]
+
+[node name="MeleeAnchor" type="Node3D" parent="CharacterRotationRoot"]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="CharacterRotationRoot/MeleeAnchor"]
+root_node = NodePath("../..")
+libraries = {
+"": SubResource("AnimationLibrary_xvsui")
+}
+
+[node name="MeleeAttackArea" type="Area3D" parent="CharacterRotationRoot"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0.959482, 1.0525)
+script = ExtResource("8_v1vve")
+
+[node name="CollisionShape3d" type="CollisionShape3D" parent="CharacterRotationRoot/MeleeAttackArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.246944)
+shape = SubResource("CapsuleShape3D_pcytg")
+disabled = true
 
 [node name="CharacterSkin" parent="CharacterRotationRoot" instance=ExtResource("3_ufinh")]
 

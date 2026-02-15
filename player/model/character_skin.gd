@@ -49,6 +49,11 @@ func fall():
 	state_machine.travel("fall")
 
 
+@rpc("authority", "call_local", "unreliable_ordered")
+func punch():
+	animation_tree["parameters/PunchOneShot/request"] = AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE
+
+
 func play_step_sound():
 	_step_sound.pitch_scale = randfn(1.1, 0.05)
 	_step_sound.play()

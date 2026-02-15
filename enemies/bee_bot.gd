@@ -36,67 +36,106 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not _alive:
-		return
-
 	if not is_multiplayer_authority():
 		# Clients only render replicated movement from authority.
 		global_transform = global_transform.interpolate_with(_remote_target_transform, 0.35)
 		return
 
-	_update_target_from_overlaps()
-	if patrol_circle and _target == null:
-		_update_patrol_circle(delta)
+	if _alive:
+		_update_target_from_overlaps()
+		if patrol_circle and _target == null:
+			_update_patrol_circle(delta)
 
-	if _target != null:
-		if sleeping:
-			sleeping = false
-		var target_transform := transform.looking_at(_target.global_position)
-		transform = transform.interpolate_with(target_transform, 0.1)
+		if _target != null:
+			if sleeping:
+				sleeping = false
+			var target_transform := transform.looking_at(_target.global_position)
+			transform = transform.interpolate_with(target_transform, 0.1)
 
-		_shoot_count += delta
-		if _shoot_count > shoot_timer:
-			_bee_root.play_spit_attack()
-			_shoot_count -= shoot_timer
+			_shoot_count += delta
+			if _shoot_count > shoot_timer:
+				_bee_root.play_spit_attack()
+				_shoot_count -= shoot_timer
 
-			var origin := global_position
-			var target := _target.global_position + Vector3.UP
-			var aim_direction := (target - global_position).normalized()
-			_spawn_bee_bullet.rpc(origin, aim_direction)
+				var origin := global_position
+				var target := _target.global_position + Vector3.UP
+				var aim_direction := (target - global_position).normalized()
+				_spawn_bee_bullet.rpc(origin, aim_direction)
 
 	_sync_bee_transform.rpc(global_transform)
 
 
 func damage(impact_point: Vector3, force: Vector3) -> void:
-	force = force.limit_length(3.0)
-	apply_impulse(force, impact_point)
+	var authority_id: int = get_multiplayer_authority()
+	if multiplayer.get_unique_id() == authority_id:
+		_apply_damage(impact_point, force)
+	else:
+		_request_damage.rpc_id(authority_id, impact_point, force)
 
+
+@rpc("any_peer", "call_local", "reliable")
+func _request_damage(impact_point: Vector3, force: Vector3) -> void:
+	if not is_multiplayer_authority():
+		return
+	_apply_damage(impact_point, force)
+
+
+func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
+	if not is_multiplayer_authority():
+		return
 	if not _alive:
 		return
 
-	_defeat_sound.play()
-	_alive = false
-
-	_flying_animation_player.stop()
-	_flying_animation_player.seek(0.0, true)
-	_target = null
-	_death_mesh_collider.set_deferred("disabled", false)
-
-	gravity_scale = 1.0
-	_bee_root.play_poweroff()
+	var clamped_force: Vector3 = force.limit_length(3.0)
+	_start_death_visuals.rpc(impact_point, clamped_force)
 
 	await get_tree().create_timer(2).timeout
 
-	var puff := PUFF_SCENE.instantiate()
-	get_parent().add_child(puff)
-	puff.global_position = global_position
-	await puff.full
+	var death_position: Vector3 = global_position
+	_spawn_puff_local(death_position)
+	_spawn_puff_remote.rpc(death_position)
+	await get_tree().create_timer(0.25).timeout
 	for i in range(coins_count):
 		var coin := COIN_SCENE.instantiate()
 		get_parent().add_child(coin)
 		coin.global_position = global_position
 		coin.spawn()
+	_remove_for_all.rpc()
+
+
+@rpc("authority", "call_local", "reliable")
+func _remove_for_all() -> void:
 	queue_free()
+
+
+@rpc("authority", "call_local", "reliable")
+func _start_death_visuals(impact_point: Vector3, clamped_force: Vector3) -> void:
+	if not _alive:
+		return
+	_alive = false
+	_target = null
+	_death_mesh_collider.set_deferred("disabled", false)
+	_flying_animation_player.stop()
+	_flying_animation_player.seek(0.0, true)
+	_bee_root.play_poweroff()
+	_defeat_sound.play()
+
+	# Physics impulse/fall are simulated only on authority.
+	if is_multiplayer_authority():
+		sleeping = false
+		apply_impulse(clamped_force, impact_point)
+		gravity_scale = 1.0
+
+
+@rpc("authority", "call_remote", "reliable")
+func _spawn_puff_remote(world_position: Vector3) -> void:
+	_spawn_puff_local(world_position)
+
+
+func _spawn_puff_local(world_position: Vector3) -> void:
+	var puff := PUFF_SCENE.instantiate()
+	get_parent().add_child(puff)
+	puff.global_position = world_position
 
 
 func _update_target_from_overlaps() -> void:
