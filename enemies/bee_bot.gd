@@ -52,6 +52,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if _alive:
+		# AI behavior is authority-only: acquire target, patrol, rotate, and shoot.
 		_update_target_from_overlaps()
 		if patrol_circle and _target == null:
 			_update_patrol_circle(delta)
@@ -120,6 +121,7 @@ func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
 func _finalize_death() -> void:
 	if _removed:
 		return
+	# Keep node in scene as a replicated "dead state" for late-join consistency.
 	_removed = true
 	visible = false
 	set_process(false)
@@ -158,6 +160,7 @@ func _spawn_puff_remote(world_position: Vector3) -> void:
 
 
 func _spawn_puff_local(world_position: Vector3) -> void:
+	# Local helper used by both authority and remote RPC path.
 	var puff := PUFF_SCENE.instantiate()
 	get_parent().add_child(puff)
 	puff.global_position = world_position

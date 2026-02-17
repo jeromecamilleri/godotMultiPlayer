@@ -34,6 +34,7 @@ func _process(_delta: float) -> void:
 
 func _update_countdown_label() -> void:
 	var remaining: float = _explode_at_sec - (Time.get_ticks_msec() / 1000.0)
+	# Ceil makes the visible timer read like "5..4..3.." instead of dropping early.
 	var shown_seconds: int = maxi(0, int(ceil(remaining)))
 	_countdown_label.text = str(shown_seconds)
 
@@ -94,6 +95,7 @@ func _apply_explosion_damage() -> void:
 			continue
 
 		var dir: Vector3 = to_body / dist
+		# Linear attenuation keeps blast intuitive and cheap to compute.
 		var attenuation: float = 1.0 - (dist / explosion_radius)
 		var force: Vector3 = dir * (explosion_force * attenuation)
 		var impact_point: Vector3 = global_position - body.global_position

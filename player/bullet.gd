@@ -20,7 +20,9 @@ func _ready() -> void:
 	_area.body_entered.connect(_on_body_entered)
 	_area.monitoring = true
 	_area.monitorable = false
+	# Face movement direction so visual trail/spark orientation matches travel.
 	look_at(global_position + velocity)
+	# Lifetime is distance-based to keep behavior consistent across frame rates.
 	_alive_limit = distance_limit / velocity.length()
 	_projectile_sound.pitch_scale = randfn(1.0, 0.1)
 	_projectile_sound.play()
@@ -30,6 +32,7 @@ func _process(delta: float) -> void:
 	var from := global_position
 	var to := from + velocity * delta
 
+	# Raycast between previous and next position to avoid tunneling at high speed.
 	var query := PhysicsRayQueryParameters3D.create(from, to, hit_mask)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
@@ -67,6 +70,7 @@ func _handle_collision(collider: Variant) -> void:
 	if body == shooter:
 		return
 
+	# Gameplay damage can be disabled on non-authority peers for visual-only bullets.
 	if damage_enabled and body.is_in_group("damageables") and body.has_method("damage"):
 		var impact_point := global_position - body.global_position
 		body.damage(impact_point, velocity)
