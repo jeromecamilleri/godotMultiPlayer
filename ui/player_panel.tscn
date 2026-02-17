@@ -62,7 +62,7 @@ tracks/2/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 1,
-"values": ["Player One"]
+"values": ["Player"]
 }
 tracks/3/type = "value"
 tracks/3/imported = false
@@ -240,7 +240,7 @@ theme_override_font_sizes/font_size = 24
 theme_override_styles/normal = SubResource("StyleBoxFlat_k7gc0")
 theme_override_styles/focus = SubResource("StyleBoxFlat_k7gc0")
 theme_override_styles/read_only = SubResource("StyleBoxFlat_k7gc0")
-text = "Player One"
+text = "Player"
 max_length = 20
 editable = false
 script = ExtResource("3_yfkbo")

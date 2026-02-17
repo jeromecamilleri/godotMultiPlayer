@@ -76,6 +76,8 @@ func _ready() -> void:
 	add_to_group("players")
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
+	# Give each replicated player instance a deterministic, per-peer heart color.
+	_character_skin.apply_heart_color_from_peer_id(get_multiplayer_authority())
 	DebugLog.gameplay("Player ready | peer=%d authority=%s" % [multiplayer.get_unique_id(), str(is_multiplayer_authority())])
 	_lives_overlay.visible = is_multiplayer_authority()
 	_update_lives_label()

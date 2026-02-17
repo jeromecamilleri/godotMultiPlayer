@@ -15,8 +15,18 @@ func _ready() -> void:
 		set_visible(false)
 		set_process(false)
 		return
-	
-	var id = get_multiplayer_authority()
+
+	# Use deterministic in-world labels derived from peer ids so every client
+	# sees the same "Player 1 / Player 2 / ..." mapping.
+	_update_default_player_label()
+	if multiplayer.peer_connected.is_connected(_on_peer_list_changed) == false:
+		multiplayer.peer_connected.connect(_on_peer_list_changed)
+	if multiplayer.peer_disconnected.is_connected(_on_peer_list_changed) == false:
+		multiplayer.peer_disconnected.connect(_on_peer_list_changed)
+
+	# Then subscribe to replicated user data so free-form nickname edits
+	# (e.g. via change_name action) update the floating label in real time.
+	var id := get_multiplayer_authority()
 	var _user_data = user_data_events.user_data_manager.try_get_user_data(id)
 	if is_instance_valid(_user_data):
 		retrieve_user_data(id, _user_data)
@@ -33,7 +43,38 @@ func _process(_delta: float) -> void:
 	position = camera.unproject_position(anchor_pos)
 
 
+func _on_peer_list_changed(_id: int) -> void:
+	_update_default_player_label()
+
+
+func _update_default_player_label() -> void:
+	var authority_id: int = get_multiplayer_authority()
+	var compact_index: int = _get_compact_player_index(authority_id)
+	label.text = "Player %d" % compact_index
+
+
+func _get_compact_player_index(authority_id: int) -> int:
+	# Build a stable ordering from replicated user-data ids.
+	# This excludes dedicated-server peer id and keeps labels compact (1..N players).
+	var ids := PackedInt32Array()
+	var manager := user_data_events.user_data_manager
+	if is_instance_valid(manager):
+		ids = PackedInt32Array(manager.user_datas.keys())
+		ids.append(multiplayer.get_unique_id())
+	else:
+		# Fallback if the manager is not initialized yet.
+		ids = PackedInt32Array(multiplayer.get_peers())
+		ids.append(multiplayer.get_unique_id())
+	ids.sort()
+	var position := ids.find(authority_id)
+	if position == -1:
+		# Fallback to authority id if peer list is temporarily not ready.
+		return authority_id
+	return position + 1
+
+
 func retrieve_user_data(id: int, _user_data: UserData) -> void:
+	# User-data path provides replicated nickname/speaking state for this avatar.
 	if id != get_multiplayer_authority(): return
 	
 	user_data = _user_data
@@ -44,7 +85,12 @@ func retrieve_user_data(id: int, _user_data: UserData) -> void:
 
 
 func nickname_changed(nickname: String) -> void:
-	label.text = nickname
+	var trimmed := nickname.strip_edges()
+	if trimmed.is_empty():
+		# Keep deterministic fallback if nickname has not been initialized yet.
+		_update_default_player_label()
+		return
+	label.text = trimmed
 
 
 func speaking_changed(speaking: bool) -> void:

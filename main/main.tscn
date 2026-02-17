@@ -10,17 +10,14 @@
 [ext_resource type="PackedScene" uid="uid://ciqrpd5675boy" path="res://player/player.tscn" id="5_wb2xi"]
 [ext_resource type="Script" uid="uid://c80b7p8uwqx3y" path="res://voip/microphone.gd" id="6_fgpqb"]
 [ext_resource type="Script" uid="uid://bxld3dpqvf1jf" path="res://main/fall_checker.gd" id="9_vk48u"]
-[ext_resource type="PackedScene" uid="uid://bcq3e3y5hlap5" path="res://main/static_body_3d_bomb.tscn" id="11_bsumw"]
 [ext_resource type="PackedScene" uid="uid://bilg3cgxxv2h5" path="res://addons/kenney_platformer_kit/block.glb" id="11_n3o0a"]
 [ext_resource type="Script" uid="uid://fi1th2ns0hx2" path="res://main/rigid_body_3d.gd" id="12_fwcvl"]
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
 [ext_resource type="PackedScene" uid="uid://rn45gytkk6tv" path="res://enemies/bee_bot.tscn" id="14_73k8k"]
-[ext_resource type="Material" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
+[ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
-
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bsumw"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_fwcvl"]
 
@@ -101,15 +98,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.006908, 4, 10)
 [node name="blockSlope3" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="30" unique_id=1674956779 instance=ExtResource("12_s758e")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -17.988014, 7.96714, 10)
 
-[node name="StaticBool3DBomb" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="0" unique_id=1209369374 instance=ExtResource("11_bsumw")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.054689, 4.4073243, 0)
-physics_material_override = SubResource("PhysicsMaterial_bsumw")
-
-[node name="tree2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="7" unique_id=1396597241]
+[node name="tree2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="6" unique_id=1396597241]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, 3.9642553)
 
-[node name="RigidCube3D" type="RigidBody3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=1479604479]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4616814, 0)
+[node name="RigidCube3D" type="RigidBody3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=1479604479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4616814, 2.8849325)
 physics_material_override = SubResource("PhysicsMaterial_fwcvl")
 script = ExtResource("12_fwcvl")
 
@@ -126,27 +119,66 @@ delta_interval = 0.033
 replication_config = SubResource("SceneReplicationConfig_fwcvl")
 visibility_update_mode = 1
 
-[node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="41" unique_id=55966136 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
 
-[node name="Tree1Geo3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="42" unique_id=686525054 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="41" unique_id=686525054 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -11.240726, 4.02946, 7.372601)
 
-[node name="Tree1Geo4" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="43" unique_id=269579418 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo4" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="42" unique_id=269579418 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -8.722778, 4.02946, 7.372601)
 
-[node name="Tree1Geo2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=1115235982 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="43" unique_id=1115235982 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.02946, 2.7943625)
 
-[node name="bee_bot" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=1866323019 instance=ExtResource("14_73k8k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.038338, 5.3034263, 3.8952541)
+[node name="bee_bot" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=1866323019 instance=ExtResource("14_73k8k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.874099, 5.3034263, 11.155882)
 patrol_circle = true
 
-[node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=602239731]
-transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, -1.5015717, 0)
+[node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
+transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, 1.3171921, 0)
 transparency = 0.87
 mesh = SubResource("PlaneMesh_n3o0a")
 surface_material_override/0 = ExtResource("15_wat01")
+
+[node name="RigidCube3D2" type="RigidBody3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=2114380815]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4616814, 1.3951561)
+physics_material_override = SubResource("PhysicsMaterial_fwcvl")
+script = ExtResource("12_fwcvl")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/RigidCube3D2" unique_id=813408721]
+mesh = SubResource("BoxMesh_na0o7")
+surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/RigidCube3D2" unique_id=2034329681]
+shape = SubResource("BoxShape3D_bsumw")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/RigidCube3D2" unique_id=948708029]
+replication_interval = 0.033
+delta_interval = 0.033
+replication_config = SubResource("SceneReplicationConfig_fwcvl")
+visibility_update_mode = 1
+
+[node name="RigidCube3D3" type="RigidBody3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="47" unique_id=801372959]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4616814, 0)
+physics_material_override = SubResource("PhysicsMaterial_fwcvl")
+script = ExtResource("12_fwcvl")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/RigidCube3D3" unique_id=390983070]
+mesh = SubResource("BoxMesh_na0o7")
+surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/RigidCube3D3" unique_id=392662815]
+shape = SubResource("BoxShape3D_bsumw")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/RigidCube3D3" unique_id=600010692]
+replication_interval = 0.033
+delta_interval = 0.033
+replication_config = SubResource("SceneReplicationConfig_fwcvl")
+visibility_update_mode = 1
+
+[node name="Portal" parent="HubLevel/Portals" parent_id_path=PackedInt32Array(1150027112, 515313060) index="0" unique_id=878852613]
+transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.04313103, -23.057299, 12, 10.07815)
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]
