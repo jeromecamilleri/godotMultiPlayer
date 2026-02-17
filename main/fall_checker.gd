@@ -17,6 +17,7 @@ var last_fall_ms_by_player: Dictionary = {} # {Peer ID: timestamp}
 func _ready() -> void:
 	timer = Timer.new()
 	add_child(timer)
+	# Polling-based check is enough here and keeps fall handling centralized.
 	timer.start(0.25)
 	timer.timeout.connect(check_fallen)
 	
@@ -48,6 +49,7 @@ func player_despawned(id: int) -> void:
 
 
 func check_fallen() -> void:
+	# Server is the single source of truth for lives/respawn state.
 	if not multiplayer.is_server():
 		return
 	var now_ms: int = Time.get_ticks_msec()
@@ -56,6 +58,7 @@ func check_fallen() -> void:
 		if player.global_position.y >= fall_height:
 			continue
 		var last_fall_ms: int = int(last_fall_ms_by_player.get(id, 0))
+		# Cooldown avoids multiple life losses before respawn settles.
 		if now_ms - last_fall_ms < 800:
 			continue
 		last_fall_ms_by_player[id] = now_ms
@@ -88,6 +91,7 @@ func _emit_lives_status() -> void:
 
 
 func _sync_lives_to_player(player: Player, id: int, lives: int) -> void:
+	# Update local peer directly, remote peers through targeted RPC.
 	if id == multiplayer.get_unique_id():
 		player.set_lives(lives)
 	else:

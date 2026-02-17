@@ -16,6 +16,7 @@ var _exploded := false
 
 func _ready() -> void:
 	DebugLog.gameplay("Bomb ready at %s" % str(global_position))
+	# Use an absolute explode timestamp so countdown stays deterministic per instance.
 	_explode_at_sec = Time.get_ticks_msec() / 1000.0 + fuse_seconds
 	_update_countdown_label()
 
@@ -44,7 +45,7 @@ func _explode() -> void:
 
 	_spawn_puff()
 
-	# The server is authoritative for gameplay damage.
+	# Visual explosion can be local; gameplay damage stays server-authoritative.
 	if multiplayer.is_server():
 		_apply_explosion_damage()
 
@@ -58,6 +59,7 @@ func _spawn_puff() -> void:
 
 
 func _apply_explosion_damage() -> void:
+	# Query a sphere volume around the bomb and apply radial force-based damage.
 	var sphere := SphereShape3D.new()
 	sphere.radius = explosion_radius
 
@@ -78,6 +80,7 @@ func _apply_explosion_damage() -> void:
 
 		var body := collider as Node3D
 		var body_id := body.get_instance_id()
+		# A body may have multiple colliders; process each body only once.
 		if processed.has(body_id):
 			continue
 		processed[body_id] = true

@@ -34,6 +34,7 @@ func _ready() -> void:
 	_patrol_center = global_position
 	_patrol_angle = randf() * TAU
 	_bee_root.play_idle()
+	# Authority pushes state to newcomers; non-authority requests state after connect.
 	if is_multiplayer_authority():
 		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
@@ -75,6 +76,7 @@ func _physics_process(delta: float) -> void:
 
 
 func damage(impact_point: Vector3, force: Vector3) -> void:
+	# Route all gameplay damage decisions to the node authority (server).
 	var authority_id: int = get_multiplayer_authority()
 	if multiplayer.get_unique_id() == authority_id:
 		_apply_damage(impact_point, force)
@@ -96,6 +98,7 @@ func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
 		return
 
 	var clamped_force: Vector3 = force.limit_length(3.0)
+	# Start visuals for everyone immediately; authority keeps gameplay ownership.
 	_start_death_visuals.rpc(impact_point, clamped_force)
 
 	await get_tree().create_timer(2).timeout
@@ -109,6 +112,7 @@ func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
 		get_parent().add_child(coin)
 		coin.global_position = global_position
 		coin.spawn()
+	# Finalize dead state on all peers, including future late-join state sync.
 	_finalize_death.rpc()
 
 
@@ -161,6 +165,7 @@ func _spawn_puff_local(world_position: Vector3) -> void:
 
 @rpc("any_peer", "call_local", "reliable")
 func _request_alive_state() -> void:
+	# Client asks authority for the current alive/removed state.
 	if not is_multiplayer_authority():
 		return
 	var peer_id: int = multiplayer.get_remote_sender_id()
@@ -186,7 +191,7 @@ func _request_alive_state_when_connected() -> void:
 			multiplayer.connected_to_server.connect(_on_connected_to_server_request_alive_state, CONNECT_ONE_SHOT)
 		return
 
-	# Give networking one frame to settle, then request.
+	# Wait one frame so RPC routing is stable after connection setup.
 	call_deferred("_request_alive_state_from_authority")
 
 
@@ -204,6 +209,7 @@ func _request_alive_state_from_authority() -> void:
 func _on_peer_connected(id: int) -> void:
 	if not is_multiplayer_authority():
 		return
+	# Push current state to late joiners to avoid stale local bee instances.
 	_sync_alive_state.rpc_id(id, _alive, _removed)
 
 

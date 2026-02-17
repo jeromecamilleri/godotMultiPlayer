@@ -5,6 +5,7 @@ const BEE_SCENE: PackedScene = preload("res://enemies/bee_bot.tscn")
 
 
 func _spawn_test_world() -> Node3D:
+	# Minimal isolated world for deterministic integration-like tests.
 	var world := Node3D.new()
 	add_child_autofree(world)
 	await wait_process_frames(2)
@@ -23,6 +24,7 @@ func test_bomb_explodes_after_fuse_timer() -> void:
 
 	var countdown_label: Label3D = bomb.get_node("CountdownLabel3D") as Label3D
 	assert_not_null(countdown_label)
+	# The countdown is part of the gameplay feedback and must be visible.
 	assert_eq("1", countdown_label.text, "Le compte a rebours doit etre visible")
 
 	await wait_seconds(0.4)
@@ -47,7 +49,7 @@ func test_bomb_explosion_damage_kills_bee() -> void:
 	bomb.global_position = Vector3.ZERO
 	await wait_process_frames(1)
 
-	# In GUT offline context, we call damage directly to validate collision logic.
+	# In GUT offline context we call the damage path directly (no ENet authority loop).
 	bomb._apply_explosion_damage()
 	await wait_seconds(2.4)
 	await wait_process_frames(2)

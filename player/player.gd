@@ -80,6 +80,7 @@ func _ready() -> void:
 	_lives_overlay.visible = is_multiplayer_authority()
 	_update_lives_label()
 	_death_overlay.visible = false
+	# Only the authority owns camera/input simulation; remotes are interpolation-only.
 	if is_multiplayer_authority():
 		_camera_controller.setup(self)
 	else:
@@ -92,6 +93,7 @@ func place_bomb() -> void:
 	DebugLog.gameplay("place_bomb called, authority=%s" % str(is_multiplayer_authority()))
 	if is_multiplayer_authority():
 		DebugLog.gameplay("spawning bomb via RPC")
+		# Compute once on authority so all peers spawn the bomb at the same position.
 		var bomb_pos: Vector3 = global_position + transform.basis.z * 1.0
 		spawn_bomb.rpc(bomb_pos)
 
@@ -104,6 +106,7 @@ func spawn_bomb(pos: Vector3):
 	DebugLog.gameplay("Bomb spawned at %s" % str(bomb.global_position))
 	
 func _physics_process(delta: float) -> void:
+	# Remote players never run gameplay physics locally.
 	if not is_multiplayer_authority(): interpolate_client(delta); return
 	if _is_dead:
 		_move_direction = Vector3.ZERO
@@ -183,7 +186,7 @@ func _physics_process(delta: float) -> void:
 		global_position += get_wall_normal() * 0.1
 	
 	set_sync_properties()
-		
+	
 	for i in get_slide_collision_count():
 		var collision = get_slide_collision(i)
 		if collision.get_collider() is RigidBody3D:
@@ -191,6 +194,7 @@ func _physics_process(delta: float) -> void:
 			var push_dir: Vector3 = -collision.get_normal()
 			var impulse: Vector3 = push_dir * 1.5
 			var body_authority: int = body.get_multiplayer_authority()
+			# Push requests must be executed by the rigidbody authority.
 			if body.has_method("request_push"):
 				if body_authority == multiplayer.get_unique_id():
 					body.request_push(impulse)
@@ -269,6 +273,7 @@ func _orient_character_to_direction(direction: Vector3, delta: float) -> void:
 func respawn(spawn_position: Vector3) -> void:
 	global_position = spawn_position
 	velocity = Vector3.ZERO
+	# Local authority reattaches gameplay camera when returning from dead/spectator.
 	if is_multiplayer_authority() and _is_dead:
 		_camera_controller.exit_spectator(self)
 
@@ -288,6 +293,7 @@ func set_dead_state(dead: bool) -> void:
 	elif not dead and not is_in_group("players"):
 		add_to_group("players")
 	if is_multiplayer_authority():
+		# Spectator mode is local-only UX; dead state itself is replicated.
 		_camera_controller.set_spectator_mode(dead)
 		if not dead:
 			_camera_controller.exit_spectator(self)
@@ -321,6 +327,7 @@ func _collect_coin() -> void:
 
 
 func damage(_impact_point: Vector3, force: Vector3) -> void:
+	# Enemy hit application is authority-owned to avoid double damage across peers.
 	var authority_id := get_multiplayer_authority()
 	if multiplayer.get_unique_id() == authority_id:
 		_apply_enemy_hit(force)

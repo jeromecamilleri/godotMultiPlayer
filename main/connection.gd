@@ -16,6 +16,7 @@ var _status_timer: Timer
 
 
 func _ready() -> void:
+	# Dedicated server mode is selected by command-line argument.
 	if Connection.is_server(): start_server()
 	connected.connect(func(): Connection.is_peer_connected = true)
 	disconnected.connect(func(): Connection.is_peer_connected = false)
@@ -41,6 +42,7 @@ func start_server() -> void:
 		connected.emit()
 	
 	multiplayer.multiplayer_peer = peer
+	# Server tracks joins/leaves to drive in-game status UI.
 	multiplayer.peer_connected.connect(peer_connected)
 	multiplayer.peer_disconnected.connect(peer_disconnected)
 	_start_server_status_output()
@@ -61,6 +63,7 @@ func start_client() -> void:
 	else: DebugLog.net("Connecting to server...")
 	
 	multiplayer.multiplayer_peer = peer
+	# Client listens for successful connect and failure/disconnect paths.
 	multiplayer.connected_to_server.connect(connected_to_server)
 	multiplayer.server_disconnected.connect(server_connection_failure)
 	multiplayer.connection_failed.connect(server_connection_failure)
@@ -77,7 +80,7 @@ func shutdown_server() -> void:
 	if not multiplayer.is_server():
 		disconnect_peer()
 		return
-	# Ask connected clients to close their network session before server shutdown.
+	# Ask clients to close first so they cleanly leave game state and UI.
 	rpc("_rpc_shutdown_client_session")
 	await get_tree().create_timer(0.25).timeout
 	disconnect_peer()

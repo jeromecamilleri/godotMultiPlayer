@@ -9,6 +9,7 @@ signal player_despawned(id: int)
 
 
 func _ready() -> void:
+	# MultiplayerSpawner uses this callback to build instances from spawn payload.
 	spawn_function = custom_spawn
 	multiplayer.peer_connected.connect(create_player)
 	multiplayer.peer_disconnected.connect(destroy_player)
@@ -17,6 +18,7 @@ func _ready() -> void:
 
 
 func create_player(id: int):
+	# Only server can create replicated player instances.
 	if not multiplayer.is_server(): return
 	
 	var spawn_position = spawn_points.get_spawn_position()
@@ -25,6 +27,7 @@ func create_player(id: int):
 
 
 func destroy_player(id: int):
+	# Only server can despawn replicated player instances.
 	if not multiplayer.is_server(): return
 	get_node(spawn_path).get_node(str(id)).queue_free()
 	
@@ -47,6 +50,7 @@ func custom_spawn(vars) -> Node:
 	var pos = vars[1]
 	
 	var p: Player = player_scene.instantiate()
+	# Player authority always matches peer id for input/gameplay ownership.
 	p.set_multiplayer_authority(id)
 	p.call_deferred("set_position", pos)
 	p.name = str(id)

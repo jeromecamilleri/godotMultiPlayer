@@ -22,6 +22,7 @@ var _has_offset := false
 
 
 func _ready() -> void:
+	# Remote proxies do not process local camera/input logic.
 	if not is_multiplayer_authority():
 		set_process_input(false)
 		set_physics_process(false)
@@ -52,6 +53,7 @@ func _physics_process(delta: float) -> void:
 	transform.basis = Basis.from_euler(_euler_rotation)
 
 	if _spectator_mode:
+		# Free-fly controls used while the local player is dead.
 		var raw_input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 		var move_dir := Vector3.ZERO
 		move_dir += -global_transform.basis.x * raw_input.x
@@ -92,6 +94,7 @@ func _physics_process(delta: float) -> void:
 
 func setup(anchor: CharacterBody3D) -> void:
 	_anchor = anchor
+	# Keep a stable third-person offset so respawns can restore camera quickly.
 	if not _has_offset:
 		_offset = global_transform.origin - anchor.global_transform.origin
 		_has_offset = true
@@ -102,6 +105,7 @@ func setup(anchor: CharacterBody3D) -> void:
 func set_spectator_mode(enabled: bool) -> void:
 	_spectator_mode = enabled
 	if enabled:
+		# Detach from character so camera movement is fully manual.
 		_anchor = null
 
 
