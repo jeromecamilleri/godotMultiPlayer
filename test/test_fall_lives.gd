@@ -10,6 +10,7 @@ class MockPlayerSpawner:
 
 
 func _setup_fall_context() -> Dictionary:
+	# Build a real main scene context while stubbing only respawn side effects.
 	var main_scene: PackedScene = preload("res://main/main.tscn")
 	var main_instance: Node = main_scene.instantiate()
 	add_child_autofree(main_instance)
@@ -47,6 +48,7 @@ func _setup_fall_context() -> Dictionary:
 
 
 func _simulate_fall(fall_checker: FallChecker, player: Player) -> void:
+	# Force player below threshold, then trigger the checker once.
 	player.global_position = Vector3(0.0, fall_checker.fall_height - 5.0, 0.0)
 	fall_checker.check_fallen()
 	await wait_process_frames(1)
@@ -82,7 +84,7 @@ func test_zero_lives_marks_dead_and_no_more_decrement() -> void:
 	assert_false(player.is_in_group("players"), "A 0 vie le player doit etre marque comme mort")
 	assert_eq(1, mock_spawner.respawned_ids.size(), "Un respawn doit etre demande en atteignant 0 vie")
 
-	# Avoid cooldown side effects so we test only the zero-life branch.
+	# Reset cooldown to isolate the "already at zero lives" branch.
 	fall_checker.last_fall_ms_by_player[player_id] = 0
 	await _simulate_fall(fall_checker, player)
 

@@ -42,6 +42,7 @@ class TestUI:
 
 
 func _build_ui_context() -> Dictionary:
+	# Build only the nodes required by ui.gd and replace network dependencies with mocks.
 	var root := Node.new()
 	add_child_autofree(root)
 
@@ -80,6 +81,7 @@ func _build_ui_context() -> Dictionary:
 
 
 func _escape_event() -> InputEventKey:
+	# Synthetic ESC event used to drive _unhandled_input deterministically.
 	var event := InputEventKey.new()
 	event.pressed = true
 	event.keycode = KEY_ESCAPE

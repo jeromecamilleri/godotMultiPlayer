@@ -2,6 +2,7 @@ extends GutTest
 
 
 func test_bee_bot_scene_loads_and_exposes_damage() -> void:
+	# Smoke test: scene is loadable and exposes the common damage entry point.
 	var bee_scene: PackedScene = preload("res://enemies/bee_bot.tscn")
 	assert_not_null(bee_scene, "La scene bee_bot.tscn doit exister")
 
@@ -15,6 +16,7 @@ func test_bee_bot_scene_loads_and_exposes_damage() -> void:
 
 
 func test_bee_bot_damage_marks_dead_then_finalizes_removed_state() -> void:
+	# Integration-like check for the full death flow from damage to final dead state.
 	var bee_scene: PackedScene = preload("res://enemies/bee_bot.tscn")
 	var test_root := Node3D.new()
 	add_child_autofree(test_root)
