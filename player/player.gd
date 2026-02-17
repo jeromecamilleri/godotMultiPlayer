@@ -92,14 +92,15 @@ func place_bomb() -> void:
 	DebugLog.gameplay("place_bomb called, authority=%s" % str(is_multiplayer_authority()))
 	if is_multiplayer_authority():
 		DebugLog.gameplay("spawning bomb via RPC")
-		spawn_bomb.rpc(global_position)
+		var bomb_pos: Vector3 = global_position + transform.basis.z * 1.0
+		spawn_bomb.rpc(bomb_pos)
 
 @rpc("any_peer", "call_local", "reliable")
 func spawn_bomb(pos: Vector3):
 	DebugLog.gameplay("Bomb creating")
 	var bomb = BombScene.instantiate()
 	get_parent().add_child(bomb)
-	bomb.global_position = pos + transform.basis.z * 1.0
+	bomb.global_position = pos
 	DebugLog.gameplay("Bomb spawned at %s" % str(bomb.global_position))
 	
 func _physics_process(delta: float) -> void:

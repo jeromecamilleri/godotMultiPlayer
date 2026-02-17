@@ -22,6 +22,7 @@ const PUFF_SCENE := preload("smoke_puff/smoke_puff.tscn")
 @onready var _shoot_count := 0.0
 @onready var _target: Node3D = null
 @onready var _alive: bool = true
+@onready var _removed: bool = false
 @onready var _patrol_center: Vector3 = global_position
 @onready var _patrol_angle := 0.0
 @onready var _remote_target_transform: Transform3D = global_transform
@@ -33,9 +34,17 @@ func _ready() -> void:
 	_patrol_center = global_position
 	_patrol_angle = randf() * TAU
 	_bee_root.play_idle()
+	if is_multiplayer_authority():
+		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
+			multiplayer.peer_connected.connect(_on_peer_connected)
+	else:
+		_request_alive_state_when_connected()
 
 
 func _physics_process(delta: float) -> void:
+	if _removed:
+		return
+
 	if not is_multiplayer_authority():
 		# Clients only render replicated movement from authority.
 		global_transform = global_transform.interpolate_with(_remote_target_transform, 0.35)
@@ -100,17 +109,29 @@ func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
 		get_parent().add_child(coin)
 		coin.global_position = global_position
 		coin.spawn()
-	_remove_for_all.rpc()
+	_finalize_death.rpc()
 
 
 @rpc("authority", "call_local", "reliable")
-func _remove_for_all() -> void:
-	queue_free()
+func _finalize_death() -> void:
+	if _removed:
+		return
+	_removed = true
+	visible = false
+	set_process(false)
+	set_physics_process(false)
+	_detection_area.monitoring = false
+	_detection_area.monitorable = false
+	_death_mesh_collider.disabled = true
+	collision_layer = 0
+	collision_mask = 0
+	gravity_scale = 0.0
+	sleeping = true
 
 
 @rpc("authority", "call_local", "reliable")
 func _start_death_visuals(impact_point: Vector3, clamped_force: Vector3) -> void:
-	if not _alive:
+	if not _alive or _removed:
 		return
 	_alive = false
 	_target = null
@@ -136,6 +157,54 @@ func _spawn_puff_local(world_position: Vector3) -> void:
 	var puff := PUFF_SCENE.instantiate()
 	get_parent().add_child(puff)
 	puff.global_position = world_position
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _request_alive_state() -> void:
+	if not is_multiplayer_authority():
+		return
+	var peer_id: int = multiplayer.get_remote_sender_id()
+	if peer_id <= 0:
+		return
+	_sync_alive_state.rpc_id(peer_id, _alive, _removed)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_alive_state(is_alive: bool, is_removed: bool) -> void:
+	_alive = is_alive
+	if is_removed:
+		_finalize_death()
+
+
+func _request_alive_state_when_connected() -> void:
+	var authority_id: int = get_multiplayer_authority()
+	if authority_id <= 0 or authority_id == multiplayer.get_unique_id():
+		return
+
+	if multiplayer.multiplayer_peer == null:
+		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_alive_state):
+			multiplayer.connected_to_server.connect(_on_connected_to_server_request_alive_state, CONNECT_ONE_SHOT)
+		return
+
+	# Give networking one frame to settle, then request.
+	call_deferred("_request_alive_state_from_authority")
+
+
+func _on_connected_to_server_request_alive_state() -> void:
+	_request_alive_state_from_authority()
+
+
+func _request_alive_state_from_authority() -> void:
+	var authority_id: int = get_multiplayer_authority()
+	if authority_id <= 0 or authority_id == multiplayer.get_unique_id():
+		return
+	_request_alive_state.rpc_id(authority_id)
+
+
+func _on_peer_connected(id: int) -> void:
+	if not is_multiplayer_authority():
+		return
+	_sync_alive_state.rpc_id(id, _alive, _removed)
 
 
 func _update_target_from_overlaps() -> void:

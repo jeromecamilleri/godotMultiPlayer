@@ -31,7 +31,8 @@ func _setup_fall_context() -> Dictionary:
 
 	var player_id: int = 1
 	player.name = str(player_id)
-	player.set_multiplayer_authority(player_id)
+	# Avoid local-authority camera grab side effects ("NO GRAB") in test runtime.
+	player.set_multiplayer_authority(2)
 	players_root.add_child(player)
 	await wait_process_frames(2)
 
