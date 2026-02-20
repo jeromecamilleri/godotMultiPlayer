@@ -15,10 +15,7 @@ func _update_mass_for_player_count() -> void:
 
 
 func _ready() -> void:
-	set_multiplayer_authority(server_peer_id)
 	# Only the authority simulates physics; clients receive replicated state.
-	freeze = not is_multiplayer_authority()
-	sleeping = not is_multiplayer_authority()
 	set_multiplayer_authority(server_peer_id)
 	freeze = not is_multiplayer_authority()
 	sleeping = not is_multiplayer_authority()
