@@ -27,7 +27,11 @@ func _ready() -> void:
 	# Then subscribe to replicated user data so free-form nickname edits
 	# (e.g. via change_name action) update the floating label in real time.
 	var id := get_multiplayer_authority()
-	var _user_data = user_data_events.user_data_manager.try_get_user_data(id)
+	var manager := user_data_events.user_data_manager
+	if not is_instance_valid(manager):
+		# User data manager may not be initialized yet in some test/minimal contexts.
+		return
+	var _user_data = manager.try_get_user_data(id)
 	if is_instance_valid(_user_data):
 		retrieve_user_data(id, _user_data)
 	else:

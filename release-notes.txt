@@ -1,0 +1,42 @@
+2026-02-20
+
+Major changes
+- Match flow is now centralized in `main/match_director.gd` with explicit states:
+  `LOBBY`, `RUNNING`, `WON`, `LOST`, `RESETTING`.
+- MatchDirector now acts as the single server-side source of truth for:
+  score, lives, deaths, and shared objective progress.
+- Added/solidified event-style API on MatchDirector:
+  `register_player_spawn`, `report_player_fell`, `report_enemy_killed`,
+  `report_objective_progress`, `request_respawn`, `set_player_lives`.
+- MatchDirector respawn permission is now enforced centrally via `request_respawn`.
+- Match snapshot broadcasting remains centralized through one RPC
+  (`_receive_snapshot`) consumed by UI.
+
+Gameplay script refactor
+- `main/fall_checker.gd` now reports falls to MatchDirector instead of owning
+  its own independent life counters.
+- `enemies/bee_bot.gd` now reports kills through
+  `report_enemy_killed("bee_bot", killer_id)` instead of direct score mutation.
+- `player/player.gd` now synchronizes enemy-hit life changes back into
+  MatchDirector to keep counters coherent.
+- `ui/ui.gd` now reads connection info + MatchDirector snapshot only
+  (removed separate FallChecker lives feed).
+
+Tests
+- Extended `test/test_match_director.gd` with life-loss and enemy-kill objective tests.
+- Updated `test/test_fall_lives.gd` to validate FallChecker + MatchDirector integration.
+- Full GUT suite currently passes in headless run (20/20).
+
+Bugfix update
+- Fixed a life-counter rebound where bomb damage could reduce player lives by 1 and
+  then immediately restore it due to stale server-side lives state.
+- Root cause: damage was applied on node authority peer, while MatchDirector lives
+  remained unchanged on server; FallChecker later re-synced stale lives back.
+- `player/player.gd` enemy damage flow is now server-authoritative and updates both:
+  1) MatchDirector (`set_player_lives`) and
+  2) owning player peer (`set_lives` sync).
+- Extended integration coverage in
+  `test/integration/test_bomb_player_integration.gd` to assert:
+  - bomb hit decrements player lives,
+  - director lives are updated identically,
+  - FallChecker sync does not cause lives to bounce back.

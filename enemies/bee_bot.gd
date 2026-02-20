@@ -76,23 +76,23 @@ func _physics_process(delta: float) -> void:
 	_sync_bee_transform.rpc(global_transform)
 
 
-func damage(impact_point: Vector3, force: Vector3) -> void:
+func damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int = -1) -> void:
 	# Route all gameplay damage decisions to the node authority (server).
 	var authority_id: int = get_multiplayer_authority()
 	if multiplayer.get_unique_id() == authority_id:
-		_apply_damage(impact_point, force)
+		_apply_damage(impact_point, force, attacker_peer_id)
 	else:
-		_request_damage.rpc_id(authority_id, impact_point, force)
+		_request_damage.rpc_id(authority_id, impact_point, force, attacker_peer_id)
 
 
 @rpc("any_peer", "call_local", "reliable")
-func _request_damage(impact_point: Vector3, force: Vector3) -> void:
+func _request_damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int = -1) -> void:
 	if not is_multiplayer_authority():
 		return
-	_apply_damage(impact_point, force)
+	_apply_damage(impact_point, force, attacker_peer_id)
 
 
-func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
+func _apply_damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int = -1) -> void:
 	if not is_multiplayer_authority():
 		return
 	if not _alive:
@@ -101,6 +101,7 @@ func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
 	var clamped_force: Vector3 = force.limit_length(3.0)
 	# Start visuals for everyone immediately; authority keeps gameplay ownership.
 	_start_death_visuals.rpc(impact_point, clamped_force)
+	_report_score_for_kill(attacker_peer_id)
 
 	await get_tree().create_timer(2).timeout
 
@@ -115,6 +116,19 @@ func _apply_damage(impact_point: Vector3, force: Vector3) -> void:
 		coin.spawn()
 	# Finalize dead state on all peers, including future late-join state sync.
 	_finalize_death.rpc()
+
+
+func _report_score_for_kill(attacker_peer_id: int) -> void:
+	# Route enemy-death bookkeeping through MatchDirector's event API.
+	var director := _get_match_director_or_null()
+	if not is_instance_valid(director):
+		return
+	if director.has_method("report_enemy_killed"):
+		director.report_enemy_killed("bee_bot", attacker_peer_id)
+
+
+func _get_match_director_or_null() -> Node:
+	return get_tree().get_first_node_in_group("match_director")
 
 
 @rpc("authority", "call_local", "reliable")

@@ -6,17 +6,20 @@ signal connect_client
 @export var hide_ui_and_connect: bool
 @onready var _server_status_label: Label = $InGameUI/ServerStatus
 @onready var _connection: Connection = get_node("../Connection") as Connection
-@onready var _fall_checker: FallChecker = get_node("../FallChecker") as FallChecker
+@onready var _match_director: Node = get_node_or_null("../MatchDirector")
 
 var _connection_status_text := "SERVER STATUS\nreason: startup\nclients_connected: 0\nclient_ids: []"
-var _lives_status_text := "LIVES"
+var _match_status_text := "MATCH\nstate: LOBBY\ntime_left: 0.0s\nplayers: 0\nscore:"
 var _is_exiting_client := false
 var _is_exiting_server := false
 
 
 func _ready():
 	_connection.server_status_changed.connect(_on_server_status_changed)
-	_fall_checker.lives_status_changed.connect(_on_lives_status_changed)
+	if is_instance_valid(_match_director) and _match_director.has_signal("snapshot_changed"):
+		_match_director.snapshot_changed.connect(_on_match_snapshot_changed)
+		if _match_director.has_method("get_snapshot_text"):
+			_match_status_text = _match_director.get_snapshot_text()
 	_update_server_status_label()
 	_refresh_server_status_visibility()
 
@@ -78,8 +81,8 @@ func _on_server_status_changed(status_text: String) -> void:
 	_refresh_server_status_visibility()
 
 
-func _on_lives_status_changed(status_text: String) -> void:
-	_lives_status_text = status_text
+func _on_match_snapshot_changed(status_text: String) -> void:
+	_match_status_text = status_text
 	_update_server_status_label()
 	_refresh_server_status_visibility()
 
@@ -89,7 +92,7 @@ func _refresh_server_status_visibility() -> void:
 
 
 func _update_server_status_label() -> void:
-	_server_status_label.text = _connection_status_text + "\n\n" + _lives_status_text
+	_server_status_label.text = _connection_status_text + "\n\n" + _match_status_text
 
 
 func _exit_client() -> void:

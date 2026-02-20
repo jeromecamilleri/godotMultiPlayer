@@ -7,6 +7,7 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 @export var explosion_radius: float = 4.0
 @export var explosion_force: float = 9.0
 @export var explosion_mask: int = 2147483647
+@export var owner_peer_id: int = -1
 
 @onready var _countdown_label: Label3D = $CountdownLabel3D
 
@@ -99,4 +100,4 @@ func _apply_explosion_damage() -> void:
 		var attenuation: float = 1.0 - (dist / explosion_radius)
 		var force: Vector3 = dir * (explosion_force * attenuation)
 		var impact_point: Vector3 = global_position - body.global_position
-		body.damage(impact_point, force)
+		body.damage(impact_point, force, owner_peer_id)

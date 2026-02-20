@@ -104,6 +104,9 @@ func spawn_bomb(pos: Vector3):
 	DebugLog.gameplay("Bomb creating")
 	var bomb = BombScene.instantiate()
 	get_parent().add_child(bomb)
+	# Carry owner id so explosion kills can be attributed in match scoring.
+	if "owner_peer_id" in bomb:
+		bomb.owner_peer_id = get_multiplayer_authority()
 	bomb.global_position = pos
 	DebugLog.gameplay("Bomb spawned at %s" % str(bomb.global_position))
 	
@@ -313,6 +316,11 @@ func _update_lives_label() -> void:
 	_lives_label.text = "Vies: %d" % _lives
 
 
+func get_lives() -> int:
+	# Expose authoritative lives value for server-side game systems.
+	return _lives
+
+
 func collect_coin() -> void:
 	var authority_id := get_multiplayer_authority()
 	if multiplayer.get_unique_id() == authority_id:
@@ -328,22 +336,23 @@ func _collect_coin() -> void:
 	_coins += 1
 
 
-func damage(_impact_point: Vector3, force: Vector3) -> void:
-	# Enemy hit application is authority-owned to avoid double damage across peers.
-	var authority_id := get_multiplayer_authority()
-	if multiplayer.get_unique_id() == authority_id:
-		_apply_enemy_hit(force)
+func damage(_impact_point: Vector3, force: Vector3, _attacker_peer_id: int = -1) -> void:
+	# Enemy hit must be server-authoritative so MatchDirector stays in sync.
+	if multiplayer.is_server():
+		_apply_enemy_hit_server(force)
 	else:
-		apply_enemy_hit.rpc_id(authority_id, force)
+		_request_enemy_hit_on_server.rpc_id(1, force)
 
 
-@rpc("any_peer", "call_local", "reliable")
-func apply_enemy_hit(force: Vector3) -> void:
-	_apply_enemy_hit(force)
+@rpc("any_peer", "call_remote", "reliable")
+func _request_enemy_hit_on_server(force: Vector3) -> void:
+	if not multiplayer.is_server():
+		return
+	_apply_enemy_hit_server(force)
 
 
-func _apply_enemy_hit(force: Vector3) -> void:
-	if not is_multiplayer_authority():
+func _apply_enemy_hit_server(force: Vector3) -> void:
+	if not multiplayer.is_server():
 		return
 	if _is_dead:
 		return
@@ -363,11 +372,30 @@ func _apply_enemy_hit(force: Vector3) -> void:
 	_hit_sound.play()
 
 	_lives = maxi(0, _lives - ENEMY_HIT_DAMAGE)
+	_sync_lives_with_match_director()
 	_update_lives_label()
-	set_lives.rpc(_lives)
+	_sync_lives_to_owner(_lives)
 	if _lives <= 0:
 		set_dead_state.rpc(true)
 
 
 func is_targetable() -> bool:
 	return not _is_dead
+
+
+func _sync_lives_with_match_director() -> void:
+	# Keep MatchDirector as the single source of truth for life/death counters.
+	if not multiplayer.is_server():
+		return
+	var director := get_tree().get_first_node_in_group("match_director")
+	if is_instance_valid(director) and director.has_method("set_player_lives"):
+		director.set_player_lives(get_multiplayer_authority(), _lives, "enemy_hit")
+
+
+func _sync_lives_to_owner(lives: int) -> void:
+	# Send updated lives to the owning peer; host/local authority updates directly.
+	var owner_peer_id: int = get_multiplayer_authority()
+	if owner_peer_id == multiplayer.get_unique_id():
+		set_lives(lives)
+	else:
+		set_lives.rpc_id(owner_peer_id, lives)

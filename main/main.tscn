@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://ciqrpd5675boy" path="res://player/player.tscn" id="5_wb2xi"]
 [ext_resource type="Script" uid="uid://c80b7p8uwqx3y" path="res://voip/microphone.gd" id="6_fgpqb"]
 [ext_resource type="Script" uid="uid://bxld3dpqvf1jf" path="res://main/fall_checker.gd" id="9_vk48u"]
+[ext_resource type="Script" path="res://main/match_director.gd" id="10_md001"]
 [ext_resource type="PackedScene" uid="uid://bilg3cgxxv2h5" path="res://addons/kenney_platformer_kit/block.glb" id="11_n3o0a"]
 [ext_resource type="Script" uid="uid://fi1th2ns0hx2" path="res://main/rigid_body_3d.gd" id="12_fwcvl"]
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
@@ -76,9 +77,14 @@ script = ExtResource("4_edyrb")
 player_scene = ExtResource("5_wb2xi")
 spawn_points = NodePath("../HubLevel/SpawnPoints")
 
-[node name="FallChecker" type="Node" parent="." unique_id=1173911427 node_paths=PackedStringArray("player_spawner")]
+[node name="FallChecker" type="Node" parent="." unique_id=1173911427 node_paths=PackedStringArray("player_spawner", "match_director")]
 script = ExtResource("9_vk48u")
 fall_height = -11.0
+player_spawner = NodePath("../PlayerSpawner")
+match_director = NodePath("../MatchDirector")
+
+[node name="MatchDirector" type="Node" parent="." unique_id=635249021 node_paths=PackedStringArray("player_spawner")]
+script = ExtResource("10_md001")
 player_spawner = NodePath("../PlayerSpawner")
 
 [node name="HubLevel" parent="." unique_id=1150027112 instance=ExtResource("3_0cpj8")]

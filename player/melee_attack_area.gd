@@ -24,4 +24,5 @@ func _on_body_entered(body: Node3D) -> void:
 		# Reuse the generic damage interface so enemies/players handle authority routing.
 		var impact_point := global_position - body.global_position
 		var force := -impact_point
-		body.damage(impact_point, force)
+		var attacker_peer_id: int = get_multiplayer_authority()
+		body.damage(impact_point, force, attacker_peer_id)
