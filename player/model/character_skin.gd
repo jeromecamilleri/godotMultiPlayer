@@ -31,6 +31,7 @@ const HEART_PALETTE: Array[Color] = [
 @onready var _landing_sound: AudioStreamPlayer3D = $LandingSound
 ## Instance-local heart material (duplicated from shared resource on first use).
 var _heart_material_instance: StandardMaterial3D
+var _sliding := false
 
 
 func _ready():
@@ -65,6 +66,9 @@ func apply_heart_color(color: Color) -> void:
 @rpc("authority", "call_local", "unreliable_ordered")
 func set_moving(value : bool):
 	moving = value
+	if _sliding:
+		# Keep slide fallback pose while sliding is active.
+		return
 	if moving:
 		state_machine.travel("move")
 	else:
@@ -90,6 +94,19 @@ func fall():
 @rpc("authority", "call_local", "unreliable_ordered")
 func punch():
 	animation_tree["parameters/PunchOneShot/request"] = AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE
+
+
+@rpc("authority", "call_local", "unreliable_ordered")
+func set_sliding(value: bool) -> void:
+	_sliding = value
+	if _sliding:
+		# Keep locomotion-driven visuals from Player while sliding is active.
+		return
+	# Restore locomotion state when sliding stops.
+	if moving:
+		state_machine.travel("move")
+	else:
+		state_machine.travel("idle")
 
 
 func play_step_sound():

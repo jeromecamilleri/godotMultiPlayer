@@ -40,3 +40,44 @@ Bugfix update
   - bomb hit decrements player lives,
   - director lives are updated identically,
   - FallChecker sync does not cause lives to bounce back.
+
+Gameplay update
+- Added slope sliding behavior in `player/player.gd`:
+  - `slide_start_angle_deg`: slope angle where sliding starts.
+  - `slide_block_angle_deg`: slope angle where uphill input is fully blocked.
+  - `slope_slide_accel`: downhill tangential acceleration on steep slopes.
+  - `slope_slide_friction`: damping to keep slide speed stable.
+- Implementation details:
+  - Uphill input is progressively reduced between start/block angles.
+  - A downhill slide impulse is applied when standing on steep ground.
+  - Flat terrain and gentle slopes keep normal controls.
+
+Sliding visual feedback update
+- Added explicit sliding visual state for players:
+  - synchronized flag `_is_sliding_sync` replicated via `player/player.tscn`.
+  - authority-driven `set_sliding(...)` in `player/model/character_skin.gd`.
+- While sliding:
+  - locomotion animation is paused from walk/run state updates,
+  - fallback pose uses existing `fall` animation state for readability,
+  - `CharacterRotationRoot` gets a configurable forward tilt for clearer feedback.
+- New player tuning parameters:
+  - `slide_visual_tilt_deg`
+  - `slide_visual_lerp_speed`
+
+Sliding behavior tuning update
+- Removed static `fall` pose fallback during slope sliding; sliding now keeps
+  locomotion animation active for better readability.
+- Downhill motion is now speed-target based:
+  - accelerates toward `slope_downhill_speed` only along downhill direction,
+  - does not boost uphill movement,
+  - damps lateral drift only (`slope_lateral_damping`).
+- Sliding visual state is now tied to actual downhill speed
+  (`slide_visual_speed_threshold`), so stopping on a slope returns to normal
+  standing/idle presentation.
+
+Slope contact stability update
+- Improved player-to-ground contact on steep slopes in `player/player.gd`:
+  - added `slope_floor_snap_length` (default `0.55`),
+  - applies `apply_floor_snap()` while descending and not jumping.
+- This reduces the "hovering above slope" effect and limits contact loss
+  during steep downhill movement.

@@ -19,6 +19,24 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 @export var stopping_speed := 1.0
 ## Clamp sync delta for faster interpolation
 @export var sync_delta_max := 0.2
+## Slope angle (degrees) where sliding starts to be noticeable.
+@export var slide_start_angle_deg := 25.0
+## Slope angle (degrees) where uphill movement is fully blocked.
+@export var slide_block_angle_deg := 40.0
+## Tangential acceleration applied down steep slopes.
+@export var slope_slide_accel := 12.0
+## Target downhill speed reached on very steep slopes.
+@export var slope_downhill_speed := 11.0
+## Sideways damping while sliding to reduce drifting left/right.
+@export var slope_lateral_damping := 4.0
+## Extra floor snap distance to keep contact on steep slopes.
+@export var slope_floor_snap_length := 0.55
+## Visual forward tilt (degrees) applied while sliding.
+@export var slide_visual_tilt_deg := 14.0
+## How fast the visual tilt blends in/out.
+@export var slide_visual_lerp_speed := 7.0
+## Minimum downhill speed to display sliding visual state.
+@export var slide_visual_speed_threshold := 0.9
 
 @onready var _rotation_root: Node3D = $CharacterRotationRoot
 @onready var _camera_controller: CameraController = $CameraController
@@ -43,6 +61,7 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 @export var _velocity: Vector3
 @export var _direction: Vector3 = Vector3.ZERO
 @export var _strong_direction: Vector3 = Vector3.FORWARD
+@export var _is_sliding_sync := false
 
 var position_before_sync: Vector3
 
@@ -54,6 +73,8 @@ var _coins := 0
 var _last_hit_time_sec := -100.0
 var _default_collision_layer := 1
 var _default_collision_mask := 1
+var _is_sliding := false
+var _slide_visual_factor := 0.0
 
 const ENEMY_HIT_DAMAGE := 1
 const ENEMY_HIT_COOLDOWN := 0.35
@@ -74,6 +95,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _ready() -> void:
 	add_to_group("players")
+	# Stronger snap reduces visual hovering/bouncing on steep slopes.
+	floor_snap_length = slope_floor_snap_length
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
 	# Give each replicated player instance a deterministic, per-peer heart color.
@@ -116,6 +139,7 @@ func _physics_process(delta: float) -> void:
 	if _is_dead:
 		_move_direction = Vector3.ZERO
 		velocity = Vector3.ZERO
+		_set_sliding_state(false)
 		set_sync_properties()
 		return
 	
@@ -134,6 +158,7 @@ func _physics_process(delta: float) -> void:
 	var is_air_boosting := Input.is_action_pressed("jump") and not is_on_floor() and velocity.y > 0.0
 	
 	_move_direction = _get_camera_oriented_input()
+	_apply_slope_rules_to_input(delta)
 	
 	if EditMode.is_enabled:
 		is_just_jumping = false
@@ -151,6 +176,7 @@ func _physics_process(delta: float) -> void:
 	var y_velocity := velocity.y
 	velocity.y = 0.0
 	velocity = velocity.lerp(_move_direction * move_speed, acceleration * delta)
+	_apply_slope_sliding(delta)
 	if _move_direction.length() == 0 and velocity.length() < stopping_speed:
 		velocity = Vector3.ZERO
 	velocity.y = y_velocity
@@ -168,9 +194,17 @@ func _physics_process(delta: float) -> void:
 	
 	# Set character animation
 	if is_just_jumping:
+		_set_sliding_state(false)
 		_character_skin.jump.rpc()
 	elif not is_on_floor() and velocity.y < 0:
+		_set_sliding_state(false)
 		_character_skin.fall.rpc()
+	elif is_on_floor() and _is_sliding:
+		# While sliding, keep locomotion active so the character no longer looks frozen.
+		var downhill_speed: float = _get_downhill_speed()
+		var blend_speed: float = clampf(downhill_speed / maxf(0.01, slope_downhill_speed), 0.35, 1.0)
+		_character_skin.set_moving.rpc(true)
+		_character_skin.set_moving_speed.rpc(blend_speed)
 	elif is_on_floor():
 		var xz_velocity := Vector3(velocity.x, 0, velocity.z)
 		if xz_velocity.length() > stopping_speed:
@@ -180,6 +214,9 @@ func _physics_process(delta: float) -> void:
 			_character_skin.set_moving.rpc(false)
 	
 	var position_before := global_position
+	# Keep ground contact while descending slopes (except during jump takeoff).
+	if not is_just_jumping and velocity.y <= 0.0:
+		apply_floor_snap()
 	move_and_slide()
 	var position_after := global_position
 	
@@ -221,11 +258,13 @@ func set_sync_properties() -> void:
 	_velocity = velocity
 	_direction = _move_direction
 	_strong_direction = _last_strong_direction
+	_is_sliding_sync = _is_sliding
 
 
 func on_synchronized() -> void:
 	velocity = _velocity
 	position_before_sync = position
+	_is_sliding = _is_sliding_sync
 	
 	var sync_time_ms = Time.get_ticks_msec()
 	sync_delta = clampf(float(sync_time_ms - last_sync_time_ms) / 1000, 0, sync_delta_max)
@@ -268,10 +307,104 @@ func _get_camera_oriented_input() -> Vector3:
 func _orient_character_to_direction(direction: Vector3, delta: float) -> void:
 	var left_axis := Vector3.UP.cross(direction)
 	var rotation_basis := Basis(left_axis, Vector3.UP, direction).get_rotation_quaternion()
+	var target_basis := Basis(rotation_basis)
+	var target_slide_factor := 1.0 if _is_sliding else 0.0
+	_slide_visual_factor = move_toward(_slide_visual_factor, target_slide_factor, delta * slide_visual_lerp_speed)
+	if _slide_visual_factor > 0.001:
+		var tilt_rad: float = deg_to_rad(slide_visual_tilt_deg * _slide_visual_factor)
+		target_basis = target_basis * Basis(Vector3.RIGHT, tilt_rad)
 	var model_scale := _rotation_root.transform.basis.get_scale()
-	_rotation_root.transform.basis = Basis(_rotation_root.transform.basis.get_rotation_quaternion().slerp(rotation_basis, delta * rotation_speed)).scaled(
+	_rotation_root.transform.basis = Basis(_rotation_root.transform.basis.get_rotation_quaternion().slerp(target_basis.get_rotation_quaternion(), delta * rotation_speed)).scaled(
 		model_scale
 	)
+
+
+func _apply_slope_rules_to_input(_delta: float) -> void:
+	# Keep normal controls on flat terrain; only alter input on steep floors.
+	if not is_on_floor():
+		return
+
+	var floor_normal: Vector3 = get_floor_normal()
+	var slope_angle: float = _get_slope_angle_deg(floor_normal)
+	if slope_angle < slide_start_angle_deg:
+		return
+
+	var downhill: Vector3 = _get_downhill_direction(floor_normal)
+	if downhill.is_zero_approx():
+		return
+
+	# Only reduce the uphill component so side/downhill control remains responsive.
+	var uphill_component: float = _move_direction.dot(-downhill)
+	if uphill_component <= 0.0:
+		return
+
+	var block_t: float = inverse_lerp(slide_start_angle_deg, slide_block_angle_deg, slope_angle)
+	block_t = clampf(block_t, 0.0, 1.0)
+	var removed_uphill: Vector3 = (-downhill) * uphill_component * block_t
+	_move_direction -= removed_uphill
+
+
+func _apply_slope_sliding(delta: float) -> void:
+	# Apply a gravity-tangent drift on steep slopes to create natural sliding.
+	if not is_on_floor():
+		_set_sliding_state(false)
+		return
+
+	var floor_normal: Vector3 = get_floor_normal()
+	var slope_angle: float = _get_slope_angle_deg(floor_normal)
+	if slope_angle < slide_start_angle_deg:
+		_set_sliding_state(false)
+		return
+
+	var downhill: Vector3 = _get_downhill_direction(floor_normal)
+	if downhill.is_zero_approx():
+		_set_sliding_state(false)
+		return
+
+	var slide_t: float = inverse_lerp(slide_start_angle_deg, slide_block_angle_deg, slope_angle)
+	slide_t = clampf(slide_t, 0.0, 1.0)
+	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
+	var downhill_speed: float = horizontal.dot(downhill)
+	var target_downhill_speed: float = slope_downhill_speed * slide_t
+	if downhill_speed < target_downhill_speed:
+		var speed_gap: float = target_downhill_speed - downhill_speed
+		var accel_step: float = slope_slide_accel * slide_t * delta
+		horizontal += downhill * minf(speed_gap, accel_step)
+
+	# Dampen only lateral drift; keep downhill momentum responsive.
+	var lateral: Vector3 = horizontal - downhill * horizontal.dot(downhill)
+	lateral = lateral.move_toward(Vector3.ZERO, slope_lateral_damping * delta)
+	horizontal = downhill * horizontal.dot(downhill) + lateral
+	velocity.x = horizontal.x
+	velocity.z = horizontal.z
+	_set_sliding_state(horizontal.dot(downhill) > slide_visual_speed_threshold)
+
+
+func _get_slope_angle_deg(floor_normal: Vector3) -> float:
+	return rad_to_deg(acos(clampf(floor_normal.dot(Vector3.UP), -1.0, 1.0)))
+
+
+func _get_downhill_direction(floor_normal: Vector3) -> Vector3:
+	var gravity_vector := Vector3(0.0, _gravity, 0.0)
+	var tangent := gravity_vector.slide(floor_normal)
+	return tangent.normalized() if not tangent.is_zero_approx() else Vector3.ZERO
+
+
+func _set_sliding_state(value: bool) -> void:
+	if _is_sliding == value:
+		return
+	_is_sliding = value
+	# Animation state changes are driven by authority and mirrored to remotes.
+	_character_skin.set_sliding.rpc(value)
+
+
+func _get_downhill_speed() -> float:
+	if not is_on_floor():
+		return 0.0
+	var downhill := _get_downhill_direction(get_floor_normal())
+	if downhill.is_zero_approx():
+		return 0.0
+	return Vector3(velocity.x, 0.0, velocity.z).dot(downhill)
 
 
 @rpc("any_peer", "call_remote", "reliable")
