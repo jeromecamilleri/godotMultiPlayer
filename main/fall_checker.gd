@@ -67,7 +67,11 @@ func check_fallen() -> void:
 		if debug_respawn:
 			DebugLog.gameplay("[FallChecker] respawn trigger | player=%d y=%s threshold=%s lives=%d" % [id, str(player.global_position.y), str(fall_height), next_lives])
 		if _has_match_director():
-			match_director.request_respawn(id)
+			if next_lives > 0:
+				match_director.request_respawn(id)
+			else:
+				# Keep downed players on-map so teammates can bring a revive coin.
+				player_spawner.respawn_player(id)
 		else:
 			player_spawner.respawn_player(id)
 		if next_lives == 0:

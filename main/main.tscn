@@ -10,13 +10,14 @@
 [ext_resource type="PackedScene" uid="uid://ciqrpd5675boy" path="res://player/player.tscn" id="5_wb2xi"]
 [ext_resource type="Script" uid="uid://c80b7p8uwqx3y" path="res://voip/microphone.gd" id="6_fgpqb"]
 [ext_resource type="Script" uid="uid://bxld3dpqvf1jf" path="res://main/fall_checker.gd" id="9_vk48u"]
-[ext_resource type="Script" path="res://main/match_director.gd" id="10_md001"]
+[ext_resource type="Script" uid="uid://cjhhwy4gshixw" path="res://main/match_director.gd" id="10_md001"]
 [ext_resource type="PackedScene" uid="uid://bilg3cgxxv2h5" path="res://addons/kenney_platformer_kit/block.glb" id="11_n3o0a"]
 [ext_resource type="Script" uid="uid://fi1th2ns0hx2" path="res://main/rigid_body_3d.gd" id="12_fwcvl"]
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
 [ext_resource type="PackedScene" uid="uid://rn45gytkk6tv" path="res://enemies/bee_bot.tscn" id="14_73k8k"]
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
+[ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="18_4hmqs"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -185,6 +186,9 @@ visibility_update_mode = 1
 
 [node name="Portal" parent="HubLevel/Portals" parent_id_path=PackedInt32Array(1150027112, 515313060) index="0" unique_id=878852613]
 transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.04313103, -23.057299, 12, 10.07815)
+
+[node name="Coin" parent="." unique_id=280593003 instance=ExtResource("18_4hmqs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.677925, 4.6177497, 6.7908463)
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]

@@ -81,3 +81,31 @@ Slope contact stability update
   - applies `apply_floor_snap()` while descending and not jumping.
 - This reduces the "hovering above slope" effect and limits contact loss
   during steep downhill movement.
+
+Downed / revive loop update
+- Added a server-authoritative downed revive mechanic using `Coin`.
+- `Player` changes:
+  - dead players now remain visible ("ghost view") instead of being hidden,
+  - dead players are added to `downed_players` group,
+  - added `can_be_revived()` and `try_revive_with_coin()` methods,
+  - revive restores exactly `1` life (not full lives) and re-enables control.
+- `Coin` changes:
+  - server scans nearby downed players and can auto-target them,
+  - if any downed player exists, normal alive pickup is blocked to preserve revive usage,
+  - on collect, coin first attempts revive; otherwise falls back to normal pickup.
+- `FallChecker` changes:
+  - when a fall causes life to reach `0`, player is respawned back on the map as downed
+    so teammates can revive (instead of staying unreachable under the map).
+- Added integration coverage:
+  - `test/integration/test_coin_revive.gd`
+  - updated `test/test_fall_lives.gd` for downed-respawn-at-zero behavior.
+
+Downed/revive polish update
+- Coin consumption is now synchronized across peers:
+  - coin becomes unavailable/hidden immediately when consumed,
+  - coin is not reusable after a revive.
+- Coin consume sound (`player/coin/audio/completetask_0.mp3`) is now triggered
+  at actual revive/consume time for all peers.
+- Added clearer downed visual feedback on player nickname labels:
+  - suffix `"[DOWNED]"`,
+  - red-tinted nickname color while downed.

@@ -8,6 +8,9 @@ extends Control
 
 var camera: Camera3D
 var user_data: UserData
+var _base_label_text := ""
+var _is_downed := false
+var _default_label_modulate := Color.WHITE
 
 
 func _ready() -> void:
@@ -19,6 +22,7 @@ func _ready() -> void:
 	# Use deterministic in-world labels derived from peer ids so every client
 	# sees the same "Player 1 / Player 2 / ..." mapping.
 	_update_default_player_label()
+	_default_label_modulate = label.modulate
 	if multiplayer.peer_connected.is_connected(_on_peer_list_changed) == false:
 		multiplayer.peer_connected.connect(_on_peer_list_changed)
 	if multiplayer.peer_disconnected.is_connected(_on_peer_list_changed) == false:
@@ -54,7 +58,8 @@ func _on_peer_list_changed(_id: int) -> void:
 func _update_default_player_label() -> void:
 	var authority_id: int = get_multiplayer_authority()
 	var compact_index: int = _get_compact_player_index(authority_id)
-	label.text = "Player %d" % compact_index
+	_base_label_text = "Player %d" % compact_index
+	_refresh_label()
 
 
 func _get_compact_player_index(authority_id: int) -> int:
@@ -94,8 +99,20 @@ func nickname_changed(nickname: String) -> void:
 		# Keep deterministic fallback if nickname has not been initialized yet.
 		_update_default_player_label()
 		return
-	label.text = trimmed
+	_base_label_text = trimmed
+	_refresh_label()
 
 
 func speaking_changed(speaking: bool) -> void:
 	speaking_indicator.visible = speaking
+
+
+func set_downed_state(downed: bool) -> void:
+	_is_downed = downed
+	_refresh_label()
+
+
+func _refresh_label() -> void:
+	var suffix := " [DOWNED]" if _is_downed else ""
+	label.text = _base_label_text + suffix
+	label.modulate = Color(1.0, 0.45, 0.45, 1.0) if _is_downed else _default_label_modulate

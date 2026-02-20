@@ -411,9 +411,6 @@ func _get_downhill_speed() -> float:
 func respawn(spawn_position: Vector3) -> void:
 	global_position = spawn_position
 	velocity = Vector3.ZERO
-	# Local authority reattaches gameplay camera when returning from dead/spectator.
-	if is_multiplayer_authority() and _is_dead:
-		_camera_controller.exit_spectator(self)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -424,12 +421,19 @@ func set_dead_state(dead: bool) -> void:
 	_character_collision_shape.disabled = dead
 	collision_layer = 0 if dead else _default_collision_layer
 	collision_mask = 0 if dead else _default_collision_mask
-	_rotation_root.visible = not dead
-	_nickname.visible = not dead
+	# Keep the avatar visible while downed so teammates can locate and revive it.
+	_rotation_root.visible = true
+	_nickname.visible = true
 	if dead and is_in_group("players"):
 		remove_from_group("players")
 	elif not dead and not is_in_group("players"):
 		add_to_group("players")
+	if dead and not is_in_group("downed_players"):
+		add_to_group("downed_players")
+	elif not dead and is_in_group("downed_players"):
+		remove_from_group("downed_players")
+	if is_instance_valid(_nickname) and _nickname.has_method("set_downed_state"):
+		_nickname.call("set_downed_state", dead)
 	if is_multiplayer_authority():
 		# Spectator mode is local-only UX; dead state itself is replicated.
 		_camera_controller.set_spectator_mode(dead)
@@ -516,6 +520,27 @@ func is_targetable() -> bool:
 	return not _is_dead
 
 
+func can_be_revived() -> bool:
+	return _is_dead
+
+
+func try_revive_with_coin() -> bool:
+	# Coin-triggered revive is server-authoritative to keep state deterministic.
+	if not multiplayer.is_server():
+		return false
+	if not _is_dead:
+		return false
+	var owner_peer_id: int = get_multiplayer_authority()
+	var next_lives := 1
+	var director := get_tree().get_first_node_in_group("match_director")
+	if is_instance_valid(director) and director.has_method("set_player_lives"):
+		next_lives = int(director.set_player_lives(owner_peer_id, 1, "coin_revive"))
+	_lives = next_lives
+	_sync_lives_to_owner(next_lives)
+	set_dead_state.rpc(false)
+	return true
+
+
 func _sync_lives_with_match_director() -> void:
 	# Keep MatchDirector as the single source of truth for life/death counters.
 	if not multiplayer.is_server():
@@ -530,5 +555,8 @@ func _sync_lives_to_owner(lives: int) -> void:
 	var owner_peer_id: int = get_multiplayer_authority()
 	if owner_peer_id == multiplayer.get_unique_id():
 		set_lives(lives)
-	else:
+	elif multiplayer.get_peers().has(owner_peer_id):
 		set_lives.rpc_id(owner_peer_id, lives)
+	else:
+		# Offline/unit-test fallback where authority peer may not be connected.
+		set_lives(lives)

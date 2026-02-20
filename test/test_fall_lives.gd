@@ -108,7 +108,8 @@ func test_zero_lives_marks_dead_and_no_more_decrement() -> void:
 	var lives_after_first_fall: int = int(director.get_lives(player_id))
 	assert_eq(0, lives_after_first_fall, "Avec 1 vie restante, la chute doit mettre les vies a 0")
 	assert_false(player.is_in_group("players"), "A 0 vie le player doit etre marque comme mort")
-	assert_eq(0, mock_spawner.respawned_ids.size(), "A 0 vie, le MatchDirector doit refuser le respawn")
+	assert_true(player.is_in_group("downed_players"), "Le player KO doit etre marque downed pour la revive")
+	assert_eq(1, mock_spawner.respawned_ids.size(), "A 0 vie par chute, le player doit etre replace sur la map")
 
 	# Reset cooldown to isolate the "already at zero lives" branch.
 	fall_checker.last_fall_ms_by_player[player_id] = 0
@@ -116,7 +117,7 @@ func test_zero_lives_marks_dead_and_no_more_decrement() -> void:
 
 	var lives_after_second_fall: int = int(director.get_lives(player_id))
 	assert_eq(0, lives_after_second_fall, "A 0 vie, une nouvelle chute ne doit plus decrementer")
-	assert_eq(0, mock_spawner.respawned_ids.size(), "A 0 vie, aucune demande de respawn")
+	assert_eq(1, mock_spawner.respawned_ids.size(), "A 0 vie, aucune nouvelle demande de respawn")
 
 
 func test_bomb_damage_then_fall_uses_consistent_lives_counter() -> void:
