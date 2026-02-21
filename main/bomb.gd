@@ -1,4 +1,4 @@
-extends StaticBody3D
+extends RigidBody3D
 class_name Bomb
 
 const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
@@ -50,6 +50,7 @@ func _explode() -> void:
 	# Visual explosion can be local; gameplay damage stays server-authoritative.
 	if multiplayer.is_server():
 		_apply_explosion_damage()
+		_notify_bomb_reactives()
 
 	queue_free()
 
@@ -101,3 +102,12 @@ func _apply_explosion_damage() -> void:
 		var force: Vector3 = dir * (explosion_force * attenuation)
 		var impact_point: Vector3 = global_position - body.global_position
 		body.damage(impact_point, force, owner_peer_id)
+
+
+func _notify_bomb_reactives() -> void:
+	# Utility-use hook: non-damageable world objects can react to bomb blasts.
+	for node in get_tree().get_nodes_in_group("bomb_reactives"):
+		if not is_instance_valid(node):
+			continue
+		if node.has_method("on_bomb_exploded"):
+			node.on_bomb_exploded(global_position, explosion_radius, owner_peer_id)

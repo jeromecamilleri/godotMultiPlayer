@@ -69,6 +69,10 @@ func _handle_collision(collider: Variant) -> void:
 	var body := collider as Node3D
 	if body == shooter:
 		return
+	# Disable bee-vs-bee damage from enemy projectiles (no friendly fire).
+	if is_instance_valid(shooter) and shooter.is_in_group("bee_bots") and body.is_in_group("bee_bots"):
+		# Let projectile continue through allied bees.
+		return
 
 	# Gameplay damage can be disabled on non-authority peers for visual-only bullets.
 	if damage_enabled and body.is_in_group("damageables") and body.has_method("damage"):

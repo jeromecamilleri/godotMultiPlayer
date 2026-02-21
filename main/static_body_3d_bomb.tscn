@@ -15,8 +15,24 @@ font_color = Color(1, 1, 1, 1)
 outline_size = 12
 outline_color = Color(0, 0, 0, 1)
 
-[node name="StaticBody3DBomb" type="StaticBody3D" unique_id=1209369374]
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_5xq3a"]
+properties/0/path = NodePath(".:global_transform")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:linear_velocity")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:angular_velocity")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+
+[node name="StaticBody3DBomb" type="RigidBody3D" unique_id=1209369374]
 script = ExtResource("1_cw60m")
+mass = 1.8
+physics_material_override = null
+continuous_cd = true
+contact_monitor = true
+max_contacts_reported = 4
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1476454050]
 mesh = SubResource("SphereMesh_vjuha")
@@ -34,3 +50,8 @@ font_size = 64
 modulate = Color(1, 0.976471, 0.741176, 1)
 outline_size = 12
 label_settings = SubResource("LabelSettings_u7qv2")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 0.033
+delta_interval = 0.033
+replication_config = SubResource("SceneReplicationConfig_5xq3a")

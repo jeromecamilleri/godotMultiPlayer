@@ -37,9 +37,20 @@ var BombScene = preload("res://main/static_body_3d_bomb.tscn")
 @export var slide_visual_lerp_speed := 7.0
 ## Minimum downhill speed to display sliding visual state.
 @export var slide_visual_speed_threshold := 0.9
+## Horizontal distance in front of the player where bombs are spawned.
+@export var bomb_spawn_forward_offset := 1.1
+## Vertical spawn offset to avoid clipping bombs into the ground.
+@export var bomb_spawn_up_offset := 1.2
+## Initial throw speed applied when spawning a bomb.
+@export var bomb_throw_speed := 12.0
+## Upward boost so bombs arc a bit before rolling.
+@export var bomb_throw_upward_boost := 2.0
+## Max distance for left-click cube pull interaction.
+@export var pull_interaction_distance := 6.5
 
 @onready var _rotation_root: Node3D = $CharacterRotationRoot
 @onready var _camera_controller: CameraController = $CameraController
+@onready var _pull_ray: RayCast3D = $CameraController/PlayerCamera/PullRay
 @onready var _attack_animation_player: AnimationPlayer = $CharacterRotationRoot/MeleeAnchor/AnimationPlayer
 @onready var _ground_shapecast: ShapeCast3D = $GroundShapeCast
 @onready var _character_skin: CharacterSkin = $CharacterRotationRoot/CharacterSkin
@@ -84,14 +95,14 @@ const ENEMY_HIT_UPWARD_BONUS := 1.2
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_dead:
 		return
-	if event is InputEventKey and event.pressed:
-		# Debug : quel code la touche renvoie
-		#print("Key pressed: scancode =", event)
-
-		# Exemple : KEY_1 ou remplace par le scancode correct
-		if event.pressed and event.keycode == KEY_B:
-			DebugLog.gameplay("place_bomb detectee")
-			place_bomb()
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		DebugLog.gameplay("place_bomb detectee (right mouse)")
+		place_bomb()
+		return
+	# Keep keyboard fallback for quick testing in editor.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_B:
+		DebugLog.gameplay("place_bomb detectee (key B)")
+		place_bomb()
 
 func _ready() -> void:
 	add_to_group("players")
@@ -101,6 +112,10 @@ func _ready() -> void:
 	_default_collision_mask = collision_mask
 	# Give each replicated player instance a deterministic, per-peer heart color.
 	_character_skin.apply_heart_color_from_peer_id(get_multiplayer_authority())
+	if is_instance_valid(_pull_ray):
+		_pull_ray.enabled = true
+		_pull_ray.target_position = Vector3(0, 0, -pull_interaction_distance)
+		_pull_ray.add_exception(self)
 	DebugLog.gameplay("Player ready | peer=%d authority=%s" % [multiplayer.get_unique_id(), str(is_multiplayer_authority())])
 	_lives_overlay.visible = is_multiplayer_authority()
 	_update_lives_label()
@@ -118,19 +133,29 @@ func place_bomb() -> void:
 	DebugLog.gameplay("place_bomb called, authority=%s" % str(is_multiplayer_authority()))
 	if is_multiplayer_authority():
 		DebugLog.gameplay("spawning bomb via RPC")
-		# Compute once on authority so all peers spawn the bomb at the same position.
-		var bomb_pos: Vector3 = global_position + transform.basis.z * 1.0
-		spawn_bomb.rpc(bomb_pos)
+		# Use camera forward and a chest-height spawn to avoid clipping near walls/floors.
+		var throw_forward: Vector3 = -_camera_controller.camera.global_transform.basis.z
+		if throw_forward.length_squared() < 0.0001:
+			throw_forward = -global_transform.basis.z
+		throw_forward = throw_forward.normalized()
+		var bomb_pos: Vector3 = global_position + (Vector3.UP * bomb_spawn_up_offset) + (throw_forward * bomb_spawn_forward_offset)
+		var throw_velocity: Vector3 = (throw_forward * bomb_throw_speed) + (Vector3.UP * bomb_throw_upward_boost)
+		spawn_bomb.rpc(bomb_pos, throw_velocity)
 
 @rpc("any_peer", "call_local", "reliable")
-func spawn_bomb(pos: Vector3):
+func spawn_bomb(pos: Vector3, throw_velocity: Vector3) -> void:
 	DebugLog.gameplay("Bomb creating")
 	var bomb = BombScene.instantiate()
 	get_parent().add_child(bomb)
+	# Bomb physics should stay server-authoritative when synchronizer is present.
+	if bomb is Node:
+		bomb.set_multiplayer_authority(1)
 	# Carry owner id so explosion kills can be attributed in match scoring.
 	if "owner_peer_id" in bomb:
 		bomb.owner_peer_id = get_multiplayer_authority()
 	bomb.global_position = pos
+	if bomb is RigidBody3D:
+		bomb.linear_velocity = throw_velocity
 	DebugLog.gameplay("Bomb spawned at %s" % str(bomb.global_position))
 	
 func _physics_process(delta: float) -> void:
@@ -154,6 +179,9 @@ func _physics_process(delta: float) -> void:
 	
 	# Get input and movement state
 	var is_just_attacking := Input.is_action_just_pressed("attack")
+	if is_just_attacking and _try_toggle_pull_cube():
+		# When clicking a pullable cube, interaction takes priority over punch.
+		is_just_attacking = false
 	var is_just_jumping := Input.is_action_just_pressed("jump") and is_on_floor()
 	var is_air_boosting := Input.is_action_pressed("jump") and not is_on_floor() and velocity.y > 0.0
 	
@@ -317,6 +345,31 @@ func _orient_character_to_direction(direction: Vector3, delta: float) -> void:
 	_rotation_root.transform.basis = Basis(_rotation_root.transform.basis.get_rotation_quaternion().slerp(target_basis.get_rotation_quaternion(), delta * rotation_speed)).scaled(
 		model_scale
 	)
+
+
+func _try_toggle_pull_cube() -> bool:
+	if not is_instance_valid(_pull_ray):
+		return false
+	_pull_ray.target_position = Vector3(0, 0, -pull_interaction_distance)
+	_pull_ray.force_raycast_update()
+	var from: Vector3 = _pull_ray.global_transform.origin
+	var to: Vector3 = from + (_pull_ray.global_transform.basis * _pull_ray.target_position)
+	DebugLog.gameplay("pull cube raycast from %s to %s" % [from, to])
+	if not _pull_ray.is_colliding():
+		return false
+	var collider := _pull_ray.get_collider()
+	if not (collider is RigidBody3D):
+		return false
+	var cube := collider as RigidBody3D
+	if not cube.is_in_group("pullable_cubes") or not cube.has_method("request_toggle_pull"):
+		return false
+
+	var cube_authority: int = cube.get_multiplayer_authority()
+	if cube_authority == multiplayer.get_unique_id():
+		cube.request_toggle_pull()
+	else:
+		cube.request_toggle_pull.rpc_id(cube_authority)
+	return true
 
 
 func _apply_slope_rules_to_input(_delta: float) -> void:

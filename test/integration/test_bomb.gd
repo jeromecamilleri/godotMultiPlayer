@@ -3,6 +3,19 @@ extends GutTest
 const BOMB_SCENE: PackedScene = preload("res://main/static_body_3d_bomb.tscn")
 const BEE_SCENE: PackedScene = preload("res://enemies/bee_bot.tscn")
 
+class MockBombReactive:
+	extends Node3D
+
+	var called := false
+	var seen_radius := 0.0
+
+	func _ready() -> void:
+		add_to_group("bomb_reactives")
+
+	func on_bomb_exploded(_world_pos: Vector3, explosion_radius: float, _owner_peer_id: int) -> void:
+		called = true
+		seen_radius = explosion_radius
+
 
 func _spawn_test_world() -> Node3D:
 	# Minimal isolated world for deterministic integration-like tests.
@@ -56,3 +69,23 @@ func test_bomb_explosion_damage_kills_bee() -> void:
 
 	assert_false(bee.visible, "L'abeille doit etre finalisee en etat mort")
 	assert_false(bee.is_physics_processing(), "L'abeille morte ne doit plus etre simulee")
+
+
+func test_bomb_notifies_reactive_world_objects() -> void:
+	var world: Node3D = await _spawn_test_world()
+	var bomb: Bomb = BOMB_SCENE.instantiate() as Bomb
+	assert_not_null(bomb)
+	world.add_child(bomb)
+	bomb.global_position = Vector3.ZERO
+	bomb.explosion_radius = 6.5
+	await wait_process_frames(1)
+
+	var reactive := MockBombReactive.new()
+	world.add_child(reactive)
+	await wait_process_frames(1)
+
+	bomb._notify_bomb_reactives()
+	await wait_process_frames(1)
+
+	assert_true(reactive.called, "Les objets utilitaires doivent recevoir l'evenement d'explosion")
+	assert_eq(6.5, reactive.seen_radius, "Le rayon d'explosion doit etre transmis aux objets utilitaires")

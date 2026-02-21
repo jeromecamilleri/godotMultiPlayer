@@ -109,3 +109,93 @@ Downed/revive polish update
 - Added clearer downed visual feedback on player nickname labels:
   - suffix `"[DOWNED]"`,
   - red-tinted nickname color while downed.
+
+Bomb utility gameplay update
+- Bombs now emit a utility event to world objects in group `bomb_reactives`.
+  - Implemented in `main/bomb.gd` via `_notify_bomb_reactives()`.
+  - Reactives receive `on_bomb_exploded(world_pos, radius, owner_peer_id)`.
+- Added a reusable example utility object:
+  - `main/bomb_door.gd` (`BombDoor`) opens when hit by enough nearby bomb blasts.
+  - Supports objective reporting to `MatchDirector` via `objective_id`.
+- Added a demo instance in `main/main.tscn`:
+  - `BombDoorDemo` (orange barrier) configured with one bomb required.
+- Added integration coverage:
+  - `test/integration/test_bomb.gd::test_bomb_notifies_reactive_world_objects`.
+
+Scene hierarchy cleanup update
+- Reorganized `HubLevel/Env` content in `main/main.tscn` with dedicated folders:
+  - `Enemies` (contains `bee_bot`),
+  - `Interactives` (contains `Coin`, `BombDoor`),
+  - `PhysicsObjects` (contains `RigidCube3D*`).
+- Goal: reduce root clutter in `Env` and make gameplay object ownership clearer.
+
+Bomb door visual effect update
+- `BombDoor` now supports two open behaviors:
+  - `LIFT` (previous behavior),
+  - `DISINTEGRATE` (new default behavior).
+- `DISINTEGRATE` effect combines:
+  - smoke puff spawn,
+  - mesh scale-down tween,
+  - transparency fade-out,
+  - collision disabled immediately.
+- Added integration coverage:
+  - `test/integration/test_bomb_door.gd`.
+
+Match timer UI update
+- Added a top-center match timer label for all players in `ui/ui.tscn` (`InGameUI/MatchTimer`).
+- `ui/ui.gd` now parses MatchDirector snapshots and displays:
+  - match state (`LOBBY/RUNNING/WON/LOST/...`),
+  - remaining time as `MM:SS`.
+- Added null-safe handling so existing minimal UI tests/scenes without this label
+  still run without errors.
+
+Bee friendly-fire fix
+- Prevented bee projectiles from killing other bees.
+- `enemies/bee_bot.gd`: bees are now tagged in group `bee_bots`.
+- `player/bullet.gd`: bullet collision handler ignores damage when both shooter
+  and collider are in `bee_bots`, and projectile now passes through allied bees.
+
+Bomb throw feel and visibility update
+- Improved bomb input and throw behavior in `player/player.gd`:
+  - right mouse button now throws bombs (key `B` kept as fallback),
+  - spawn point is now computed from camera forward direction with upward offset,
+  - initial throw velocity is applied for a proper arc/roll behavior.
+- Bomb scene switched to dynamic physics:
+  - `main/static_body_3d_bomb.tscn` root changed to `RigidBody3D`,
+  - added `MultiplayerSynchronizer` replication for transform and velocities.
+- `main/bomb.gd` now extends `RigidBody3D` to match the scene and support
+  physically dynamic movement after spawn.
+
+Cooperative pull-cube puzzle update
+- Added a new pull interaction on green rigid cubes (`main/rigid_body_3d.gd`):
+  - left click from a player now toggles attach/detach on a pullable cube
+    (implemented in `player/player.gd` via camera raycast),
+  - each attached player contributes a traction vector from cube to player,
+  - vectors naturally cancel when players pull in opposite directions,
+  - vectors accumulate when players pull from the same side.
+- Added visual state feedback synchronized to all peers:
+  - `IDLE` (green),
+  - `ATTACHED` (yellow),
+  - `COOP` (orange),
+  - `GOAL` (blue, cube frozen in reactor zone).
+- Added reactor objective check:
+  - cubes auto-detect the scene node named `reactor`,
+  - when inside `reactor_goal_radius`, cube marks goal reached and freezes.
+- Replication update in `main/main.tscn`:
+  - `SceneReplicationConfig_fwcvl` now also replicates `._pull_state_sync`.
+- Added test coverage in `test/test_pull_cube.gd`:
+  - pull vectors accumulate on same-side pulls,
+  - pull vectors cancel on opposite pulls,
+  - reactor goal state transitions to `GOAL` correctly.
+- Added a visible `RayCast3D` (`PlayerCamera/PullRay`) that mirrors `_try_toggle_pull_cube()`
+  so the left-click ray appears in Debug mode; the ray is updated every call based
+  on `pull_interaction_distance`.
+- When two players stay aligned and the cube is in `COOP` (orange) state, it now
+  auto-drives toward the `reactor` once their pull direction aligns; while auto-moving
+  the emission energy grows (`auto_move_glow_boost`) so the team can see the assist
+  engage before the cube reaches `GOAL`.
+- Door/bomb synchronization fix:
+  - `main/bomb_door.gd` now marks `_set_open_state` as an `all_peers` RPC so the
+    server-driven opening state is propagated to every client instead of staying
+    local to the authority.
+ 

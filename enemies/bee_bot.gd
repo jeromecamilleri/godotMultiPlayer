@@ -29,6 +29,7 @@ const PUFF_SCENE := preload("smoke_puff/smoke_puff.tscn")
 
 
 func _ready() -> void:
+	add_to_group("bee_bots")
 	_detection_area.monitoring = true
 	_detection_area.monitorable = true
 	_patrol_center = global_position
