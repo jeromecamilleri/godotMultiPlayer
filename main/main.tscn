@@ -215,17 +215,17 @@ surface_material_override/0 = ExtResource("15_wat01")
 [node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003]
 
 [node name="RigidCube3D" type="RigidBody3D" parent="HubLevel/Env/PhysicsObjects" unique_id=1479604479]
-transform = Transform3D(0.356, 0, 0, 0, 0.857, 0, 0, 0, 1, 0, 5.2, 4.564933)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.895, 4.565)
 physics_material_override = SubResource("PhysicsMaterial_fwcvl")
 script = ExtResource("12_fwcvl")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=1019711160]
-transform = Transform3D(2.8, 0, 0, 0, 2.8, 0, 0, 0, 2.8, 0, 0, 0)
+transform = Transform3D(1.79, 0, 0, 0, 1.79, 0, 0, 0, 1.79, 0, 0, 0)
 mesh = SubResource("BoxMesh_na0o7")
 surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=1916469910]
-transform = Transform3D(2.8, 0, 0, 0, 2.8, 0, 0, 0, 2.8, 0, 0, 0)
+transform = Transform3D(1.79, 0, 0, 0, 1.79, 0, 0, 0, 1.79, 0, 0, 0)
 shape = SubResource("BoxShape3D_bsumw")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=243062562]

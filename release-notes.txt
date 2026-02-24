@@ -199,3 +199,18 @@ Cooperative pull-cube puzzle update
     server-driven opening state is propagated to every client instead of staying
     local to the authority.
  
+
+Player architecture refactor (domain components)
+- Refactored `player/player.gd` into an orchestrator (214 lines) and extracted
+  gameplay domains into dedicated components under `player/components/`:
+  - `player_movement.gd` (movement, slope rules, animation driving, push physics),
+  - `player_combat.gd` (melee attack + server-authoritative enemy hit handling),
+  - `player_lifecycle.gd` (lives, dead/downed state, revive flow),
+  - `player_net_sync.gd` (replicated sync properties + client interpolation),
+  - `player_interactions.gd` (bomb spawn/throw, pull-cube interaction, coin collect).
+- Preserved public `Player` API and RPC entrypoints used by existing systems/tests:
+  - `spawn_bomb`, `respawn`, `set_dead_state`, `set_lives`, `_collect_coin`,
+    `_request_enemy_hit_on_server`, `damage`, `try_revive_with_coin`, etc.
+- Goal: improve readability, reduce single-file cognitive load, and make future
+  changes safer by isolating movement/combat/network/lifecycle concerns.
+- Validation: full GUT test suite passes after refactor (`22/22`).
