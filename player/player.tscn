@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://faj0ngyg1v7q" path="res://ui/floating_nickname.gd" id="6_f61mk"]
 [ext_resource type="Resource" uid="uid://rclnl7v8k722" path="res://user_data/user_data_events.res" id="7_bgpps"]
 [ext_resource type="Script" uid="uid://0nwful4fsrh8" path="res://player/melee_attack_area.gd" id="8_v1vve"]
+[ext_resource type="Script" path="res://inventory/inventory_component.gd" id="9_inv00"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8x2xm"]
 
@@ -259,6 +260,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_bjie3")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1610994918]
 replication_config = SubResource("SceneReplicationConfig_g0ye7")
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("9_inv00")
+inventory_name = "Sac"
 
 [node name="LivesOverlay" type="CanvasLayer" parent="." unique_id=2013550741]
 layer = 9

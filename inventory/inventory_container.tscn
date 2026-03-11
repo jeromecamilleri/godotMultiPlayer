@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://inventory/inventory_container.gd" id="1"]
+[ext_resource type="Script" path="res://inventory/inventory_component.gd" id="2"]
+
+[sub_resource type="BoxShape3D" id="1"]
+size = Vector3(1.2, 0.8, 0.8)
+
+[sub_resource type="BoxMesh" id="2"]
+size = Vector3(1.2, 0.8, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.380392, 0.247059, 0.12549, 1)
+
+[node name="InventoryContainer" type="StaticBody3D"]
+script = ExtResource("1")
+collision_layer = 1
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("2")
+surface_material_override/0 = SubResource("3")
+
+[node name="Label3D" type="Label3D" parent="."]
+position = Vector3(0, 1, 0)
+billboard = 1
+font_size = 32
+outline_size = 8
+text = "Coffre"
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("2")
+inventory_name = "Coffre"

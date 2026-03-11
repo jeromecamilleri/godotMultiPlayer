@@ -20,6 +20,10 @@
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
 [ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="18_4hmqs"]
 [ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
+[ext_resource type="PackedScene" path="res://inventory/world_item.tscn" id="20_invwi"]
+[ext_resource type="PackedScene" path="res://inventory/inventory_container.tscn" id="21_invct"]
+[ext_resource type="Resource" path="res://inventory/items/apple.tres" id="22_itema"]
+[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -160,6 +164,22 @@ transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.
 
 [node name="Coin" parent="HubLevel/Env/Interactives" unique_id=280593003 instance=ExtResource("18_4hmqs")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.677925, 4.6177497, 6.7908463)
+
+[node name="ApplePickup" parent="HubLevel/Env/Interactives" unique_id=244336620 instance=ExtResource("20_invwi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.267, 4.42, 8.454)
+item_definition = ExtResource("22_itema")
+quantity = 3
+
+[node name="WoodPickup" parent="HubLevel/Env/Interactives" unique_id=676708511 instance=ExtResource("20_invwi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.102, 4.42, 8.948)
+item_definition = ExtResource("23_itemw")
+quantity = 5
+
+[node name="Chest" parent="HubLevel/Env/Interactives" unique_id=580767468 instance=ExtResource("21_invct")]
+transform = Transform3D(0.91201746, 0, -0.35864377, 0, 0.97999996, 0, 0.35864377, 0, 0.91201746, 17.720644, 4.4, 8.995982)
+inventory_name = "Coffre du hub"
+initial_items = Array[Resource]([ExtResource("23_itemw"), ExtResource("22_itema")])
+initial_quantities = PackedInt32Array(6, 2)
 
 [node name="BombDoor" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=1227783314]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.033218, 6, 9.972226)

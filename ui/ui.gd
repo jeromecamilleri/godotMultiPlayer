@@ -8,6 +8,8 @@ signal connect_client
 @onready var _match_timer_label: Label = get_node_or_null("InGameUI/MatchTimer") as Label
 @onready var _connection: Connection = get_node("../Connection") as Connection
 @onready var _match_director: Node = get_node_or_null("../MatchDirector")
+@onready var _player_inventory_panel: Control = get_node_or_null("InGameUI/PlayerInventoryPanel") as Control
+@onready var _target_inventory_panel: Control = get_node_or_null("InGameUI/TargetInventoryPanel") as Control
 
 var _connection_status_text := "SERVER STATUS\nreason: startup\nclients_connected: 0\nclient_ids: []"
 var _match_status_text := "MATCH\nstate: LOBBY\ntime_left: 0.0s\nplayers: 0\nscore:"
@@ -24,6 +26,10 @@ func _ready():
 	_update_server_status_label()
 	_update_match_timer_label()
 	_refresh_server_status_visibility()
+	if is_instance_valid(_player_inventory_panel):
+		_player_inventory_panel.slot_action_requested.connect(_on_player_inventory_action_requested)
+	if is_instance_valid(_target_inventory_panel):
+		_target_inventory_panel.slot_action_requested.connect(_on_target_inventory_action_requested)
 
 	if Connection.is_server(): return
 	
@@ -51,6 +57,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	_is_exiting_client = true
 	_exit_client()
+
+
+func _process(_delta: float) -> void:
+	_refresh_inventory_panels()
 
 
 func start_server_emit() -> void:
@@ -95,6 +105,10 @@ func _refresh_server_status_visibility() -> void:
 	_server_status_label.visible = _is_server_instance() and $InGameUI.visible
 	if is_instance_valid(_match_timer_label):
 		_match_timer_label.visible = $InGameUI.visible
+	if is_instance_valid(_player_inventory_panel):
+		_player_inventory_panel.visible = $InGameUI.visible
+	if is_instance_valid(_target_inventory_panel) and not $InGameUI.visible:
+		_target_inventory_panel.visible = false
 
 
 func _update_server_status_label() -> void:
@@ -147,3 +161,55 @@ func _exit_server() -> void:
 
 func _is_server_instance() -> bool:
 	return multiplayer.is_server()
+
+
+func _refresh_inventory_panels() -> void:
+	if not is_instance_valid(_player_inventory_panel):
+		return
+	var local_player := _get_local_player()
+	if local_player == null:
+		_player_inventory_panel.set_panel_state("Sac", [], [], "E pour ramasser | G pour deposer le premier objet")
+		if is_instance_valid(_target_inventory_panel):
+			_target_inventory_panel.visible = false
+		return
+	var player_actions: Array[Dictionary] = [{"id": "drop", "label": "Deposer"}]
+	var player_hint := "E pour ramasser | G depose le premier slot"
+	if local_player.has_focused_inventory_target():
+		player_actions.append({"id": "give", "label": "Vers cible"})
+		player_hint = "E vise un coffre/joueur | T envoie le premier slot"
+	_player_inventory_panel.set_panel_state(local_player.get_inventory_display_name(), local_player.get_inventory_contents(), player_actions, player_hint)
+	var target_name := local_player.get_target_inventory_display_name()
+	var target_contents := local_player.get_target_inventory_contents()
+	if not is_instance_valid(_target_inventory_panel):
+		return
+	if target_name.is_empty():
+		_target_inventory_panel.visible = false
+		return
+	_target_inventory_panel.visible = true
+	_target_inventory_panel.set_panel_state(target_name, target_contents, [{"id": "take", "label": "Prendre"}], "Visez un coffre puis cliquez pour transferer")
+
+
+func _get_local_player() -> Player:
+	for node in get_tree().get_nodes_in_group("players"):
+		if node is Player and node.is_multiplayer_authority():
+			return node as Player
+	return null
+
+
+func _on_player_inventory_action_requested(action_id: String, slot_index: int) -> void:
+	var local_player := _get_local_player()
+	if local_player == null:
+		return
+	match action_id:
+		"drop":
+			local_player.request_drop_inventory_slot(slot_index)
+		"give":
+			local_player.request_transfer_to_target(slot_index)
+
+
+func _on_target_inventory_action_requested(action_id: String, slot_index: int) -> void:
+	var local_player := _get_local_player()
+	if local_player == null:
+		return
+	if action_id == "take":
+		local_player.request_transfer_from_target(slot_index)

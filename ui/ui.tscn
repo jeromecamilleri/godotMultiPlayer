@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://b7utl83ieo61" path="res://ui/player_panel_contiainer.gd" id="4_0te8w"]
 [ext_resource type="Resource" uid="uid://rclnl7v8k722" path="res://user_data/user_data_events.res" id="5_tmjbr"]
 [ext_resource type="PackedScene" uid="uid://dpre6ebljycx4" path="res://ui/player_panel.tscn" id="6_lta7j"]
+[ext_resource type="PackedScene" path="res://ui/inventory_panel.tscn" id="7_inv00"]
 
 [node name="UI" type="Control" unique_id=1008402551]
 layout_mode = 3
@@ -90,6 +91,33 @@ grow_horizontal = 2
 theme_override_font_sizes/font_size = 32
 text = "TIME 00:00"
 horizontal_alignment = 1
+
+[node name="PlayerInventoryPanel" parent="InGameUI" instance=ExtResource("7_inv00")]
+layout_mode = 1
+anchors_preset = 3
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -250.0
+offset_right = 344.0
+offset_bottom = -24.0
+grow_vertical = 0
+
+[node name="TargetInventoryPanel" parent="InGameUI" instance=ExtResource("7_inv00")]
+layout_mode = 1
+anchors_preset = 9
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -344.0
+offset_top = -250.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+visible = false
 
 [node name="MarginContainer" type="MarginContainer" parent="InGameUI" unique_id=1650429252]
 custom_minimum_size = Vector2(350, 0)
