@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c03hvwd78ck5m"
 path.s3tc="res://.godot/imported/arrows.png-c0c84f52d335ffe45279354a1f5286fb.s3tc.ctex"
+path.etc2="res://.godot/imported/arrows.png-c0c84f52d335ffe45279354a1f5286fb.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://addons/kenney_platformer_kit/arrows.png"
-dest_files=["res://.godot/imported/arrows.png-c0c84f52d335ffe45279354a1f5286fb.s3tc.ctex"]
+dest_files=["res://.godot/imported/arrows.png-c0c84f52d335ffe45279354a1f5286fb.s3tc.ctex", "res://.godot/imported/arrows.png-c0c84f52d335ffe45279354a1f5286fb.etc2.ctex"]
 
 [params]
 

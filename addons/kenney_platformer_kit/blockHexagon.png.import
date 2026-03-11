@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhtcqus8b7sjo"
 path.s3tc="res://.godot/imported/blockHexagon.png-2bd37f8b64c34264e59ffd224c020588.s3tc.ctex"
+path.etc2="res://.godot/imported/blockHexagon.png-2bd37f8b64c34264e59ffd224c020588.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://addons/kenney_platformer_kit/blockHexagon.png"
-dest_files=["res://.godot/imported/blockHexagon.png-2bd37f8b64c34264e59ffd224c020588.s3tc.ctex"]
+dest_files=["res://.godot/imported/blockHexagon.png-2bd37f8b64c34264e59ffd224c020588.s3tc.ctex", "res://.godot/imported/blockHexagon.png-2bd37f8b64c34264e59ffd224c020588.etc2.ctex"]
 
 [params]
 
