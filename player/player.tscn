@@ -35,6 +35,9 @@ dof_blur_far_distance = 100.0
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_s5n07"]
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_interact"]
+radius = 4.75
+
 [sub_resource type="Animation" id="Animation_nl12d"]
 resource_name = "Attack"
 length = 0.3
@@ -186,6 +189,15 @@ margin = 0.5
 max_results = 1
 debug_shape_custom_color = Color(0.658824, 1, 0, 1)
 
+[node name="InteractionArea" type="Area3D" parent="." unique_id=209105112]
+monitoring = true
+monitorable = false
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionArea" unique_id=286661142]
+shape = SubResource("SphereShape3D_interact")
+
 [node name="CharacterRotationRoot" type="Node3D" parent="." unique_id=276981057]
 
 [node name="MeleeAnchor" type="Node3D" parent="CharacterRotationRoot" unique_id=1314001099]
@@ -269,12 +281,16 @@ inventory_name = "Sac"
 layer = 9
 
 [node name="LivesLabel" type="Label" parent="LivesOverlay" unique_id=2097803797]
-offset_left = 20.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -250.0
 offset_top = 20.0
-offset_right = 240.0
+offset_right = -30.0
 offset_bottom = 60.0
 theme_override_font_sizes/font_size = 28
 text = "Vies: 5"
+horizontal_alignment = 2
 
 [node name="DeathOverlay" type="CanvasLayer" parent="." unique_id=1537576648]
 layer = 10

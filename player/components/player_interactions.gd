@@ -11,6 +11,10 @@ func setup(player) -> void:
 		player._pull_ray.collide_with_areas = true
 		player._pull_ray.target_position = Vector3(0, 0, -player.pull_interaction_distance)
 		player._pull_ray.add_exception(player)
+	if is_instance_valid(player._interaction_area):
+		player._interaction_area.monitoring = true
+		player._interaction_area.monitorable = false
+		player._interaction_area.collision_mask = 1
 
 
 func handle_unhandled_input(player, event: InputEvent) -> void:
@@ -19,10 +23,6 @@ func handle_unhandled_input(player, event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		DebugLog.gameplay("place_bomb detectee (right mouse)")
 		place_bomb(player)
-		return
-	if event.is_action_pressed("interact_pickup"):
-		DebugLog.gameplay("inventory: interact_pickup pressed | peer=%d authority=%s" % [player.multiplayer.get_unique_id(), str(player.is_multiplayer_authority())])
-		try_pickup_or_focus_target(player)
 		return
 	if event.is_action_pressed("inventory_drop"):
 		DebugLog.gameplay("inventory: inventory_drop pressed")
@@ -123,12 +123,43 @@ func try_pickup_or_focus_target(player) -> bool:
 			player.set_focused_inventory_target(target)
 			return true
 		DebugLog.gameplay("inventory: direct target is neither pickable nor inventory-enabled")
+	var proximity_target := _find_nearest_proximity_target(player)
+	if proximity_target != null:
+		DebugLog.gameplay("inventory: proximity target=%s path=%s" % [proximity_target.name, str(proximity_target.get_path())])
+		if proximity_target.has_method("can_be_picked_up") and bool(proximity_target.call("can_be_picked_up")):
+			player.request_pickup_world_item(proximity_target.get_path())
+			return true
+		if proximity_target.has_method("get_inventory_component"):
+			player.set_focused_inventory_target(proximity_target)
+			return true
 	var fallback_target := _find_nearest_pickable_target(player)
 	if fallback_target != null:
 		DebugLog.gameplay("inventory: fallback picked nearby target=%s path=%s" % [fallback_target.name, str(fallback_target.get_path())])
 		player.request_pickup_world_item(fallback_target.get_path())
 		return true
+	var fallback_inventory_target := _find_nearest_inventory_target(player)
+	if fallback_inventory_target != null:
+		DebugLog.gameplay("inventory: fallback focused nearby inventory target=%s path=%s" % [fallback_inventory_target.name, str(fallback_inventory_target.get_path())])
+		player.set_focused_inventory_target(fallback_inventory_target)
+		return true
 	DebugLog.gameplay("inventory: no fallback pickable target found")
+	player.set_focused_inventory_target(null)
+	return false
+
+
+func refresh_inventory_focus(player) -> bool:
+	var target := _get_interaction_target(player)
+	if target != null and target.has_method("get_inventory_component"):
+		player.set_focused_inventory_target(target)
+		return true
+	var proximity_target := _find_nearest_proximity_target(player, false, true)
+	if proximity_target != null:
+		player.set_focused_inventory_target(proximity_target)
+		return true
+	var fallback_target := _find_nearest_inventory_target(player)
+	if fallback_target != null:
+		player.set_focused_inventory_target(fallback_target)
+		return true
 	player.set_focused_inventory_target(null)
 	return false
 
@@ -148,8 +179,61 @@ func _get_interaction_target(player) -> Node:
 	var collider: Variant = player._pull_ray.get_collider()
 	DebugLog.gameplay("inventory: raycast collider=%s" % [str(collider)])
 	if collider is Node:
-		return collider as Node
+		return _resolve_interaction_target(collider as Node)
 	return null
+
+
+func _resolve_interaction_target(node: Node) -> Node:
+	var current: Node = node
+	while current != null:
+		if current.has_method("can_be_picked_up") or current.has_method("get_inventory_component"):
+			return current
+		current = current.get_parent()
+	return node
+
+
+func _find_nearest_proximity_target(player, allow_pickable: bool = true, allow_inventory: bool = true) -> Node:
+	if not is_instance_valid(player._interaction_area):
+		return null
+	var best_target: Node = null
+	var best_distance: float = INF
+	var origin: Vector3 = player.global_position + Vector3(0.0, 1.0, 0.0)
+	for candidate_variant in player._interaction_area.get_overlapping_areas():
+		var candidate_node: Node = _candidate_from_variant(player, candidate_variant, allow_pickable, allow_inventory)
+		if candidate_node == null:
+			continue
+		var candidate_distance: float = _distance_to_candidate(origin, candidate_node)
+		if candidate_distance < best_distance:
+			best_distance = candidate_distance
+			best_target = candidate_node
+	for candidate_variant in player._interaction_area.get_overlapping_bodies():
+		var candidate_node: Node = _candidate_from_variant(player, candidate_variant, allow_pickable, allow_inventory)
+		if candidate_node == null:
+			continue
+		var candidate_distance: float = _distance_to_candidate(origin, candidate_node)
+		if candidate_distance < best_distance:
+			best_distance = candidate_distance
+			best_target = candidate_node
+	return best_target
+
+
+func _candidate_from_variant(player, candidate_variant: Variant, allow_pickable: bool, allow_inventory: bool) -> Node:
+	if not (candidate_variant is Node):
+		return null
+	var resolved: Node = _resolve_interaction_target(candidate_variant as Node)
+	if resolved == player:
+		return null
+	if allow_pickable and resolved.has_method("can_be_picked_up") and bool(resolved.call("can_be_picked_up")):
+		return resolved
+	if allow_inventory and resolved.has_method("get_inventory_component"):
+		return resolved
+	return null
+
+
+func _distance_to_candidate(origin: Vector3, candidate: Node) -> float:
+	if candidate is Node3D:
+		return ((candidate as Node3D).global_position - origin).length()
+	return INF
 
 
 func _find_nearest_pickable_target(player) -> Node:
@@ -170,16 +254,70 @@ func _find_nearest_pickable_target(player) -> Node:
 		var candidate_node := candidate as Node3D
 		var to_item: Vector3 = candidate_node.global_position - player_origin
 		var distance: float = to_item.length()
-		if distance > player.pull_interaction_distance + 1.5:
+		if distance > player.pull_interaction_distance + 3.0:
 			continue
 		if distance < 0.001:
 			distance = 0.001
 		var facing: float = forward.dot(to_item / distance)
-		if facing < 0.15:
+		if distance > 2.8 and facing < -0.35:
 			continue
 		if distance < best_distance:
 			best_distance = distance
 			best_target = candidate
 	if best_target != null:
 		DebugLog.gameplay("inventory: nearest fallback target distance=%.3f" % best_distance)
+	return best_target
+
+
+func _find_nearest_inventory_target(player) -> Node:
+	var best_target: Node = null
+	var best_distance := INF
+	var player_origin: Vector3 = player.global_position + Vector3(0.0, 1.0, 0.0)
+	var forward: Vector3 = -player.global_transform.basis.z
+	if is_instance_valid(player._camera_controller) and is_instance_valid(player._camera_controller.camera):
+		forward = -player._camera_controller.camera.global_transform.basis.z
+	if forward.length_squared() < 0.0001:
+		forward = -player.global_transform.basis.z
+	forward = forward.normalized()
+	for node in player.get_tree().get_nodes_in_group("players"):
+		if node == player:
+			continue
+		if not (node is Node3D):
+			continue
+		if not node.has_method("get_inventory_component"):
+			continue
+		var to_target: Vector3 = (node as Node3D).global_position - player_origin
+		var distance: float = to_target.length()
+		if distance > player.pull_interaction_distance + 4.0:
+			continue
+		if distance < 0.001:
+			distance = 0.001
+		var facing: float = forward.dot(to_target / distance)
+		if distance > 3.5 and facing < -0.45:
+			continue
+		if distance < best_distance:
+			best_distance = distance
+			best_target = node
+	var scene_root: Node = player.get_tree().current_scene
+	if scene_root != null:
+		best_target = _find_nearest_inventory_target_in_subtree(scene_root, player_origin, forward, player.pull_interaction_distance + 4.0, best_distance, best_target)
+	return best_target
+
+
+func _find_nearest_inventory_target_in_subtree(root: Node, origin: Vector3, forward: Vector3, max_distance: float, current_best_distance: float, current_best_target: Node) -> Node:
+	var best_distance := current_best_distance
+	var best_target := current_best_target
+	for child in root.get_children():
+		if child is Node3D and child.has_method("get_inventory_component"):
+			var child_3d := child as Node3D
+			var to_target: Vector3 = child_3d.global_position - origin
+			var distance: float = to_target.length()
+			if distance >= 0.001 and distance <= max_distance:
+				var facing: float = forward.dot(to_target / distance)
+				if (distance <= 3.5 or facing >= -0.45) and distance < best_distance:
+					best_distance = distance
+					best_target = child
+		best_target = _find_nearest_inventory_target_in_subtree(child, origin, forward, max_distance, best_distance, best_target)
+		if best_target is Node3D:
+			best_distance = ((best_target as Node3D).global_position - origin).length()
 	return best_target

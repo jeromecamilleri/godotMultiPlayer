@@ -64,6 +64,7 @@ const WorldItemScene: PackedScene = preload("res://inventory/world_item.tscn")
 @onready var _pull_ray: RayCast3D = $CameraController/PlayerCamera/PullRay
 @onready var _attack_animation_player: AnimationPlayer = $CharacterRotationRoot/MeleeAnchor/AnimationPlayer
 @onready var _ground_shapecast: ShapeCast3D = $GroundShapeCast
+@onready var _interaction_area: Area3D = $InteractionArea
 @onready var _character_skin: CharacterSkin = $CharacterRotationRoot/CharacterSkin
 @onready var _synchronizer: MultiplayerSynchronizer = $MultiplayerSynchronizer
 @onready var _character_collision_shape: CollisionShape3D = $CharacterCollisionShape
@@ -101,6 +102,13 @@ var _inventory_snapshot_json := "[]"
 var _inventory_target_path := NodePath("")
 var _is_loading_inventory_snapshot := false
 var _dropped_item_sequence := 0
+var _inventory_mode_open := false
+var _ui_test_chest_setup_done := false
+var _ui_test_scenario_name := ""
+var _ui_test_instance_role := ""
+var _ui_test_transfer_state := ""
+var _ui_test_transfer_started_ms := 0
+var _ui_test_transfer_phase_started_ms := 0
 
 var _movement = PlayerMovementComponentScript.new()
 var _combat = PlayerCombatComponentScript.new()
@@ -115,11 +123,18 @@ const ENEMY_HIT_UPWARD_BONUS := 1.2
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("inventory_toggle"):
+		toggle_inventory_mode()
+		return
+	if _inventory_mode_open:
+		return
 	_interactions.handle_unhandled_input(self, event)
 
 
 func _ready() -> void:
 	add_to_group("players")
+	_ui_test_scenario_name = _get_ui_test_scenario_name()
+	_ui_test_instance_role = _get_ui_test_instance_role()
 	_movement.setup(self)
 	_interactions.setup(self)
 	_default_collision_layer = collision_layer
@@ -141,6 +156,15 @@ func _ready() -> void:
 		on_synchronized()
 	if multiplayer.is_server():
 		call_deferred("_broadcast_inventory_snapshot")
+	if not _ui_test_scenario_name.is_empty():
+		call_deferred("_begin_ui_test_scenario")
+
+
+func _process(_delta: float) -> void:
+	if not is_multiplayer_authority():
+		return
+	if _ui_test_scenario_name == "transfer":
+		_update_ui_test_transfer_scenario()
 
 
 func _physics_process(delta: float) -> void:
@@ -223,6 +247,28 @@ func get_inventory_display_name() -> String:
 	return "Sac"
 
 
+func is_inventory_mode_open() -> bool:
+	return _inventory_mode_open
+
+
+func set_inventory_mode_open(open: bool) -> void:
+	_inventory_mode_open = open
+
+
+func toggle_inventory_mode() -> void:
+	if _inventory_mode_open:
+		_inventory_mode_open = false
+		return
+	var interacted := _interactions.try_pickup_or_focus_target(self)
+	if not interacted:
+		_interactions.refresh_inventory_focus(self)
+	_inventory_mode_open = true
+	# Rafraîchir l’état du coffre côté client à l’ouverture de l’inventaire (évite vue désynchronisée).
+	var target := get_focused_inventory_target()
+	if not multiplayer.is_server() and target != null and target.has_method("request_chest_snapshot"):
+		target.request_chest_snapshot.rpc_id(1)
+
+
 func has_focused_inventory_target() -> bool:
 	return get_focused_inventory_target() != null
 
@@ -243,6 +289,179 @@ func set_focused_inventory_target(target: Node) -> void:
 		_inventory_target_path = NodePath("")
 		return
 	_inventory_target_path = target.get_path()
+	# En multijoueur, demander au serveur le snapshot actuel du coffre pour éviter un état désynchronisé.
+	if not multiplayer.is_server() and target.has_method("request_chest_snapshot"):
+		target.request_chest_snapshot.rpc_id(1)
+
+
+func _get_ui_test_scenario_name() -> String:
+	var scenario := OS.get_environment("UI_TEST_SCENARIO").strip_edges().to_lower()
+	if not scenario.is_empty():
+		return scenario
+	var chest_flag := OS.get_environment("UI_TEST_CHEST_SCENARIO").strip_edges().to_lower()
+	if chest_flag == "1" or chest_flag == "true" or chest_flag == "yes":
+		return "chest"
+	return ""
+
+
+func _get_ui_test_instance_role() -> String:
+	return OS.get_environment("UI_TEST_INSTANCE_ROLE").strip_edges().to_lower()
+
+
+func _begin_ui_test_scenario() -> void:
+	match _ui_test_scenario_name:
+		"chest":
+			_setup_ui_test_chest_scenario()
+		"transfer":
+			_setup_ui_test_transfer_scenario()
+
+
+func _setup_ui_test_chest_scenario() -> void:
+	if _ui_test_chest_setup_done:
+		return
+	if not is_multiplayer_authority():
+		return
+	var chest: Node3D = null
+	for _attempt in range(24):
+		chest = _find_ui_test_chest()
+		if chest != null and chest.is_inside_tree():
+			break
+		await get_tree().process_frame
+	if chest == null:
+		return
+	_ui_test_chest_setup_done = true
+	velocity = Vector3.ZERO
+	var stand_position := chest.global_position + Vector3(0.6, 0.0, 2.2)
+	global_position = stand_position
+	var look_target := chest.global_position
+	look_target.y = global_position.y
+	look_at(look_target, Vector3.UP, true)
+	set_focused_inventory_target(chest)
+	_inventory_mode_open = true
+	await get_tree().process_frame
+	_refresh_ui_test_chest_focus()
+
+
+func _refresh_ui_test_chest_focus() -> void:
+	if _ui_test_scenario_name != "chest":
+		return
+	var chest := _find_ui_test_chest()
+	if chest == null:
+		return
+	set_focused_inventory_target(chest)
+	_inventory_mode_open = true
+
+
+func _setup_ui_test_transfer_scenario() -> void:
+	if _ui_test_chest_setup_done:
+		return
+	if not is_multiplayer_authority():
+		return
+	var chest: Node3D = null
+	var apple: Node3D = null
+	for _attempt in range(24):
+		chest = _find_ui_test_chest()
+		apple = _find_ui_test_world_item("ApplePickup")
+		if chest != null and apple != null and chest.is_inside_tree() and apple.is_inside_tree():
+			break
+		await get_tree().process_frame
+	if chest == null or apple == null:
+		return
+	_ui_test_chest_setup_done = true
+	velocity = Vector3.ZERO
+	match _ui_test_instance_role:
+		"client_a":
+			global_position = apple.global_position + Vector3(0.2, 0.0, 2.4)
+			_look_at_ui_test_node(apple)
+			_ui_test_transfer_state = "await_pickup"
+			_ui_test_transfer_started_ms = Time.get_ticks_msec()
+		"client_b":
+			global_position = chest.global_position + Vector3(-0.8, 0.0, 2.3)
+			_look_at_ui_test_node(chest)
+			set_focused_inventory_target(chest)
+			_inventory_mode_open = true
+			_ui_test_transfer_state = "watch_chest"
+		_:
+			_ui_test_transfer_state = "idle"
+
+
+func _update_ui_test_transfer_scenario() -> void:
+	var chest := _find_ui_test_chest()
+	var apple := _find_ui_test_world_item("ApplePickup")
+	if chest == null:
+		return
+	match _ui_test_instance_role:
+		"client_a":
+			if _ui_test_transfer_state == "await_pickup" and apple != null and apple.call("can_be_picked_up"):
+				if Time.get_ticks_msec() - _ui_test_transfer_started_ms > 800:
+					request_pickup_world_item(apple.get_path())
+					_ui_test_transfer_state = "pickup_requested"
+			if _ui_test_transfer_state == "await_pickup" and inventory.count_item("apple") > 0:
+				global_position = chest.global_position + Vector3(0.8, 0.0, 2.3)
+				velocity = Vector3.ZERO
+				_look_at_ui_test_node(chest)
+				set_focused_inventory_target(chest)
+				_inventory_mode_open = true
+				_ui_test_transfer_state = "ready_to_give"
+			if _ui_test_transfer_state == "pickup_requested" and inventory.count_item("apple") > 0:
+				global_position = chest.global_position + Vector3(0.8, 0.0, 2.3)
+				velocity = Vector3.ZERO
+				_look_at_ui_test_node(chest)
+				set_focused_inventory_target(chest)
+				_inventory_mode_open = true
+				_ui_test_transfer_state = "ready_to_give"
+				_ui_test_transfer_phase_started_ms = Time.get_ticks_msec()
+			if _ui_test_transfer_state == "ready_to_give" and Time.get_ticks_msec() - _ui_test_transfer_phase_started_ms > 1200:
+				request_transfer_to_target(0, 1)
+				_ui_test_transfer_state = "give_requested"
+		"client_b":
+			if _ui_test_transfer_state == "watch_chest" and chest.get_inventory_component().count_item("apple") > 2:
+				global_position = chest.global_position + Vector3(-0.8, 0.0, 2.3)
+				velocity = Vector3.ZERO
+				_look_at_ui_test_node(chest)
+				set_focused_inventory_target(chest)
+				_inventory_mode_open = true
+				_ui_test_transfer_state = "ready_for_chest"
+
+
+func _look_at_ui_test_node(node: Node3D) -> void:
+	var look_target := node.global_position
+	look_target.y = global_position.y
+	look_at(look_target, Vector3.UP, true)
+
+
+func _find_ui_test_chest() -> Node3D:
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return null
+	return _find_ui_test_chest_in_subtree(scene_root)
+
+
+func _find_ui_test_chest_in_subtree(root: Node) -> Node3D:
+	if root is Node3D and root.name == "Chest" and root.has_method("get_inventory_component"):
+		return root as Node3D
+	for child in root.get_children():
+		var found := _find_ui_test_chest_in_subtree(child)
+		if found != null:
+			return found
+	return null
+
+
+func _find_ui_test_world_item(node_name: String) -> Node3D:
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return null
+	return _find_ui_test_world_item_in_subtree(scene_root, node_name)
+
+
+func _find_ui_test_world_item_in_subtree(root: Node, node_name: String) -> Node3D:
+	if root is Node3D and root.name == node_name and root.has_method("can_be_picked_up"):
+		return root as Node3D
+	for child in root.get_children():
+		var found := _find_ui_test_world_item_in_subtree(child, node_name)
+		if found != null:
+			return found
+	return null
 
 
 func get_target_inventory_display_name() -> String:

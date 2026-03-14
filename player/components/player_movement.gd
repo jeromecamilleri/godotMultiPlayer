@@ -8,6 +8,12 @@ func setup(player) -> void:
 
 
 func physics_process_authority(player, delta: float) -> void:
+	if player.is_inventory_mode_open():
+		player._move_direction = Vector3.ZERO
+		player.velocity.x = 0.0
+		player.velocity.z = 0.0
+		player.set_sync_properties()
+		return
 	update_ground_height(player)
 
 	# Gather input state for this physics tick.

@@ -71,6 +71,18 @@ func _broadcast_inventory_snapshot() -> void:
 	sync_inventory_snapshot.rpc(_inventory_snapshot_json)
 
 
+## Demande côté client : le serveur renvoie le snapshot actuel à l’appelant.
+## Garantit que le client a bien l’état à jour (évite les RPC broadcast manqués).
+@rpc("any_peer", "call_remote", "reliable")
+func request_chest_snapshot() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id == 0:
+		return
+	sync_inventory_snapshot.rpc_id(sender_id, _inventory_snapshot_json)
+
+
 @rpc("any_peer", "call_local", "reliable")
 func sync_inventory_snapshot(snapshot_json: String) -> void:
 	_inventory_snapshot_json = snapshot_json

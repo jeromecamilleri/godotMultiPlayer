@@ -171,12 +171,12 @@ item_definition = ExtResource("22_itema")
 quantity = 3
 
 [node name="WoodPickup" parent="HubLevel/Env/Interactives" unique_id=676708511 instance=ExtResource("20_invwi")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.102, 4.42, 8.948)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.799579, 5.0195103, -0.44950914)
 item_definition = ExtResource("23_itemw")
 quantity = 5
 
 [node name="Chest" parent="HubLevel/Env/Interactives" unique_id=580767468 instance=ExtResource("21_invct")]
-transform = Transform3D(0.91201746, 0, -0.35864377, 0, 0.97999996, 0, 0.35864377, 0, 0.91201746, 17.720644, 4.4, 8.995982)
+transform = Transform3D(-0.1311519, 0, -0.8359003, 0, 1.8925308, 0, 1.1570579, 0, -0.09474889, -14.864765, 4.7570124, -3.0847158)
 inventory_name = "Coffre du hub"
 initial_items = Array[Resource]([ExtResource("23_itemw"), ExtResource("22_itema")])
 initial_quantities = PackedInt32Array(6, 2)

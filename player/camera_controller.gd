@@ -29,6 +29,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _anchor != null and _anchor.has_method("is_inventory_mode_open") and bool(_anchor.call("is_inventory_mode_open")):
+		return
 	_mouse_input = event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 	if _mouse_input:
 		_rotation_input = -event.relative.x * mouse_sensitivity
@@ -76,6 +78,12 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if not _anchor:
+		_rotation_input = 0.0
+		_tilt_input = 0.0
+		return
+	if _anchor.has_method("is_inventory_mode_open") and bool(_anchor.call("is_inventory_mode_open")):
+		camera.global_transform = _pivot.global_transform
+		camera.rotation.z = 0
 		_rotation_input = 0.0
 		_tilt_input = 0.0
 		return

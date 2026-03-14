@@ -95,7 +95,7 @@ Downed / revive loop update
   - on collect, coin first attempts revive; otherwise falls back to normal pickup.
 - `FallChecker` changes:
   - when a fall causes life to reach `0`, player is respawned back on the map as downed
-    so teammates can revive (instead of staying unreachable under the map).
+	so teammates can revive (instead of staying unreachable under the map).
 - Added integration coverage:
   - `test/integration/test_coin_revive.gd`
   - updated `test/test_fall_lives.gd` for downed-respawn-at-zero behavior.
@@ -169,7 +169,7 @@ Bomb throw feel and visibility update
 Cooperative pull-cube puzzle update
 - Added a new pull interaction on green rigid cubes (`main/rigid_body_3d.gd`):
   - left click from a player now toggles attach/detach on a pullable cube
-    (implemented in `player/player.gd` via camera raycast),
+	(implemented in `player/player.gd` via camera raycast),
   - each attached player contributes a traction vector from cube to player,
   - vectors naturally cancel when players pull in opposite directions,
   - vectors accumulate when players pull from the same side.
@@ -196,8 +196,8 @@ Cooperative pull-cube puzzle update
   engage before the cube reaches `GOAL`.
 - Door/bomb synchronization fix:
   - `main/bomb_door.gd` now marks `_set_open_state` as an `all_peers` RPC so the
-    server-driven opening state is propagated to every client instead of staying
-    local to the authority.
+	server-driven opening state is propagated to every client instead of staying
+	local to the authority.
  
 
 Player architecture refactor (domain components)
@@ -210,7 +210,7 @@ Player architecture refactor (domain components)
   - `player_interactions.gd` (bomb spawn/throw, pull-cube interaction, coin collect).
 - Preserved public `Player` API and RPC entrypoints used by existing systems/tests:
   - `spawn_bomb`, `respawn`, `set_dead_state`, `set_lives`, `_collect_coin`,
-    `_request_enemy_hit_on_server`, `damage`, `try_revive_with_coin`, etc.
+	`_request_enemy_hit_on_server`, `damage`, `try_revive_with_coin`, etc.
 - Goal: improve readability, reduce single-file cognitive load, and make future
   changes safer by isolating movement/combat/network/lifecycle concerns.
 - Validation: full GUT test suite passes after refactor (`22/22`).

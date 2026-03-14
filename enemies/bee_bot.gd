@@ -64,17 +64,23 @@ func _physics_process(delta: float) -> void:
 			var target_transform := transform.looking_at(_target.global_position)
 			transform = transform.interpolate_with(target_transform, 0.1)
 
-			_shoot_count += delta
-			if _shoot_count > shoot_timer:
-				_bee_root.play_spit_attack()
-				_shoot_count -= shoot_timer
+			if not _is_ui_test_bee_fire_disabled():
+				_shoot_count += delta
+				if _shoot_count > shoot_timer:
+					_bee_root.play_spit_attack()
+					_shoot_count -= shoot_timer
 
-				var origin := global_position
-				var target := _target.global_position + Vector3.UP
-				var aim_direction := (target - global_position).normalized()
-				_spawn_bee_bullet.rpc(origin, aim_direction)
+					var origin := global_position
+					var target := _target.global_position + Vector3.UP
+					var aim_direction := (target - global_position).normalized()
+					_spawn_bee_bullet.rpc(origin, aim_direction)
 
 	_sync_bee_transform.rpc(global_transform)
+
+
+func _is_ui_test_bee_fire_disabled() -> bool:
+	var flag := OS.get_environment("UI_TEST_DISABLE_BEES").strip_edges().to_lower()
+	return flag == "1" or flag == "true" or flag == "yes"
 
 
 func damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int = -1) -> void:
