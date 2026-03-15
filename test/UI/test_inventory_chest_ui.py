@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import atexit
 from collections import deque
+import json
 import os
 import re
 import shutil
@@ -197,11 +198,13 @@ def start_xvfb() -> None:
         "LIBGL_ALWAYS_SOFTWARE": "1",
         "UI_TEST_DISABLE_BEES": "1",
         "UI_TEST_CHEST_SCENARIO": "1",
+        "UI_TEST_CHEST_SYNC_DIR": str(OUT_DIR),
+        "UI_TEST_INSTANCE_ROLE": "client",
     }
     X11_ENV.pop("XAUTHORITY", None)
     for _ in range(30):
         if proc.poll() is not None:
-            raise RuntimeError("Xvfb exited before becoming ready")
+            raise AssertionError("Xvfb exited before becoming ready")
         if Path(f"/tmp/.X11-unix/X{display_number}").exists():
             probe = subprocess.run(
                 ["xwininfo", "-root"],
@@ -225,7 +228,7 @@ def start_xvfb() -> None:
             log(f"xvfb_display={display}")
             return
         time.sleep(0.1)
-    raise RuntimeError("Xvfb did not become ready")
+    raise AssertionError("Xvfb did not become ready")
 
 
 def kill_stale_runtime_processes() -> None:
@@ -418,7 +421,7 @@ def detect_menu_button_centers(image_path: Path) -> tuple[tuple[int, int], tuple
             components.append((len(points), min(xs) + x0, max(xs) + x0, min(ys) + y0, max(ys) + y0))
 
     if len(components) < 2:
-        raise RuntimeError(f"could not detect both menu buttons in {image_path}")
+        raise AssertionError(f"could not detect both menu buttons in {image_path}")
 
     components.sort(key=lambda item: item[3])
     upper = components[0]
@@ -544,16 +547,65 @@ def ensure_runtime_windows(expected_count: int = 2) -> list[str]:
                 import_root(OUT_DIR / "00_runtime_not_found.png")
             except subprocess.CalledProcessError:
                 pass
-            raise RuntimeError(f"runtime window for instance {label} did not appear")
+            raise AssertionError(f"runtime window for instance {label} did not appear")
     dump_visible_godot_windows()
     if len(runtime_ids) < expected_count:
         try:
             import_root(OUT_DIR / "00_runtime_not_found.png")
         except subprocess.CalledProcessError:
             pass
-        raise RuntimeError(f"expected {expected_count} runtime windows, got {len(runtime_ids)}")
+        raise AssertionError(f"expected {expected_count} runtime windows, got {len(runtime_ids)}")
     launched_runtime_window_ids[:] = runtime_ids
     return runtime_ids
+
+
+def _chest_json_path(role: str) -> Path:
+    return OUT_DIR / f"chest_{role}.json"
+
+
+def _read_chest_contents(role: str) -> list | None:
+    path = _chest_json_path(role)
+    if not path.exists():
+        return None
+    try:
+        with path.open(encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else None
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _wait_chest_file(role: str, timeout_sec: float = 2.0, poll_interval: float = 0.1) -> list | None:
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        contents = _read_chest_contents(role)
+        if contents is not None:
+            return contents
+        time.sleep(poll_interval)
+    return None
+
+
+def _total_quantity(contents: list) -> int:
+    total = 0
+    for slot in contents:
+        if isinstance(slot, dict):
+            total += int(slot.get("quantity", 0))
+    return total
+
+
+def assert_chest_after_take() -> None:
+    """Vérifie que le coffre a bien été mis à jour après la prise (contenu valide, au moins 1 objet restant)."""
+    contents = _wait_chest_file("client")
+    if contents is None:
+        raise AssertionError(
+            "Fichier coffre client non trouvé après prise (UI_TEST_CHEST_SYNC_DIR / inventaire coffre non écrit)."
+        )
+    total = _total_quantity(contents)
+    if total < 1:
+        raise AssertionError(
+            f"Coffre vide ou invalide après prise : attendu au moins 1 objet restant, total quantité={total}."
+        )
+    log(f"assert_chest_after_take OK: coffre client a {total} objet(s) restant(s).")
 
 
 def main() -> int:
@@ -592,19 +644,19 @@ def main() -> int:
 
     phase("Attente menus", "détection visuelle des boutons Server et Client")
     if not wait_for_menu(server_window_id, "02_server_menu"):
-        raise RuntimeError("server menu was not detected in server window")
+        raise AssertionError("server menu was not detected in server window")
     if not wait_for_menu(client_window_id, "03_client_menu"):
-        raise RuntimeError("client menu was not detected in client window")
+        raise AssertionError("client menu was not detected in client window")
 
     phase("Sélection du serveur", "clic sur le bouton Server dans la fenêtre gauche")
     click_detected_menu_button(server_window_id, OUT_DIR / "02_server_menu_ready.png", "server", "02_server")
     if not wait_for_menu_to_disappear(server_window_id, "02_server"):
-        raise RuntimeError("server window stayed on menu after server click")
+        raise AssertionError("server window stayed on menu after server click")
 
     phase("Sélection du client", "clic sur le bouton Client dans la fenêtre droite")
     click_detected_menu_button(client_window_id, OUT_DIR / "03_client_menu_ready.png", "client", "03_client")
     if not wait_for_menu_to_disappear(client_window_id, "03_client"):
-        raise RuntimeError("client window stayed on menu after client click")
+        raise AssertionError("client window stayed on menu after client click")
     time.sleep(1.2)
 
     phase("Multijoueur démarré", "04_after_multiplayer_start.png")
@@ -630,6 +682,10 @@ def main() -> int:
 
     phase("Vérification transfert", "06_after_chest_take.png")
     import_root(OUT_DIR / "06_after_chest_take.png")
+
+    phase("Assertion coffre après prise", "contenu coffre écrit par le client")
+    assert_chest_after_take()
+
     write_summary()
     log(f"screenshots={OUT_DIR}")
     return 0
