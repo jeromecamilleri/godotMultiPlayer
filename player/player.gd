@@ -103,12 +103,26 @@ var _inventory_target_path := NodePath("")
 var _is_loading_inventory_snapshot := false
 var _dropped_item_sequence := 0
 var _inventory_mode_open := false
-var _ui_test_chest_setup_done := false
-var _ui_test_scenario_name := ""
-var _ui_test_instance_role := ""
-var _ui_test_transfer_state := ""
-var _ui_test_transfer_started_ms := 0
-var _ui_test_transfer_phase_started_ms := 0
+# Ces variables sont utilisées pour piloter, surveiller ou scénariser des tests automatisés de l'interface utilisateur (UI)
+# dans l'environnement de jeu, à partir de la classe principale Player. Elles enregistrent l'état courant ou le
+# scénario du test UI en cours, mais leur place ici est discutable car cette classe Player n'est pas une classe dédiée
+# aux tests. On y trouve cependant :
+var _ui_test_chest_setup_done := false          # Indique si la configuration initiale du coffre a été effectuée dans un test UI.
+var _ui_test_scenario_name := ""                # Le nom du scénario de test UI en cours d'exécution.
+var _ui_test_instance_role := ""                # Rôle de cette instance (par exemple "gauche"/"droite" pour des tests multijoueur simulés).
+var _ui_test_transfer_state := ""               # État du transfert d'objet dans le scénario de test UI.
+var _ui_test_transfer_started_ms := 0           # Timestamp de début du transfert (en millisecondes) pour le test.
+var _ui_test_transfer_phase_started_ms := 0     # Timestamp du début de la phase de transfert courante dans le test.
+var _ui_test_proximity_state := ""              # État de proximité (par exemple "proche d'un coffre") lors du test UI.
+var _ui_test_proximity_written := false         # Indique si l'état de proximité a déjà été enregistré/loggé pour le test.
+var _ui_test_proximity_near_has := false
+var _ui_test_proximity_near_name := ""
+var _ui_test_proximity_far_has := false
+var _ui_test_proximity_far_name := ""
+var _ui_test_proximity_near_distance := 0.0
+var _ui_test_proximity_far_distance := 0.0
+# Normalement, ces variables appartiendraient à une surcouche dédiée au test, mais elles sont ici injectées pour permettre
+# un pilotage précis depuis l'extérieur sans perturber le code de jeu principal.
 
 var _movement = PlayerMovementComponentScript.new()
 var _combat = PlayerCombatComponentScript.new()
@@ -165,6 +179,8 @@ func _process(_delta: float) -> void:
 		return
 	if _ui_test_scenario_name == "transfer":
 		_update_ui_test_transfer_scenario()
+	if _ui_test_scenario_name == "inventory_proximity":
+		_update_ui_test_inventory_proximity_scenario()
 
 
 func _physics_process(delta: float) -> void:
@@ -314,6 +330,8 @@ func _begin_ui_test_scenario() -> void:
 			_setup_ui_test_chest_scenario()
 		"transfer":
 			_setup_ui_test_transfer_scenario()
+		"inventory_proximity":
+			_setup_ui_test_inventory_proximity_scenario()
 
 
 func _setup_ui_test_chest_scenario() -> void:
@@ -422,6 +440,107 @@ func _update_ui_test_transfer_scenario() -> void:
 				set_focused_inventory_target(chest)
 				_inventory_mode_open = true
 				_ui_test_transfer_state = "ready_for_chest"
+
+
+func _setup_ui_test_inventory_proximity_scenario() -> void:
+	if _ui_test_proximity_state != "":
+		return
+	if not is_multiplayer_authority():
+		return
+	_ui_test_proximity_state = "await_other_player"
+	_ui_test_proximity_written = false
+	_ui_test_proximity_near_has = false
+	_ui_test_proximity_near_name = ""
+	_ui_test_proximity_far_has = false
+	_ui_test_proximity_far_name = ""
+	_ui_test_proximity_near_distance = 0.0
+	_ui_test_proximity_far_distance = 0.0
+
+
+func _find_other_player_for_ui_test() -> Player:
+	for node in get_tree().get_nodes_in_group("players"):
+		if node is Player and node != self:
+			return node as Player
+	return null
+
+
+func _write_ui_test_proximity_result(result: Dictionary) -> void:
+	if _ui_test_proximity_written:
+		return
+	var dir := OS.get_environment("UI_TEST_CHEST_SYNC_DIR").strip_edges()
+	if dir.is_empty():
+		return
+	var role := _ui_test_instance_role
+	if role.is_empty():
+		role = "unknown"
+	var path := dir + "/inventory_proximity_" + role + ".json"
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify(result))
+	file.close()
+	_ui_test_proximity_written = true
+
+
+func _update_ui_test_inventory_proximity_scenario() -> void:
+	# Only meaningful for client_a. Others stay idle.
+	if _ui_test_instance_role != "client_a":
+		return
+	var other := _find_other_player_for_ui_test()
+	if other == null:
+		return
+	var chest := _find_ui_test_chest()
+	if chest == null:
+		return
+	match _ui_test_proximity_state:
+		"await_other_player":
+			# Teleport close to other player, open inventory and refresh focus.
+			global_position = other.global_position + Vector3(0.7, 0.0, 0.2)
+			velocity = Vector3.ZERO
+			_look_at_ui_test_node(other)
+			_inventory_mode_open = true
+			# Simule un échange joueur<->joueur en proximité: on force la cible sur l'autre joueur.
+			# (La règle qu'on valide ensuite est: loin => aucune cible automatique, coffre => coffre.)
+			set_focused_inventory_target(other)
+			_ui_test_proximity_state = "near_checked"
+		"near_checked":
+			_ui_test_proximity_near_has = has_focused_inventory_target()
+			_ui_test_proximity_near_name = get_target_inventory_display_name()
+			_ui_test_proximity_near_distance = (other.global_position - global_position).length()
+			# Teleport far from other player AND far from chest, open inventory and refresh focus.
+			global_position = other.global_position + Vector3(0.0, 0.0, 80.0)
+			velocity = Vector3.ZERO
+			_look_at_ui_test_node(other)
+			_inventory_mode_open = true
+			_interactions.refresh_inventory_focus(self)
+			_ui_test_proximity_state = "far_checked"
+		"far_checked":
+			_ui_test_proximity_far_has = has_focused_inventory_target()
+			_ui_test_proximity_far_name = get_target_inventory_display_name()
+			_ui_test_proximity_far_distance = (other.global_position - global_position).length()
+			# Now teleport next to chest: should focus chest inventory.
+			global_position = chest.global_position + Vector3(0.8, 0.0, 2.3)
+			velocity = Vector3.ZERO
+			_look_at_ui_test_node(chest)
+			set_focused_inventory_target(chest)
+			_inventory_mode_open = true
+			_interactions.refresh_inventory_focus(self)
+			_ui_test_proximity_state = "chest_checked"
+		"chest_checked":
+			if _ui_test_proximity_written:
+				return
+			var chest_has_target := has_focused_inventory_target()
+			var chest_name := get_target_inventory_display_name()
+			_write_ui_test_proximity_result({
+				"near_has_target": _ui_test_proximity_near_has,
+				"near_target_name": _ui_test_proximity_near_name,
+				"near_distance": _ui_test_proximity_near_distance,
+				"far_has_target": _ui_test_proximity_far_has,
+				"far_target_name": _ui_test_proximity_far_name,
+				"far_distance": _ui_test_proximity_far_distance,
+				"chest_has_target": chest_has_target,
+				"chest_target_name": chest_name,
+			})
 
 
 func _look_at_ui_test_node(node: Node3D) -> void:

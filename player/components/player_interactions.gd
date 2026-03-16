@@ -137,7 +137,9 @@ func try_pickup_or_focus_target(player) -> bool:
 		DebugLog.gameplay("inventory: fallback picked nearby target=%s path=%s" % [fallback_target.name, str(fallback_target.get_path())])
 		player.request_pickup_world_item(fallback_target.get_path())
 		return true
-	var fallback_inventory_target := _find_nearest_inventory_target(player)
+	# IMPORTANT: do not auto-focus another player's inventory at a distance.
+	# Player-to-player transfer should require true proximity (interaction area / raycast).
+	var fallback_inventory_target := _find_nearest_world_inventory_target(player)
 	if fallback_inventory_target != null:
 		DebugLog.gameplay("inventory: fallback focused nearby inventory target=%s path=%s" % [fallback_inventory_target.name, str(fallback_inventory_target.get_path())])
 		player.set_focused_inventory_target(fallback_inventory_target)
@@ -156,7 +158,9 @@ func refresh_inventory_focus(player) -> bool:
 	if proximity_target != null:
 		player.set_focused_inventory_target(proximity_target)
 		return true
-	var fallback_target := _find_nearest_inventory_target(player)
+	# Fallback: allow focusing world inventories (e.g. chests) nearby, but never
+	# auto-focus another player's inventory at a distance.
+	var fallback_target := _find_nearest_world_inventory_target(player)
 	if fallback_target != null:
 		player.set_focused_inventory_target(fallback_target)
 		return true
@@ -269,7 +273,7 @@ func _find_nearest_pickable_target(player) -> Node:
 	return best_target
 
 
-func _find_nearest_inventory_target(player) -> Node:
+func _find_nearest_world_inventory_target(player) -> Node:
 	var best_target: Node = null
 	var best_distance := INF
 	var player_origin: Vector3 = player.global_position + Vector3(0.0, 1.0, 0.0)
@@ -279,28 +283,41 @@ func _find_nearest_inventory_target(player) -> Node:
 	if forward.length_squared() < 0.0001:
 		forward = -player.global_transform.basis.z
 	forward = forward.normalized()
-	for node in player.get_tree().get_nodes_in_group("players"):
-		if node == player:
-			continue
-		if not (node is Node3D):
-			continue
-		if not node.has_method("get_inventory_component"):
-			continue
-		var to_target: Vector3 = (node as Node3D).global_position - player_origin
-		var distance: float = to_target.length()
-		if distance > player.pull_interaction_distance + 4.0:
-			continue
-		if distance < 0.001:
-			distance = 0.001
-		var facing: float = forward.dot(to_target / distance)
-		if distance > 3.5 and facing < -0.45:
-			continue
-		if distance < best_distance:
-			best_distance = distance
-			best_target = node
 	var scene_root: Node = player.get_tree().current_scene
 	if scene_root != null:
-		best_target = _find_nearest_inventory_target_in_subtree(scene_root, player_origin, forward, player.pull_interaction_distance + 4.0, best_distance, best_target)
+		best_target = _find_nearest_world_inventory_target_in_subtree(
+			scene_root,
+			player_origin,
+			forward,
+			player.pull_interaction_distance + 4.0,
+			best_distance,
+			best_target
+		)
+	return best_target
+
+
+func _find_nearest_world_inventory_target_in_subtree(root: Node, origin: Vector3, forward: Vector3, max_distance: float, current_best_distance: float, current_best_target: Node) -> Node:
+	var best_distance := current_best_distance
+	var best_target := current_best_target
+	for child in root.get_children():
+		# Exclude players: world inventories only (e.g. chests).
+		if child.is_in_group("players"):
+			best_target = _find_nearest_world_inventory_target_in_subtree(child, origin, forward, max_distance, best_distance, best_target)
+			if best_target is Node3D:
+				best_distance = ((best_target as Node3D).global_position - origin).length()
+			continue
+		if child is Node3D and child.has_method("get_inventory_component"):
+			var child_3d := child as Node3D
+			var to_target: Vector3 = child_3d.global_position - origin
+			var distance: float = to_target.length()
+			if distance >= 0.001 and distance <= max_distance:
+				var facing: float = forward.dot(to_target / distance)
+				if (distance <= 3.5 or facing >= -0.45) and distance < best_distance:
+					best_distance = distance
+					best_target = child
+		best_target = _find_nearest_world_inventory_target_in_subtree(child, origin, forward, max_distance, best_distance, best_target)
+		if best_target is Node3D:
+			best_distance = ((best_target as Node3D).global_position - origin).length()
 	return best_target
 
 
