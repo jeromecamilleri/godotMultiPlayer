@@ -59,3 +59,36 @@ func test_ui_e2e_inventory_transfer_multiplayer() -> void:
 		return
 	var result := _run_ui_script("test/UI/test_inventory_transfer_multiplayer_ui.sh")
 	_assert_e2e_result("test_inventory_transfer_multiplayer_ui.sh", result)
+
+
+func test_ui_e2e_late_join_bomb_and_wood() -> void:
+	if OS.get_name() != "Linux":
+		assert_true(true, "E2E UI ignoré : Linux uniquement.")
+		return
+	if OS.get_environment("RUN_UI_E2E").is_empty():
+		assert_true(true, "E2E UI ignoré : définir RUN_UI_E2E=1 pour lancer (ex. lancer Godot depuis un terminal avec cette variable).")
+		return
+	var result := _run_ui_script("test/UI/test_late_join_bomb_wood_ui.sh")
+	_assert_e2e_result("test_late_join_bomb_wood_ui.sh", result)
+
+
+func test_ui_e2e_cube_mission() -> void:
+	if OS.get_name() != "Linux":
+		assert_true(true, "E2E UI ignoré : Linux uniquement.")
+		return
+	if OS.get_environment("RUN_UI_E2E").is_empty():
+		assert_true(true, "E2E UI ignoré : définir RUN_UI_E2E=1 pour lancer (ex. lancer Godot depuis un terminal avec cette variable).")
+		return
+	var result := _run_ui_script("test/UI/test_cube_mission_ui.sh")
+	_assert_e2e_result("test_cube_mission_ui.sh", result)
+
+
+func test_ui_e2e_cube_mission_lock() -> void:
+	if OS.get_name() != "Linux":
+		assert_true(true, "E2E UI ignoré : Linux uniquement.")
+		return
+	if OS.get_environment("RUN_UI_E2E").is_empty():
+		assert_true(true, "E2E UI ignoré : définir RUN_UI_E2E=1 pour lancer (ex. lancer Godot depuis un terminal avec cette variable).")
+		return
+	var result := _run_ui_script("test/UI/test_cube_mission_lock_ui.sh")
+	_assert_e2e_result("test_cube_mission_lock_ui.sh", result)

@@ -10,6 +10,8 @@ class_name PullableCube
 @export var pull_force_per_player := 16.0
 ## Maximum horizontal distance where a player can stay attached.
 @export var max_attach_distance := 7.0
+## Stop pull session if no intent update arrives in time.
+@export var pull_intent_timeout_ms := 900
 ## Cube-to-reactor distance required to mark this objective as complete.
 @export var reactor_goal_radius := 2.2
 ## Optional explicit path to the reactor node.
@@ -94,7 +96,45 @@ func request_toggle_pull() -> void:
 		_attached_peers.erase(peer_id)
 		return
 	if _is_peer_attachable(peer_id):
-		_attached_peers[peer_id] = true
+		request_start_pull(_default_intent_for_peer(peer_id))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func request_start_pull(intent_dir: Vector3) -> void:
+	if not is_multiplayer_authority():
+		return
+	var peer_id: int = multiplayer.get_remote_sender_id()
+	if peer_id <= 0:
+		peer_id = multiplayer.get_unique_id()
+	if _goal_reached:
+		return
+	if not _is_peer_attachable(peer_id):
+		return
+	_set_peer_pull_data(peer_id, true, intent_dir)
+
+
+@rpc("any_peer", "call_remote", "unreliable_ordered")
+func request_update_pull_intent(intent_dir: Vector3) -> void:
+	if not is_multiplayer_authority():
+		return
+	var peer_id: int = multiplayer.get_remote_sender_id()
+	if peer_id <= 0:
+		peer_id = multiplayer.get_unique_id()
+	if _goal_reached:
+		return
+	if not _is_peer_attachable(peer_id):
+		return
+	_set_peer_pull_data(peer_id, true, intent_dir)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func request_stop_pull() -> void:
+	if not is_multiplayer_authority():
+		return
+	var peer_id: int = multiplayer.get_remote_sender_id()
+	if peer_id <= 0:
+		peer_id = multiplayer.get_unique_id()
+	_attached_peers.erase(peer_id)
 
 
 func compute_pull_vector_from_points(relative_points: Array[Vector3]) -> Vector3:
@@ -108,10 +148,54 @@ func compute_pull_vector_from_points(relative_points: Array[Vector3]) -> Vector3
 	return net
 
 
+func compute_coop_force_vector(intent_vectors: Array[Vector3], goal_direction: Vector3 = Vector3.ZERO, has_locked_anchor: bool = false) -> Vector3:
+	var net: Vector3 = compute_pull_vector_from_points(intent_vectors)
+	var goal_horizontal: Vector3 = Vector3(goal_direction.x, 0.0, goal_direction.z)
+	if goal_horizontal.length_squared() < 0.0001:
+		return net
+	var goal_normalized := goal_horizontal.normalized()
+	var coop_scale: float = max(1.0, float(intent_vectors.size()))
+	if has_locked_anchor and intent_vectors.size() >= 2:
+		return goal_normalized * coop_scale
+	if net.length_squared() < 0.0001:
+		if not has_locked_anchor:
+			return net
+		return goal_normalized * coop_scale
+	if not has_locked_anchor:
+		return net
+	var net_normalized := net.normalized()
+	var alignment := net_normalized.dot(goal_normalized)
+	if alignment >= 0.92:
+		return net
+	var guided := net + (goal_normalized * coop_scale * 1.8)
+	if guided.length_squared() < 0.0001:
+		return goal_normalized * coop_scale
+	return guided.normalized() * max(coop_scale, net.length())
+
+
 func evaluate_goal_reached() -> bool:
 	if not is_instance_valid(_reactor_node):
 		return false
 	return global_position.distance_to(_reactor_node.global_position) <= reactor_goal_radius
+
+
+func is_goal_reached() -> bool:
+	return _goal_reached
+
+
+func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
+	if _goal_reached:
+		return
+	_goal_reached = true
+	if goal_position != Vector3.INF:
+		global_position = goal_position
+	linear_velocity = Vector3.ZERO
+	angular_velocity = Vector3.ZERO
+	_attached_peers.clear()
+	_auto_move_active = false
+	_pull_state_sync = PULL_STATE_GOAL
+	# Freeze so the cube remains clearly parked on the goal.
+	freeze = true
 
 
 func _get_goal_direction() -> Vector3:
@@ -128,7 +212,7 @@ func _should_auto_move(net_pull: Vector3) -> bool:
 		return false
 	if net_pull.length_squared() < 0.0001:
 		return false
-	if _attached_peers.size() < auto_move_min_players:
+	if _active_attached_count() < auto_move_min_players:
 		return false
 	var goal_dir := _get_goal_direction()
 	if goal_dir.is_zero_approx():
@@ -160,29 +244,50 @@ func _apply_pull_forces() -> void:
 		_pull_state_sync = PULL_STATE_IDLE
 		return
 
-	var relative_points: Array[Vector3] = []
+	var active_count := 0
+	var net_pull := Vector3.ZERO
+	var intent_vectors: Array[Vector3] = []
+	var has_locked_anchor := false
 	for peer_id in _attached_peers.keys():
 		var player := _get_player_for_peer(int(peer_id))
 		if not is_instance_valid(player):
 			continue
-		relative_points.append(player.global_position - global_position)
+		var data: Dictionary = _normalized_peer_pull_data(int(peer_id))
+		if not bool(data.get("active", true)):
+			continue
+		active_count += 1
+		var intent: Vector3 = data.get("intent_dir", Vector3.ZERO)
+		var horizontal := Vector3(intent.x, 0.0, intent.z)
+		if horizontal.length_squared() < 0.0001:
+			horizontal = Vector3(player.global_position.x - global_position.x, 0.0, player.global_position.z - global_position.z)
+		if horizontal.length_squared() < 0.0001:
+			continue
+		intent_vectors.append(horizontal)
+		if player.has_method("is_debug_position_locked") and bool(player.call("is_debug_position_locked")):
+			has_locked_anchor = true
 
-	var net_pull: Vector3 = compute_pull_vector_from_points(relative_points)
+	net_pull = compute_coop_force_vector(intent_vectors, _get_goal_direction(), has_locked_anchor)
 	_auto_move_active = _should_auto_move(net_pull)
 	if net_pull.length_squared() < 0.0001:
-		_pull_state_sync = PULL_STATE_ATTACHED
+		_pull_state_sync = PULL_STATE_ATTACHED if active_count > 0 else PULL_STATE_IDLE
 		return
 
 	# Force scales with number of attached players and alignment quality.
 	var world_force: Vector3 = net_pull * pull_force_per_player
 	apply_central_force(world_force)
-	_pull_state_sync = PULL_STATE_COOP if _attached_peers.size() >= 2 else PULL_STATE_ATTACHED
+	_pull_state_sync = PULL_STATE_COOP if active_count >= 2 else PULL_STATE_ATTACHED
 
 func _cleanup_invalid_attached_peers() -> void:
 	var to_remove: Array[int] = []
+	var now_ms := Time.get_ticks_msec()
 	for peer_id in _attached_peers.keys():
 		var id: int = int(peer_id)
 		if not _is_peer_attachable(id):
+			to_remove.append(id)
+			continue
+		var data: Dictionary = _normalized_peer_pull_data(id)
+		var last_seen := int(data.get("last_seen_ms", 0))
+		if pull_intent_timeout_ms > 0 and last_seen > 0 and now_ms - last_seen > pull_intent_timeout_ms:
 			to_remove.append(id)
 	for id in to_remove:
 		_attached_peers.erase(id)
@@ -205,11 +310,60 @@ func _get_player_for_peer(peer_id: int) -> Node3D:
 	return null
 
 
+func _normalized_peer_pull_data(peer_id: int) -> Dictionary:
+	if not _attached_peers.has(peer_id):
+		return {}
+	var raw: Variant = _attached_peers[peer_id]
+	if raw is Dictionary:
+		var d := raw as Dictionary
+		return {
+			"active": bool(d.get("active", true)),
+			"intent_dir": d.get("intent_dir", Vector3.ZERO),
+			"last_seen_ms": int(d.get("last_seen_ms", 0)),
+		}
+	# Backward compatibility with old bool payload.
+	return {"active": bool(raw), "intent_dir": Vector3.ZERO, "last_seen_ms": Time.get_ticks_msec()}
+
+
+func _set_peer_pull_data(peer_id: int, active: bool, intent_dir: Vector3) -> void:
+	var horizontal := Vector3(intent_dir.x, 0.0, intent_dir.z)
+	if horizontal.length_squared() > 0.0001:
+		horizontal = horizontal.normalized()
+	_attached_peers[peer_id] = {
+		"active": active,
+		"intent_dir": horizontal,
+		"last_seen_ms": Time.get_ticks_msec(),
+	}
+
+
+func _default_intent_for_peer(peer_id: int) -> Vector3:
+	var player := _get_player_for_peer(peer_id)
+	if not is_instance_valid(player):
+		return Vector3.ZERO
+	var to_player := player.global_position - global_position
+	return Vector3(to_player.x, 0.0, to_player.z)
+
+
+func _active_attached_count() -> int:
+	var count := 0
+	for peer_id in _attached_peers.keys():
+		var data: Dictionary = _normalized_peer_pull_data(int(peer_id))
+		if bool(data.get("active", true)):
+			count += 1
+	return count
+
+
 func _resolve_reactor_node() -> void:
 	if not reactor_path.is_empty():
 		_reactor_node = get_node_or_null(reactor_path) as Node3D
 	if not is_instance_valid(_reactor_node):
 		_reactor_node = get_tree().root.find_child("reactor", true, false) as Node3D
+	if not is_instance_valid(_reactor_node):
+		_reactor_node = get_tree().root.find_child("CubeActivator", true, false) as Node3D
+	if not is_instance_valid(_reactor_node):
+		var activator_root := get_tree().root.find_child("Activator", true, false) as Node3D
+		if is_instance_valid(activator_root):
+			_reactor_node = activator_root
 
 
 func _update_goal_state() -> void:
@@ -217,11 +371,7 @@ func _update_goal_state() -> void:
 		return
 	if not evaluate_goal_reached():
 		return
-	_goal_reached = true
-	_attached_peers.clear()
-	_pull_state_sync = PULL_STATE_GOAL
-	# Freeze so the cube remains clearly parked in the reactor.
-	freeze = true
+	complete_goal()
 
 func _setup_runtime_material() -> void:
 	if not is_instance_valid(_mesh_instance):

@@ -104,6 +104,9 @@ var _inventory_target_path := NodePath("")
 var _is_loading_inventory_snapshot := false
 var _dropped_item_sequence := 0
 var _inventory_mode_open := false
+var _debug_position_lock_enabled := false
+var _debug_position_lock_remote_state := false
+var _debug_locked_position := Vector3.ZERO
 
 var _movement = PlayerMovementComponentScript.new()
 var _combat = PlayerCombatComponentScript.new()
@@ -119,6 +122,9 @@ const ENEMY_HIT_UPWARD_BONUS := 1.2
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("debug_lock_player"):
+		toggle_debug_position_lock()
+		return
 	if event.is_action_pressed("inventory_toggle"):
 		toggle_inventory_mode()
 		return
@@ -247,6 +253,52 @@ func is_inventory_mode_open() -> bool:
 
 func set_inventory_mode_open(open: bool) -> void:
 	_inventory_mode_open = open
+
+
+func is_debug_position_locked() -> bool:
+	return _debug_position_lock_enabled or _debug_position_lock_remote_state
+
+
+func get_debug_locked_position() -> Vector3:
+	return _debug_locked_position
+
+
+func toggle_debug_position_lock() -> void:
+	set_debug_position_lock(not _debug_position_lock_enabled)
+
+
+func set_debug_position_lock(enabled: bool) -> void:
+	_debug_position_lock_enabled = enabled
+	if is_multiplayer_authority():
+		if multiplayer.is_server():
+			_debug_position_lock_remote_state = enabled
+		else:
+			_server_set_debug_position_lock_state.rpc_id(1, enabled)
+	if enabled:
+		_debug_locked_position = global_position
+		velocity = Vector3.ZERO
+		collision_layer = 0
+		collision_mask = 0
+		if is_instance_valid(_character_collision_shape):
+			_character_collision_shape.disabled = true
+		if _interactions.has_active_pull_session():
+			_interactions.latch_active_pull_session(self)
+	else:
+		collision_layer = _default_collision_layer
+		collision_mask = _default_collision_mask
+		if is_instance_valid(_character_collision_shape):
+			_character_collision_shape.disabled = false
+		_interactions.clear_debug_pull_latched(self)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _server_set_debug_position_lock_state(enabled: bool) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != get_multiplayer_authority():
+		return
+	_debug_position_lock_remote_state = enabled
 
 
 func toggle_inventory_mode() -> void:
@@ -380,7 +432,10 @@ func _server_pickup_world_item(target_path: NodePath) -> void:
 		DebugLog.gameplay("inventory: pickup rejected because inventory is full | remaining=%d" % remaining)
 		return
 	DebugLog.gameplay("inventory: pickup accepted, object collected")
-	target.rpc("set_collected_state", true)
+	if target.has_method("mark_collected_on_server"):
+		target.call("mark_collected_on_server")
+	else:
+		target.rpc("set_collected_state", true, Time.get_ticks_msec())
 	if target == get_focused_inventory_target():
 		set_focused_inventory_target(null)
 

@@ -42,7 +42,11 @@ func _ready() -> void:
 	if not _is_server_instance():
 		# Clients only consume snapshots pushed by the server.
 		snapshot_changed.emit(_remote_snapshot_text)
+		_request_current_snapshot.rpc_id(1)
 		return
+
+	if multiplayer.has_multiplayer_peer():
+		multiplayer.peer_connected.connect(_on_peer_connected)
 
 	if is_instance_valid(player_spawner):
 		player_spawner.player_spawned.connect(_on_player_spawned)
@@ -300,11 +304,30 @@ func _emit_snapshot() -> void:
 		_receive_snapshot.rpc(snapshot_text)
 
 
+func _on_peer_connected(peer_id: int) -> void:
+	if not _is_server_instance():
+		return
+	call_deferred("_push_current_snapshot_to_peer", peer_id)
+
+
+func _push_current_snapshot_to_peer(peer_id: int) -> void:
+	if not _is_server_instance():
+		return
+	_receive_snapshot.rpc_id(peer_id, get_snapshot_text())
+
+
 @rpc("authority", "call_remote", "reliable")
 func _receive_snapshot(snapshot_text: String) -> void:
 	# Clients receive a single authoritative text snapshot for all match UI.
 	_remote_snapshot_text = snapshot_text
 	snapshot_changed.emit(snapshot_text)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_current_snapshot() -> void:
+	if not _is_server_instance():
+		return
+	_receive_snapshot.rpc_id(multiplayer.get_remote_sender_id(), get_snapshot_text())
 
 
 func _state_to_string(value: int) -> String:

@@ -13,6 +13,8 @@ const InventoryComponentScript := preload("res://inventory/inventory_component.g
 var _inventory_snapshot_json := "[]"
 var _is_loading_snapshot := false
 var _seeded := false
+var _last_snapshot_server_ms := -1
+var _last_snapshot_replication_delay_ms := -1
 
 
 func _ready() -> void:
@@ -68,7 +70,8 @@ func _on_inventory_changed(_contents: Array[Dictionary]) -> void:
 
 func _broadcast_inventory_snapshot() -> void:
 	_inventory_snapshot_json = JSON.stringify(inventory.serialize_contents())
-	sync_inventory_snapshot.rpc(_inventory_snapshot_json)
+	_last_snapshot_server_ms = Time.get_ticks_msec()
+	sync_inventory_snapshot.rpc(_inventory_snapshot_json, _last_snapshot_server_ms)
 
 
 ## Demande côté client : le serveur renvoie le snapshot actuel à l’appelant.
@@ -80,12 +83,15 @@ func request_chest_snapshot() -> void:
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id == 0:
 		return
-	sync_inventory_snapshot.rpc_id(sender_id, _inventory_snapshot_json)
+	sync_inventory_snapshot.rpc_id(sender_id, _inventory_snapshot_json, _last_snapshot_server_ms)
 
 
 @rpc("any_peer", "call_local", "reliable")
-func sync_inventory_snapshot(snapshot_json: String) -> void:
+func sync_inventory_snapshot(snapshot_json: String, server_event_ms: int = -1) -> void:
 	_inventory_snapshot_json = snapshot_json
+	if server_event_ms >= 0 and not multiplayer.is_server():
+		_last_snapshot_replication_delay_ms = maxi(0, Time.get_ticks_msec() - server_event_ms)
+	_last_snapshot_server_ms = server_event_ms
 	_apply_inventory_snapshot(snapshot_json)
 	_refresh_label()
 
@@ -106,3 +112,7 @@ func _refresh_label() -> void:
 	for slot in inventory.get_contents():
 		total_items += int(slot.get("quantity", 0))
 	_label.text = "%s\n%d objet(s)" % [inventory_name, total_items]
+
+
+func get_last_snapshot_replication_delay_ms() -> int:
+	return _last_snapshot_replication_delay_ms

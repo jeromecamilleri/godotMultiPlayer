@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
 [ext_resource type="PackedScene" uid="uid://rn45gytkk6tv" path="res://enemies/bee_bot.tscn" id="14_73k8k"]
+[ext_resource type="Script" path="res://enemies/bee_director.gd" id="25_beedir"]
 [ext_resource type="PackedScene" uid="uid://bdvht85heque" path="res://addons/kenney_platformer_kit/platform.glb" id="14_q0sk7"]
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
 [ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="18_4hmqs"]
@@ -24,6 +25,7 @@
 [ext_resource type="PackedScene" path="res://inventory/inventory_container.tscn" id="21_invct"]
 [ext_resource type="Resource" path="res://inventory/items/apple.tres" id="22_itema"]
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
+[ext_resource type="Script" path="res://main/cube_activator.gd" id="24_actvt"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -34,7 +36,7 @@ size = Vector3(4, 4, 1)
 albedo_color = Color(1, 0.439216, 0.117647, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bd01"]
-size = Vector3(4, 4, 1)
+size = Vector3(3.7902527, 4.055664, 0.7084961)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_n3o0a"]
 subdivide_width = 120
@@ -48,6 +50,10 @@ subdivide_depth = 120
 albedo_color = Color(0.2627451, 1, 0, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bsumw"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_actvt"]
+height = 2.4
+radius = 1.35
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_fwcvl"]
 properties/0/path = NodePath(".:global_transform")
@@ -109,7 +115,7 @@ player_spawner = NodePath("../PlayerSpawner")
 [node name="HubLevel" parent="." unique_id=1150027112 instance=ExtResource("3_0cpj8")]
 
 [node name="blockLarge25" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="11" unique_id=1410779600]
-transform = Transform3D(0.69277984, 0, 0, 0, 0.9685669, 0, 0, 0, 0.7369841, 11.101039, 1.3412752, 14.5549965)
+transform = Transform3D(0.69277984, 0, 0, 0, 0.9685669, 0, 0, 0, 0.7369841, 11.101039, 0.04037154, 15.097778)
 
 [node name="blockHexagonLow2" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="25" unique_id=1091026581]
 transform = Transform3D(0.9999982, 0.0019024077, 0, -0.0019024077, 0.9999982, 0, 0, 0, 1, 16, 4, -11)
@@ -126,11 +132,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.006908, 4, 10)
 [node name="blockSlope3" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="30" unique_id=1674956779 instance=ExtResource("12_s758e")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -17.988014, 7.96714, 10)
 
-[node name="blockSlope4" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=1399284268 instance=ExtResource("12_s758e")]
-transform = Transform3D(1.2874691, 0.013374816, -0.006270229, -0.042119034, 0.4255531, -0.1285888, 0.0058426983, 0.12053037, 0.4547006, 11.070696, 3.965773, 11.612631)
+[node name="Activator" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=547915941 instance=ExtResource("14_q0sk7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7847384, 11.671597, 3.6642096, 15.255287)
 
-[node name="reactor" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="32" unique_id=547915941 instance=ExtResource("14_q0sk7")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7847384, 11.671597, 4.8769417, 15.255287)
+[node name="CubeActivator" type="Area3D" parent="HubLevel/Ground/Activator" index="0"]
+script = ExtResource("24_actvt")
+objective_id = "cube_activator_reached"
+win_reason = "cube_activator_reached"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Ground/Activator/CubeActivator" index="0"]
+transform = Transform3D(1.5, 0, 0, 0, 1, 0, 0, 0, 1.5, 0, 0.6, 0)
+shape = SubResource("CylinderShape3D_actvt")
+
+[node name="fenceCorner3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="2" unique_id=1229230674]
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, 11.99863, 4.007114, 15.995415)
 
 [node name="tree2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="6" unique_id=1396597241]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, -2.1932158)
@@ -139,6 +154,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, -2.1932158)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.173691, 4, 16)
 
 [node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001]
+script = ExtResource("25_beedir")
 
 [node name="bee_bot" parent="HubLevel/Env/Enemies" unique_id=1866323019 instance=ExtResource("14_73k8k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.7566595, 5.3034263, 5.0660505)
@@ -182,7 +198,7 @@ initial_items = Array[Resource]([ExtResource("23_itemw"), ExtResource("22_itema"
 initial_quantities = PackedInt32Array(6, 2)
 
 [node name="BombDoor" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=1227783314]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.033218, 6, 9.972226)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.125907, 6, 9.972226)
 script = ExtResource("19_bd01")
 trigger_radius = 3.5
 open_height = 4.0
@@ -194,36 +210,41 @@ mesh = SubResource("BoxMesh_bd01")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor" unique_id=2101783992]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5490217, 0, -0.009033203)
 shape = SubResource("BoxShape3D_bd01")
 
-[node name="BombDoor" type="StaticBody3D" parent="HubLevel/Env/Interactives/BombDoor" unique_id=1915983913]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7973318, 0.01113081, 0.016928673)
+[node name="BombDoor2" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=1915983913]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.2358866, 6.011131, 9.989155)
 script = ExtResource("19_bd01")
 trigger_radius = 3.5
 open_height = 4.0
 objective_id = "bomb_door_opened"
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor/BombDoor" unique_id=1486915985]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.446558, 0, 0)
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor2" unique_id=1486915985]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4487038, 0.031926632, 0.0059223175)
 mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor2")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor/BombDoor" unique_id=1192373912]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor2" unique_id=1192373912]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4683838, 0, 0.019042969)
 shape = SubResource("BoxShape3D_bd01")
 
-[node name="BombDoor" type="StaticBody3D" parent="HubLevel/Env/Interactives/BombDoor/BombDoor" unique_id=98848486]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7973318, 0.01113081, 0.016928673)
+[node name="BombDoor3" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=98848486]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4385548, 6.0222616, 10.0060835)
 script = ExtResource("19_bd01")
 trigger_radius = 3.5
 open_height = 4.0
 objective_id = "bomb_door_opened"
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor/BombDoor/BombDoor" unique_id=964734067]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor3" unique_id=964734067]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, 0, 0)
 mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor3")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor/BombDoor/BombDoor" unique_id=714042191]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor3" unique_id=714042191]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
 shape = SubResource("BoxShape3D_bd01")
 
 [node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
@@ -238,6 +259,12 @@ surface_material_override/0 = ExtResource("15_wat01")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.895, 4.565)
 physics_material_override = SubResource("PhysicsMaterial_fwcvl")
 script = ExtResource("12_fwcvl")
+base_mass = 1.5
+mass_per_player = 1.5
+pull_force_per_player = 28.0
+reactor_goal_radius = 2.8
+auto_move_speed = 6.2
+auto_move_force = 52.0
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=1019711160]
 transform = Transform3D(1.79, 0, 0, 0, 1.79, 0, 0, 0, 1.79, 0, 0, 0)

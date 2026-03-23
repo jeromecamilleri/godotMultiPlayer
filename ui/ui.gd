@@ -8,11 +8,14 @@ signal connect_client
 @onready var _match_timer_label: Label = get_node_or_null("InGameUI/MatchTimer") as Label
 @onready var _connection: Connection = get_node("../Connection") as Connection
 @onready var _match_director: Node = get_node_or_null("../MatchDirector")
+@onready var _network_stats_label: Label = get_node_or_null("InGameUI/NetworkStats") as Label
 @onready var _player_inventory_panel: Control = get_node_or_null("InGameUI/PlayerInventoryPanel") as Control
 @onready var _external_inventory_panel: Control = get_node_or_null("InGameUI/TargetInventoryPanel") as Control
 @onready var _player_list_margin: Control = get_node_or_null("InGameUI/MarginContainer") as Control
 @onready var _inventory_toggle_button: Button = get_node_or_null("InGameUI/InventoryToggleButton") as Button
 @onready var _inventory_toggle_hint: Label = get_node_or_null("InGameUI/InventoryToggleHint") as Label
+@onready var _match_result_backdrop: ColorRect = get_node_or_null("InGameUI/MatchResultBackdrop") as ColorRect
+@onready var _match_result_banner: Label = get_node_or_null("InGameUI/MatchResultBanner") as Label
 
 var _connection_status_text := "SERVER STATUS\nreason: startup\nclients_connected: 0\nclient_ids: []"
 var _match_status_text := "MATCH\nstate: LOBBY\ntime_left: 0.0s\nplayers: 0\nscore:"
@@ -20,17 +23,21 @@ var _is_exiting_client := false
 var _is_exiting_server := false
 var _player_selected_slot := 0
 var _external_selected_slot := 0
+var _ui_test_result_written := false
 
 
 func _ready():
 	_connection.server_status_changed.connect(_on_server_status_changed)
+	_connection.network_stats_changed.connect(_on_network_stats_changed)
 	if is_instance_valid(_match_director) and _match_director.has_signal("snapshot_changed"):
 		_match_director.snapshot_changed.connect(_on_match_snapshot_changed)
 		if _match_director.has_method("get_snapshot_text"):
 			_match_status_text = _match_director.get_snapshot_text()
 	_update_server_status_label()
 	_update_match_timer_label()
+	_update_network_stats_label()
 	_refresh_server_status_visibility()
+	_update_match_result_banner()
 	if is_instance_valid(_player_inventory_panel):
 		_player_inventory_panel.slot_action_requested.connect(_on_player_inventory_action_requested)
 		_player_inventory_panel.slot_selected.connect(_on_player_slot_selected)
@@ -41,6 +48,14 @@ func _ready():
 		_inventory_toggle_button.pressed.connect(_on_inventory_toggle_button_pressed)
 
 	if Connection.is_server(): return
+
+	var auto_role := OS.get_environment("UI_TEST_AUTO_ROLE").strip_edges().to_lower()
+	if auto_role == "server":
+		start_server_emit()
+		return
+	if auto_role == "client":
+		connect_client_emit()
+		return
 	
 	if hide_ui_and_connect:
 		connect_client_emit()
@@ -105,6 +120,8 @@ func _on_server_status_changed(status_text: String) -> void:
 	_update_server_status_label()
 	_update_match_timer_label()
 	_refresh_server_status_visibility()
+	_update_match_result_banner()
+	_try_write_ui_test_result()
 
 
 func _on_match_snapshot_changed(status_text: String) -> void:
@@ -112,12 +129,20 @@ func _on_match_snapshot_changed(status_text: String) -> void:
 	_update_server_status_label()
 	_update_match_timer_label()
 	_refresh_server_status_visibility()
+	_update_match_result_banner()
+	_try_write_ui_test_result()
+
+
+func _on_network_stats_changed(_stats_text: String) -> void:
+	_update_network_stats_label()
 
 
 func _refresh_server_status_visibility() -> void:
 	_server_status_label.visible = _is_server_instance() and $InGameUI.visible
 	if is_instance_valid(_match_timer_label):
 		_match_timer_label.visible = $InGameUI.visible
+	if is_instance_valid(_network_stats_label):
+		_network_stats_label.visible = $InGameUI.visible
 	if is_instance_valid(_player_inventory_panel):
 		var local_player := _get_local_player()
 		var inventory_open := local_player != null and local_player.is_inventory_mode_open()
@@ -139,6 +164,10 @@ func _refresh_server_status_visibility() -> void:
 	if is_instance_valid(_inventory_toggle_hint):
 		_inventory_toggle_hint.visible = $InGameUI.visible
 		_inventory_toggle_hint.text = "Touche I"
+	if is_instance_valid(_match_result_banner):
+		_match_result_banner.visible = $InGameUI.visible and not _match_result_banner.text.is_empty()
+	if is_instance_valid(_match_result_backdrop):
+		_match_result_backdrop.visible = $InGameUI.visible and is_instance_valid(_match_result_banner) and not _match_result_banner.text.is_empty()
 
 
 func _update_server_status_label() -> void:
@@ -156,6 +185,59 @@ func _update_match_timer_label() -> void:
 	_match_timer_label.text = "%s %02d:%02d" % [state_name, minutes, seconds]
 
 
+func _update_network_stats_label() -> void:
+	if not is_instance_valid(_network_stats_label):
+		return
+	_network_stats_label.text = _connection.get_network_stats_text()
+
+
+func _update_match_result_banner() -> void:
+	if not is_instance_valid(_match_result_banner):
+		return
+	var state_name := _extract_state_name(_match_status_text)
+	match state_name:
+		"WON":
+			_match_result_banner.text = "MISSION REUSSIE"
+			_match_result_banner.modulate = Color(0.85, 1.0, 0.86, 1.0)
+			if is_instance_valid(_match_result_backdrop):
+				_match_result_backdrop.color = Color(0.08, 0.42, 0.16, 0.82)
+		"LOST":
+			_match_result_banner.text = "MISSION ECHOUEE"
+			_match_result_banner.modulate = Color(1.0, 0.82, 0.82, 1.0)
+			if is_instance_valid(_match_result_backdrop):
+				_match_result_backdrop.color = Color(0.46, 0.12, 0.12, 0.82)
+		_:
+			_match_result_banner.text = ""
+			if is_instance_valid(_match_result_backdrop):
+				_match_result_backdrop.color = Color(0, 0, 0, 0)
+	_match_result_banner.visible = $InGameUI.visible and not _match_result_banner.text.is_empty()
+	if is_instance_valid(_match_result_backdrop):
+		_match_result_backdrop.visible = $InGameUI.visible and not _match_result_banner.text.is_empty()
+
+
+func _try_write_ui_test_result() -> void:
+	if _ui_test_result_written:
+		return
+	var scenario := OS.get_environment("UI_TEST_SCENARIO").strip_edges().to_lower()
+	if scenario != "cube_mission":
+		return
+	var role := OS.get_environment("UI_TEST_INSTANCE_ROLE").strip_edges().to_lower()
+	var sync_dir := OS.get_environment("UI_TEST_SYNC_DIR").strip_edges()
+	if role.is_empty() or sync_dir.is_empty():
+		return
+	var state_name := _extract_state_name(_match_status_text)
+	if state_name != "WON" and state_name != "LOST":
+		return
+	var file := FileAccess.open("%s/cube_mission_ui_%s.json" % [sync_dir, role], FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify({
+		"state": state_name,
+		"banner": _match_result_banner.text if is_instance_valid(_match_result_banner) else "",
+		"timer": _match_timer_label.text if is_instance_valid(_match_timer_label) else "",
+	}))
+	file.close()
+	_ui_test_result_written = true
 func _extract_time_left_seconds(snapshot_text: String) -> float:
 	for line in snapshot_text.split("\n"):
 		if not line.begins_with("time_left:"):

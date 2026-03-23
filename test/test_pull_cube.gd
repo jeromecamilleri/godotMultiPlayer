@@ -32,6 +32,22 @@ func test_pull_vector_cancels_when_players_pull_opposite() -> void:
 	assert_true(net.length() < 0.05, "Opposite pull directions should mostly cancel")
 
 
+func test_coop_force_uses_goal_direction_when_locked_anchor_and_opposed_pulls() -> void:
+	var world := Node3D.new()
+	add_child_autofree(world)
+	var cube: PullableCube = PULL_CUBE_SCRIPT.new() as PullableCube
+	assert_not_null(cube)
+	world.add_child(cube)
+	await wait_process_frames(1)
+
+	var intents: Array[Vector3] = [Vector3(1.0, 0.0, 0.0), Vector3(-1.0, 0.0, 0.0)]
+	var goal_dir := Vector3(0.0, 0.0, 1.0)
+	var coop_force := cube.compute_coop_force_vector(intents, goal_dir, true)
+
+	assert_true(coop_force.length() > 1.9, "Avec une ancre verrouillee, le cube doit quand meme recevoir une direction coop vers l'objectif.")
+	assert_true(coop_force.z > 0.9, "La direction de secours doit pointer vers l'activateur.")
+
+
 func test_cube_reaching_reactor_switches_to_goal_state() -> void:
 	var world := Node3D.new()
 	add_child_autofree(world)

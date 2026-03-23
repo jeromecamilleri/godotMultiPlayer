@@ -92,6 +92,48 @@ theme_override_font_sizes/font_size = 32
 text = "TIME 00:00"
 horizontal_alignment = 1
 
+[node name="MatchResultBackdrop" type="ColorRect" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 78.0
+offset_right = 250.0
+offset_bottom = 148.0
+grow_horizontal = 2
+color = Color(0.08, 0.42, 0.16, 0.82)
+
+[node name="MatchResultBanner" type="Label" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -230.0
+offset_top = 88.0
+offset_right = 230.0
+offset_bottom = 138.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 34
+text = ""
+horizontal_alignment = 1
+
+[node name="NetworkStats" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = 170.0
+offset_top = 24.0
+offset_right = 420.0
+offset_bottom = 52.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 16
+text = "NET sync..."
+horizontal_alignment = 2
+
 [node name="InventoryToggleButton" type="Button" parent="InGameUI"]
 layout_mode = 1
 anchors_preset = 0

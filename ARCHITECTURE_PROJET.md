@@ -102,6 +102,23 @@ Grandes fonctions:
 - `request_respawn()`: autorise et déclenche un respawn
 - `report_enemy_killed()`: crédite score et progression
 - `report_objective_progress()`: avance les objectifs coop
+
+## Checklist Late Join
+
+Pour tout objet gameplay persistant visible par les joueurs, vérifier explicitement le cas "joueur qui rejoint après changement d'état".
+
+Règle à appliquer :
+- si l'objet reste dans la scène après changement d'état, il doit exposer une resynchronisation explicite de son état courant pour les late joiners
+- soit par `peer_connected` côté serveur
+- soit par une RPC `request_current_state()` côté client
+- idéalement les deux
+
+Objets déjà couverts :
+- `BombDoor`
+- `WorldItem`
+- `InventoryContainer3D`
+- `BeeBot`
+- `MatchDirector`
 - `set_player_lives()`: point d'entrée unique pour modifier les vies
 - `get_snapshot_text()`: fabrique le texte utilisé par l'UI
 

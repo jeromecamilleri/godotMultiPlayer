@@ -3,6 +3,12 @@ class_name PlayerInteractionsComponent
 
 const BOMB_SCENE := preload("res://main/static_body_3d_bomb.tscn")
 
+var _active_pull_cube_path := NodePath("")
+var _active_pull_cube_authority := 0
+var _debug_pull_latched := false
+var _debug_locked_pull_intent := Vector3.ZERO
+var _debug_locked_pull_intent_valid := false
+
 
 func setup(player) -> void:
 	if is_instance_valid(player._pull_ray):
@@ -70,28 +76,144 @@ func spawn_bomb(player, pos: Vector3, throw_velocity: Vector3) -> void:
 
 
 func try_toggle_pull_cube(player) -> bool:
-	if not is_instance_valid(player._pull_ray):
+	var cube: RigidBody3D = _find_pullable_cube_target(player)
+	if cube == null:
 		return false
-	player._pull_ray.target_position = Vector3(0, 0, -player.pull_interaction_distance)
-	player._pull_ray.force_raycast_update()
-	var from: Vector3 = player._pull_ray.global_transform.origin
-	var to: Vector3 = from + (player._pull_ray.global_transform.basis * player._pull_ray.target_position)
-	DebugLog.gameplay("pull cube raycast from %s to %s" % [from, to])
-	if not player._pull_ray.is_colliding():
-		return false
-	var collider: Variant = player._pull_ray.get_collider()
-	if not (collider is RigidBody3D):
-		return false
-	var cube := collider as RigidBody3D
-	if not cube.is_in_group("pullable_cubes") or not cube.has_method("request_toggle_pull"):
-		return false
-
 	var cube_authority: int = cube.get_multiplayer_authority()
 	if cube_authority == player.multiplayer.get_unique_id():
 		cube.request_toggle_pull()
 	else:
 		cube.request_toggle_pull.rpc_id(cube_authority)
 	return true
+
+
+func update_pull_session(player, attack_pressed: bool, just_pressed: bool, just_released: bool) -> bool:
+	var had_active := not String(_active_pull_cube_path).is_empty()
+	if just_released and not _debug_pull_latched:
+		_stop_pull_session(player)
+		return had_active
+
+	var active_cube: RigidBody3D = _get_active_pull_cube(player)
+	if is_instance_valid(active_cube) and (attack_pressed or _debug_pull_latched):
+		_send_pull_intent(player, active_cube, "request_update_pull_intent", _get_debug_locked_intent_override())
+		return true
+
+	if (attack_pressed or _debug_pull_latched) and active_cube == null:
+		_debug_pull_latched = false
+		_stop_pull_session(player)
+
+	if not just_pressed:
+		return false
+
+	var cube: RigidBody3D = _find_pullable_cube_target(player)
+	if cube == null:
+		return false
+	_active_pull_cube_path = cube.get_path()
+	_active_pull_cube_authority = cube.get_multiplayer_authority()
+	_send_pull_intent(player, cube, "request_start_pull")
+	return true
+
+
+func has_active_pull_session() -> bool:
+	return not String(_active_pull_cube_path).is_empty()
+
+
+func set_debug_pull_latched(enabled: bool) -> void:
+	_debug_pull_latched = enabled
+	if not enabled:
+		_debug_locked_pull_intent = Vector3.ZERO
+		_debug_locked_pull_intent_valid = false
+
+
+func latch_active_pull_session(player) -> void:
+	var cube: RigidBody3D = _get_active_pull_cube(player)
+	if not is_instance_valid(cube):
+		return
+	_debug_pull_latched = true
+	_debug_locked_pull_intent = _compute_pull_intent(player, cube)
+	_debug_locked_pull_intent_valid = _debug_locked_pull_intent.length_squared() > 0.0001
+
+
+func clear_debug_pull_latched(player) -> void:
+	if not _debug_pull_latched:
+		return
+	_debug_pull_latched = false
+	_debug_locked_pull_intent = Vector3.ZERO
+	_debug_locked_pull_intent_valid = false
+	_stop_pull_session(player)
+
+
+func _stop_pull_session(player) -> void:
+	var cube: RigidBody3D = _get_active_pull_cube(player)
+	if is_instance_valid(cube) and cube.has_method("request_stop_pull"):
+		var authority := _active_pull_cube_authority
+		if authority <= 0:
+			authority = cube.get_multiplayer_authority()
+		if authority == player.multiplayer.get_unique_id():
+			cube.request_stop_pull()
+		else:
+			cube.request_stop_pull.rpc_id(authority)
+	_active_pull_cube_path = NodePath("")
+	_active_pull_cube_authority = 0
+
+
+func _get_active_pull_cube(player) -> RigidBody3D:
+	if String(_active_pull_cube_path).is_empty():
+		return null
+	var cube := player.get_node_or_null(_active_pull_cube_path) as RigidBody3D
+	if cube == null or not cube.is_in_group("pullable_cubes"):
+		return null
+	return cube
+
+
+func _send_pull_intent(player, cube, rpc_method: String, override_intent: Vector3 = Vector3.ZERO) -> void:
+	if cube == null or not cube.has_method(rpc_method):
+		return
+	var intent: Vector3 = override_intent
+	if intent.length_squared() <= 0.0001:
+		intent = _compute_pull_intent(player, cube)
+	var authority: int = cube.get_multiplayer_authority()
+	if authority == player.multiplayer.get_unique_id():
+		cube.call(rpc_method, intent)
+	else:
+		match rpc_method:
+			"request_start_pull":
+				cube.request_start_pull.rpc_id(authority, intent)
+			"request_update_pull_intent":
+				cube.request_update_pull_intent.rpc_id(authority, intent)
+
+
+func _compute_pull_intent(player, cube) -> Vector3:
+	var intent: Vector3 = player.global_position - cube.global_position
+	intent.y = 0.0
+	if intent.length_squared() > 0.0001:
+		intent = intent.normalized()
+	return intent
+
+
+func _get_debug_locked_intent_override() -> Vector3:
+	if not _debug_pull_latched or not _debug_locked_pull_intent_valid:
+		return Vector3.ZERO
+	return _debug_locked_pull_intent
+
+
+func _find_pullable_cube_target(player) -> RigidBody3D:
+	if not is_instance_valid(player._pull_ray):
+		return null
+	player._pull_ray.target_position = Vector3(0, 0, -player.pull_interaction_distance)
+	player._pull_ray.force_raycast_update()
+	var from: Vector3 = player._pull_ray.global_transform.origin
+	var to: Vector3 = from + (player._pull_ray.global_transform.basis * player._pull_ray.target_position)
+	DebugLog.gameplay("pull cube raycast from %s to %s" % [from, to])
+	if not player._pull_ray.is_colliding():
+		return null
+	var collider: Variant = player._pull_ray.get_collider()
+	if not (collider is RigidBody3D):
+		return null
+	var cube := collider as RigidBody3D
+	if not cube.is_in_group("pullable_cubes"):
+		return null
+	return cube
 
 
 func collect_coin(player) -> void:

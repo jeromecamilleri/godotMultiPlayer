@@ -8,6 +8,20 @@ func setup(player) -> void:
 
 
 func physics_process_authority(player, delta: float) -> void:
+	var attack_pressed: bool = Input.is_action_pressed("attack")
+	var is_just_attacking: bool = Input.is_action_just_pressed("attack")
+	var is_just_attack_released: bool = Input.is_action_just_released("attack")
+	var pull_consumed: bool = player._interactions.update_pull_session(player, attack_pressed, is_just_attacking, is_just_attack_released)
+	if pull_consumed:
+		is_just_attacking = false
+
+	if player.is_debug_position_locked():
+		player.global_position = player.get_debug_locked_position()
+		player._move_direction = Vector3.ZERO
+		player.velocity = Vector3.ZERO
+		player.set_sync_properties()
+		return
+
 	if player.is_inventory_mode_open():
 		player._move_direction = Vector3.ZERO
 		player.velocity.x = 0.0
@@ -17,10 +31,6 @@ func physics_process_authority(player, delta: float) -> void:
 	update_ground_height(player)
 
 	# Gather input state for this physics tick.
-	var is_just_attacking: bool = Input.is_action_just_pressed("attack")
-	if is_just_attacking and player._interactions.try_toggle_pull_cube(player):
-		# When clicking a pullable cube, interaction takes priority over punch.
-		is_just_attacking = false
 	var is_just_jumping: bool = Input.is_action_just_pressed("jump") and player.is_on_floor()
 	var is_air_boosting: bool = Input.is_action_pressed("jump") and not player.is_on_floor() and player.velocity.y > 0.0
 
