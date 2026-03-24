@@ -104,6 +104,10 @@ var _inventory_target_path := NodePath("")
 var _is_loading_inventory_snapshot := false
 var _dropped_item_sequence := 0
 var _inventory_mode_open := false
+var _inventory_snapshot_revision := 0
+var _pending_inventory_snapshot_broadcast := false
+var _last_target_snapshot_request_ms := -100000
+var _last_target_snapshot_request_path := NodePath("")
 var _debug_position_lock_enabled := false
 var _debug_position_lock_remote_state := false
 var _debug_locked_position := Vector3.ZERO
@@ -156,7 +160,7 @@ func _ready() -> void:
 		_synchronizer.synchronized.connect(on_synchronized)
 		on_synchronized()
 	if multiplayer.is_server():
-		call_deferred("_broadcast_inventory_snapshot")
+		call_deferred("_queue_inventory_snapshot_broadcast", true)
 	if _ui_test_driver.is_enabled():
 		call_deferred("_begin_ui_test_driver")
 
@@ -309,10 +313,7 @@ func toggle_inventory_mode() -> void:
 	if not interacted:
 		_interactions.refresh_inventory_focus(self)
 	_inventory_mode_open = true
-	# Rafraîchir l’état du coffre côté client à l’ouverture de l’inventaire (évite vue désynchronisée).
-	var target := get_focused_inventory_target()
-	if not multiplayer.is_server() and target != null and target.has_method("request_chest_snapshot"):
-		target.request_chest_snapshot.rpc_id(1)
+	_request_focused_inventory_snapshot()
 
 
 func has_focused_inventory_target() -> bool:
@@ -330,14 +331,14 @@ func set_focused_inventory_target(target: Node) -> void:
 		return
 	if target == null:
 		_inventory_target_path = NodePath("")
+		_last_target_snapshot_request_path = NodePath("")
 		return
 	if not target.has_method("get_inventory_component"):
 		_inventory_target_path = NodePath("")
+		_last_target_snapshot_request_path = NodePath("")
 		return
 	_inventory_target_path = target.get_path()
-	# En multijoueur, demander au serveur le snapshot actuel du coffre pour éviter un état désynchronisé.
-	if not multiplayer.is_server() and target.has_method("request_chest_snapshot"):
-		target.request_chest_snapshot.rpc_id(1)
+	_request_focused_inventory_snapshot()
 
 
 func _begin_ui_test_driver() -> void:
@@ -522,6 +523,7 @@ func spawn_dropped_world_item(payload: Dictionary, world_position: Vector3, node
 @rpc("any_peer", "call_local", "reliable")
 func sync_inventory_snapshot(snapshot_json: String) -> void:
 	_inventory_snapshot_json = snapshot_json
+	_inventory_snapshot_revision += 1
 	var parsed: Variant = JSON.parse_string(snapshot_json)
 	if not (parsed is Array):
 		return
@@ -534,12 +536,44 @@ func _on_inventory_contents_changed(_contents: Array[Dictionary]) -> void:
 	if _is_loading_inventory_snapshot:
 		return
 	if multiplayer.is_server():
+		_queue_inventory_snapshot_broadcast()
+
+
+func _queue_inventory_snapshot_broadcast(force: bool = false) -> void:
+	if not multiplayer.is_server():
+		return
+	if force:
+		_pending_inventory_snapshot_broadcast = false
 		_broadcast_inventory_snapshot()
+		return
+	if _pending_inventory_snapshot_broadcast:
+		return
+	_pending_inventory_snapshot_broadcast = true
+	call_deferred("_broadcast_inventory_snapshot")
 
 
 func _broadcast_inventory_snapshot() -> void:
+	_pending_inventory_snapshot_broadcast = false
 	_inventory_snapshot_json = JSON.stringify(inventory.serialize_contents())
 	sync_inventory_snapshot.rpc(_inventory_snapshot_json)
+
+
+func _request_focused_inventory_snapshot(force: bool = false) -> void:
+	if multiplayer.is_server():
+		return
+	var target := get_focused_inventory_target()
+	if target == null or not target.has_method("request_chest_snapshot"):
+		return
+	var now_ms := Time.get_ticks_msec()
+	var target_path := target.get_path()
+	if not force and target_path == _last_target_snapshot_request_path and now_ms - _last_target_snapshot_request_ms < 300:
+		return
+	_last_target_snapshot_request_ms = now_ms
+	_last_target_snapshot_request_path = target_path
+	var known_revision := -1
+	if target.has_method("get_snapshot_revision"):
+		known_revision = int(target.call("get_snapshot_revision"))
+	target.request_chest_snapshot.rpc_id(1, known_revision, force)
 
 
 func _is_inventory_request_authorized() -> bool:

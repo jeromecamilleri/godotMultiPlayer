@@ -2,6 +2,40 @@
 
 Tests de haut niveau qui lancent plusieurs instances Godot (Xvfb), automatisent l’UI avec xdotool et vérifient le comportement via captures et fichiers de sync.
 
+## Conventions de test stables
+
+L’UI écrit maintenant un snapshot de layout de test quand `UI_TEST_SYNC_DIR` ou `UI_TEST_CHEST_SYNC_DIR` est défini :
+
+- `ui_layout_<role>.json`
+
+Chaque entrée contient notamment :
+
+- `test_id`
+- `visible`
+- `disabled`
+- `text`
+- `x`, `y`, `width`, `height`
+- `center_x`, `center_y`
+
+Exemples de `test_id` stables :
+
+- `start_server_button`
+- `start_client_button`
+- `server_ip_input`
+- `server_port_input`
+- `inventory_toggle_button`
+- `player_inventory_panel`
+- `player_inventory_panel_slot_0`
+- `player_inventory_panel_action_drop`
+- `external_inventory_panel_slot_0`
+- `external_inventory_panel_action_take`
+
+Pour les tests, il faut privilégier ces identifiants et des assertions tolérantes :
+
+- chercher `start_server_button` au lieu d’un clic fixe `x=... y=...`
+- vérifier `cube_on_goal_visual == true` ou “dans la zone cible” plutôt qu’une position exacte
+- vérifier qu’un inventaire contient l’objet attendu plutôt qu’un ordre pixel-perfect
+
 ## Exécution en ligne de commande
 
 ```bash

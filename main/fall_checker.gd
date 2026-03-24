@@ -76,9 +76,6 @@ func check_fallen() -> void:
 			player_spawner.respawn_player(id)
 		if next_lives == 0:
 			_sync_dead_state_to_player(player, id, true)
-			if _all_players_dead() and _has_match_director():
-				# Match result is server-authoritative and centralized in MatchDirector.
-				match_director.report_team_lost("all_players_dead")
 
 
 func _sync_lives_to_player(player: Player, id: int, lives: int) -> void:
@@ -91,15 +88,6 @@ func _sync_lives_to_player(player: Player, id: int, lives: int) -> void:
 
 func _sync_dead_state_to_player(player: Player, id: int, is_dead: bool) -> void:
 	player.set_dead_state.rpc(is_dead)
-
-
-func _all_players_dead() -> bool:
-	if players.is_empty():
-		return false
-	for id in players.keys():
-		if _get_lives_for_player(id) > 0:
-			return false
-	return true
 
 
 func _get_lives_for_player(id: int) -> int:

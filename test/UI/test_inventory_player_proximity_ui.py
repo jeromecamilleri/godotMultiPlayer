@@ -30,6 +30,7 @@ launched_runtime_procs: list[subprocess.Popen[str]] = []
 launched_runtime_window_ids: list[str] = []
 xvfb_log_handle = None
 X11_ENV = dict(os.environ)
+AUTO_ROLE_BOOT = True
 
 
 def log(message: str) -> None:
@@ -189,16 +190,9 @@ def click_detected_menu_button(window_id: str, probe_image: Path, role: str, out
     target = server_center if role == "server" else client_center
     log(f"{output_prefix}_button_center={target}")
     activate_window(window_id)
-    geom = run_cmd(["xdotool", "getwindowgeometry", "--shell", window_id]).stdout
-    x = y = 0
-    for line in geom.splitlines():
-        if line.startswith("X="):
-            x = int(line.split("=", 1)[1])
-        elif line.startswith("Y="):
-            y = int(line.split("=", 1)[1])
-    abs_x = x + target[0]
-    abs_y = y + target[1]
-    run_cmd(["xdotool", "mousemove", "--sync", str(abs_x), str(abs_y), "click", "1"])
+    time.sleep(0.1)
+    run_cmd(["xdotool", "mousemove", "--window", window_id, str(target[0]), str(target[1])])
+    run_cmd(["xdotool", "click", "1"])
 
 
 def wait_for_menu_to_disappear(window_id: str, output_prefix: str, attempts: int = 20, delay: float = 0.25) -> None:
@@ -251,7 +245,11 @@ def start_xvfb() -> None:
 def launch_runtime_instance(label: str, role: str) -> None:
     log_path = OUT_DIR / f"godot_runtime_{label}.log"
     log_handle = log_path.open("w", encoding="utf-8")
-    env = {**X11_ENV, "UI_TEST_INSTANCE_ROLE": role}
+    env = {
+        **X11_ENV,
+        "UI_TEST_INSTANCE_ROLE": role,
+        "UI_TEST_AUTO_ROLE": "server" if role == "server" else "client",
+    }
     cmd = [str(NATIVE_GODOT_PATH), "--rendering-driver", "opengl3", "--path", str(ROOT_DIR)]
     phase("Lancement Godot", f"instance={label} role={role}")
     log(f"launch_cmd[{label}]={' '.join(cmd)}")
@@ -335,19 +333,27 @@ def main() -> int:
     launch_runtime_instance("1", "server")
     server_window_id = wait_for_runtime_windows(1)[0]
     place_window(server_window_id, x_positions[0], margin_y, win_w, win_h)
-    server_ready = wait_for_menu(server_window_id, "02_server_menu")
-    phase("Sélection du serveur", "fenêtre gauche")
-    click_detected_menu_button(server_window_id, server_ready, "server", "02_server")
-    wait_for_menu_to_disappear(server_window_id, "02_server")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto serveur", "menu contourné via UI_TEST_AUTO_ROLE")
+        time.sleep(1.2)
+    else:
+        server_ready = wait_for_menu(server_window_id, "02_server_menu")
+        phase("Sélection du serveur", "fenêtre gauche")
+        click_detected_menu_button(server_window_id, server_ready, "server", "02_server")
+        wait_for_menu_to_disappear(server_window_id, "02_server")
     time.sleep(1.5)
 
     launch_runtime_instance("2", "client_a")
     server_window_id, client_a_window_id = wait_for_runtime_windows(2)
     place_window(client_a_window_id, x_positions[1], margin_y, win_w, win_h)
-    client_a_ready = wait_for_menu(client_a_window_id, "03_client_a_menu")
-    phase("Sélection du client A", "fenêtre centre")
-    click_detected_menu_button(client_a_window_id, client_a_ready, "client", "03_client_a")
-    wait_for_menu_to_disappear(client_a_window_id, "03_client_a")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto client A", "menu contourné via UI_TEST_AUTO_ROLE")
+        time.sleep(1.0)
+    else:
+        client_a_ready = wait_for_menu(client_a_window_id, "03_client_a_menu")
+        phase("Sélection du client A", "fenêtre centre")
+        click_detected_menu_button(client_a_window_id, client_a_ready, "client", "03_client_a")
+        wait_for_menu_to_disappear(client_a_window_id, "03_client_a")
     time.sleep(1.2)
 
     launch_runtime_instance("3", "client_b")
@@ -355,10 +361,14 @@ def main() -> int:
     launched_runtime_window_ids[:] = [server_window_id, client_a_window_id, client_b_window_id]
     phase("Fenêtres runtime détectées", f"server={server_window_id} client_a={client_a_window_id} client_b={client_b_window_id}")
     place_window(client_b_window_id, x_positions[2], margin_y, win_w, win_h)
-    client_b_ready = wait_for_menu(client_b_window_id, "04_client_b_menu")
-    phase("Sélection du client B", "fenêtre droite")
-    click_detected_menu_button(client_b_window_id, client_b_ready, "client", "04_client_b")
-    wait_for_menu_to_disappear(client_b_window_id, "04_client_b")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto client B", "menu contourné via UI_TEST_AUTO_ROLE")
+        time.sleep(1.0)
+    else:
+        client_b_ready = wait_for_menu(client_b_window_id, "04_client_b_menu")
+        phase("Sélection du client B", "fenêtre droite")
+        click_detected_menu_button(client_b_window_id, client_b_ready, "client", "04_client_b")
+        wait_for_menu_to_disappear(client_b_window_id, "04_client_b")
     time.sleep(2.5)
 
     phase("Attente résultat", "client_a écrit inventory_proximity_client_a.json")
@@ -390,4 +400,3 @@ if __name__ == "__main__":
     except Exception as exc:
         log(f"error: {exc}")
         sys.exit(1)
-

@@ -14,7 +14,19 @@ var _contents: Array = []
 var _last_signature := ""
 
 
+func _ready() -> void:
+	_refresh_test_ids()
+
+
+func _refresh_test_ids() -> void:
+	_title_label.set_meta("test_id", "%s_title" % _get_test_id_prefix())
+	_hint_label.set_meta("test_id", "%s_hint" % _get_test_id_prefix())
+	_rows_container.set_meta("test_id", "%s_rows" % _get_test_id_prefix())
+	_actions_container.set_meta("test_id", "%s_actions" % _get_test_id_prefix())
+
+
 func set_panel_state(panel_name: String, contents: Array, action_specs: Array, hint_text: String, selected_slot: int = -1) -> void:
+	_refresh_test_ids()
 	var normalized_selected := -1
 	if not contents.is_empty():
 		normalized_selected = clampi(selected_slot, 0, contents.size() - 1) if selected_slot >= 0 else 0
@@ -46,6 +58,7 @@ func _rebuild_rows() -> void:
 	if _contents.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "Vide"
+		empty_label.set_meta("test_id", "%s_empty" % _get_test_id_prefix())
 		_rows_container.add_child(empty_label)
 		return
 	for i in range(_contents.size()):
@@ -59,6 +72,7 @@ func _rebuild_rows() -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.text = "%s x%d" % [String(slot_dict.get("display_name", slot_dict.get("item_id", "Objet"))), int(slot_dict.get("quantity", 0))]
+		button.set_meta("test_id", "%s_slot_%d" % [_get_test_id_prefix(), i])
 		button.pressed.connect(_on_slot_pressed.bind(i))
 		_rows_container.add_child(button)
 
@@ -72,6 +86,7 @@ func _rebuild_actions(action_specs: Array) -> void:
 		var button := Button.new()
 		button.text = String(action_spec.get("label", "Action"))
 		button.disabled = _selected_slot < 0
+		button.set_meta("test_id", "%s_action_%s" % [_get_test_id_prefix(), String(action_spec.get("id", "action")).strip_edges().to_lower()])
 		button.pressed.connect(_on_action_pressed.bind(String(action_spec.get("id", ""))))
 		_actions_container.add_child(button)
 
@@ -89,3 +104,8 @@ func _on_action_pressed(action_id: String) -> void:
 	if _selected_slot < 0:
 		return
 	slot_action_requested.emit(action_id, _selected_slot)
+
+
+func _get_test_id_prefix() -> String:
+	var raw := String(get_meta("test_id", "inventory_panel")).strip_edges().to_lower()
+	return raw.replace(" ", "_")

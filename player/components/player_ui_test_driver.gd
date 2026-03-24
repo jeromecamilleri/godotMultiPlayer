@@ -482,11 +482,16 @@ func _update_cube_mission_scenario(player) -> void:
 			_perform_real_cube_pull(player, cube, activator, bomb_door, director)
 		"wait_win":
 			if _director_state_name(director) == "WON":
+				var cube_on_goal_visual_wait := cube.global_position.distance_to(activator.global_position) <= 3.0
+				if not cube_on_goal_visual_wait:
+					_write_cube_mission_progress(player, cube, activator, director, "waiting_goal_replication")
+					return
 				_write_sync_result(
 					"cube_mission_%s.json" % _instance_role,
 					{
 						"state": _director_state_name(director),
 						"cube_goal": cube.has_method("is_goal_reached") and bool(cube.call("is_goal_reached")),
+						"cube_on_goal_visual": cube_on_goal_visual_wait,
 						"cube_position": [cube.global_position.x, cube.global_position.y, cube.global_position.z],
 					}
 				)
@@ -645,6 +650,10 @@ func _look_at_node(player, node: Node3D) -> void:
 	var look_target := node.global_position
 	look_target.y = player.global_position.y
 	player.look_at(look_target, Vector3.UP, true)
+	if is_instance_valid(player._camera_controller):
+		var camera_target := node.global_position
+		camera_target.y = player._camera_controller.global_position.y
+		player._camera_controller.look_at(camera_target, Vector3.UP, true)
 
 
 func _await_chest(player) -> Node3D:
@@ -796,6 +805,9 @@ func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_door:
 	var now_ms := Time.get_ticks_msec()
 	if _director_state_name(director) == "WON":
 		var cube_on_goal_visual := cube.global_position.distance_to(activator.global_position) <= 3.0
+		if not cube_on_goal_visual:
+			_write_cube_mission_progress(player, cube, activator, director, "waiting_goal_replication")
+			return
 		_write_sync_result(
 			"cube_mission_%s.json" % _instance_role,
 			{

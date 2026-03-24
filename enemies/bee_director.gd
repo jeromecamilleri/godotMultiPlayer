@@ -3,7 +3,7 @@ class_name BeeDirector
 
 const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 
-@export var min_bees := 0
+@export var min_bees := 2
 @export var bees_per_player := 1
 @export var extra_spawn_ring_radius := 4.5
 @export var base_shoot_timer := 1.5
@@ -14,11 +14,13 @@ const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 
 var _spawn_anchors: Array[Transform3D] = []
 var _spawned_bee_names: Array[String] = []
+var _seed_bee_names: Array[String] = []
+var _client_resync_attempts_remaining := 5
+var _client_resync_timer: Timer
 
 
 func _ready() -> void:
 	_capture_spawn_anchors_from_scene()
-	_clear_scene_seed_bees()
 	if multiplayer.is_server():
 		if multiplayer.has_multiplayer_peer() and not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
@@ -36,13 +38,8 @@ func _ready() -> void:
 func _capture_spawn_anchors_from_scene() -> void:
 	for child in get_children():
 		if child is Node3D and String(child.name).begins_with("bee_bot"):
+			_seed_bee_names.append(String(child.name))
 			_spawn_anchors.append((child as Node3D).transform)
-
-
-func _clear_scene_seed_bees() -> void:
-	for child in get_children():
-		if String(child.name).begins_with("bee_bot"):
-			child.queue_free()
 
 
 func _find_player_spawner() -> Node:
@@ -57,16 +54,23 @@ func _refresh_bee_population() -> void:
 	if not multiplayer.is_server():
 		return
 	var desired_count := _get_desired_bee_count()
-	while _spawned_bee_names.size() < desired_count:
-		var bee_index := _spawned_bee_names.size()
-		var bee_name := "DynamicBee_%d" % bee_index
+	var next_managed_names: Array[String] = []
+	var config := _build_bee_config(desired_count)
+	for bee_index in range(desired_count):
+		var bee_name := _bee_name_for_index(bee_index)
 		var bee_transform := _transform_for_bee_index(bee_index)
-		_spawned_bee_names.append(bee_name)
-		var config := _build_bee_config(desired_count)
+		next_managed_names.append(bee_name)
 		_rpc_spawn_bee.rpc(bee_name, bee_transform, config)
-	while _spawned_bee_names.size() > desired_count:
-		var bee_name: String = _spawned_bee_names.pop_back()
+	for seed_index in range(_seed_bee_names.size()):
+		var seed_name := _seed_bee_names[seed_index]
+		_rpc_set_bee_active.rpc(seed_name, seed_index < desired_count)
+	for bee_name in _spawned_bee_names:
+		if bee_name in next_managed_names:
+			continue
+		if bee_name in _seed_bee_names:
+			continue
 		_rpc_despawn_bee.rpc(bee_name)
+	_spawned_bee_names = next_managed_names
 	var current_config := _build_bee_config(desired_count)
 	for bee_name in _spawned_bee_names:
 		_rpc_configure_bee.rpc(bee_name, current_config)
@@ -79,7 +83,9 @@ func _get_desired_bee_count() -> int:
 	for node in get_tree().get_nodes_in_group("players"):
 		if node is Node3D:
 			player_count += 1
-	return max(min_bees, player_count * bees_per_player)
+	if player_count <= 0:
+		return min_bees
+	return max(min_bees, player_count + 1)
 
 
 func _transform_for_bee_index(index: int) -> Transform3D:
@@ -92,6 +98,12 @@ func _transform_for_bee_index(index: int) -> Transform3D:
 	var angle := float(ring_index) * (TAU / 6.0)
 	var offset := Vector3(cos(angle), 0.0, sin(angle)) * extra_spawn_ring_radius
 	return Transform3D(base.basis, base.origin + offset)
+
+
+func _bee_name_for_index(index: int) -> String:
+	if index >= 0 and index < _seed_bee_names.size():
+		return _seed_bee_names[index]
+	return "DynamicBee_%d" % index
 
 
 func _build_bee_config(player_scaled_bee_count: int) -> Dictionary:
@@ -111,32 +123,21 @@ func _is_ui_test_bee_disabled() -> bool:
 
 
 @rpc("authority", "call_local", "reliable")
-func _rpc_spawn_bee(bee_name: String, bee_transform: Transform3D, bee_config: Dictionary) -> void:
-	var existing := get_node_or_null(bee_name)
-	if existing != null:
-		if existing is Node3D:
-			(existing as Node3D).transform = bee_transform
-		_apply_bee_config(existing, bee_config)
-		return
-	var bee := BEE_SCENE.instantiate()
-	if bee == null:
-		return
-	bee.name = bee_name
-	if bee is Node:
-		bee.set_multiplayer_authority(1)
-	add_child(bee)
-	if bee is Node3D:
-		(bee as Node3D).transform = bee_transform
-	if "patrol_circle" in bee:
-		bee.patrol_circle = true
-	_apply_bee_config(bee, bee_config)
-
-
-@rpc("authority", "call_local", "reliable")
 func _rpc_despawn_bee(bee_name: String) -> void:
 	var bee := get_node_or_null(bee_name)
 	if bee != null:
 		bee.queue_free()
+
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_set_bee_active(bee_name: String, active: bool) -> void:
+	var bee := get_node_or_null(bee_name)
+	if bee == null:
+		return
+	if bee.has_method("set_director_active"):
+		bee.call("set_director_active", active)
+	elif bee is Node3D:
+		(bee as Node3D).visible = active
 
 
 @rpc("authority", "call_local", "reliable")
@@ -155,6 +156,8 @@ func _push_current_bees_to_peer(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return
 	var config := _build_bee_config(_spawned_bee_names.size())
+	for seed_index in range(_seed_bee_names.size()):
+		_rpc_set_bee_active.rpc_id(peer_id, _seed_bee_names[seed_index], seed_index < _spawned_bee_names.size())
 	for i in range(_spawned_bee_names.size()):
 		var bee_name := _spawned_bee_names[i]
 		var bee := get_node_or_null(bee_name) as Node3D
@@ -176,10 +179,46 @@ func _request_current_bees_when_connected() -> void:
 		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_bees):
 			multiplayer.connected_to_server.connect(_on_connected_to_server_request_bees, CONNECT_ONE_SHOT)
 		return
+	_start_client_resync_watchdog()
 	_request_current_bees.rpc_id(authority_id)
 
 
 func _on_connected_to_server_request_bees() -> void:
+	_start_client_resync_watchdog()
+	_request_current_bees.rpc_id(1)
+
+
+func _start_client_resync_watchdog() -> void:
+	if multiplayer.is_server():
+		return
+	if _client_resync_timer != null:
+		return
+	_client_resync_attempts_remaining = 5
+	_client_resync_timer = Timer.new()
+	_client_resync_timer.wait_time = 1.0
+	_client_resync_timer.autostart = true
+	_client_resync_timer.timeout.connect(_on_client_resync_timeout)
+	add_child(_client_resync_timer)
+
+
+func _stop_client_resync_watchdog() -> void:
+	if _client_resync_timer == null:
+		return
+	_client_resync_timer.queue_free()
+	_client_resync_timer = null
+
+
+func _on_client_resync_timeout() -> void:
+	if multiplayer.is_server():
+		_stop_client_resync_watchdog()
+		return
+	if not _spawned_bee_names.is_empty():
+		_stop_client_resync_watchdog()
+		return
+	_client_resync_attempts_remaining -= 1
+	if _client_resync_attempts_remaining < 0:
+		_stop_client_resync_watchdog()
+		return
 	_request_current_bees.rpc_id(1)
 
 
@@ -190,3 +229,36 @@ func _apply_bee_config(bee: Node, bee_config: Dictionary) -> void:
 		bee.shoot_timer = float(bee_config["shoot_timer"])
 	if "bullet_speed" in bee and bee_config.has("bullet_speed"):
 		bee.bullet_speed = float(bee_config["bullet_speed"])
+
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_spawn_bee(bee_name: String, bee_transform: Transform3D, bee_config: Dictionary) -> void:
+	var existing := get_node_or_null(bee_name)
+	if existing != null:
+		if existing is Node3D:
+			(existing as Node3D).transform = bee_transform
+			(existing as Node3D).visible = true
+		if existing.has_method("set_director_active"):
+			existing.call("set_director_active", true)
+		_apply_bee_config(existing, bee_config)
+		if bee_name not in _spawned_bee_names:
+			_spawned_bee_names.append(bee_name)
+		return
+	var bee := BEE_SCENE.instantiate()
+	if bee == null:
+		return
+	bee.name = bee_name
+	if bee is Node:
+		bee.set_multiplayer_authority(1)
+	if bee.get_parent() == null:
+		add_child(bee)
+	if bee is Node3D:
+		(bee as Node3D).transform = bee_transform
+	if "patrol_circle" in bee:
+		bee.patrol_circle = true
+	if bee.has_method("set_director_active"):
+		bee.call("set_director_active", true)
+	_apply_bee_config(bee, bee_config)
+	_stop_client_resync_watchdog()
+	if bee_name not in _spawned_bee_names:
+		_spawned_bee_names.append(bee_name)

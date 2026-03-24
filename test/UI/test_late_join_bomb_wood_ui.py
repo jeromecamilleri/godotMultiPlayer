@@ -38,6 +38,7 @@ launched_runtime_window_ids: list[str] = []
 launched_runtime_log_handles: list[object] = []
 xvfb_log_handle = None
 X11_ENV = dict(os.environ)
+AUTO_ROLE_BOOT = True
 
 
 def log(message: str) -> None:
@@ -120,11 +121,10 @@ def place_window(window_id: str, x: int, y: int, width: int, height: int) -> Non
 
 
 def click_window(window_id: str, x: int, y: int) -> None:
-    geometry = window_geometry(window_id)
-    abs_x = geometry["X"] + x
-    abs_y = geometry["Y"] + y
     activate_window(window_id)
-    run_cmd(["xdotool", "mousemove", "--sync", str(abs_x), str(abs_y), "click", "1"])
+    time.sleep(0.1)
+    run_cmd(["xdotool", "mousemove", "--window", window_id, str(x), str(y)])
+    run_cmd(["xdotool", "click", "1"])
 
 
 def menu_visible_in_window_capture(image_path: Path) -> bool:
@@ -277,7 +277,11 @@ def launch_runtime_instance(label: str, role: str) -> None:
     log_path = OUT_DIR / f"godot_runtime_{label}.log"
     log_handle = log_path.open("w", encoding="utf-8")
     launched_runtime_log_handles.append(log_handle)
-    env = {**X11_ENV, "UI_TEST_INSTANCE_ROLE": role}
+    env = {
+        **X11_ENV,
+        "UI_TEST_INSTANCE_ROLE": role,
+        "UI_TEST_AUTO_ROLE": "server" if role == "server" else "client",
+    }
     cmd = [str(NATIVE_GODOT_PATH), "--rendering-driver", "opengl3", "--path", str(ROOT_DIR)]
     phase("Lancement Godot", f"instance={label} role={role}")
     log(f"launch_cmd[{label}]={' '.join(cmd)}")
@@ -352,19 +356,27 @@ def main() -> int:
     launch_runtime_instance("1", "server")
     server_window_id = wait_for_runtime_windows(1)[0]
     place_window(server_window_id, x_positions[0], margin_y, win_w, win_h)
-    server_ready = wait_for_menu(server_window_id, "02_server_menu")
-    phase("Sélection du serveur", "fenêtre gauche")
-    click_detected_menu_button(server_window_id, server_ready, "server", "02_server")
-    wait_for_menu_to_disappear(server_window_id, "02_server")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto serveur", "menu contourné via UI_TEST_AUTO_ROLE")
+        time.sleep(1.2)
+    else:
+        server_ready = wait_for_menu(server_window_id, "02_server_menu")
+        phase("Sélection du serveur", "fenêtre gauche")
+        click_detected_menu_button(server_window_id, server_ready, "server", "02_server")
+        wait_for_menu_to_disappear(server_window_id, "02_server")
     time.sleep(1.2)
 
     launch_runtime_instance("2", "client_a")
     server_window_id, client_a_window_id = wait_for_runtime_windows(2)
     place_window(client_a_window_id, x_positions[1], margin_y, win_w, win_h)
-    client_a_ready = wait_for_menu(client_a_window_id, "03_client_a_menu")
-    phase("Sélection du client A", "fenêtre centre")
-    click_detected_menu_button(client_a_window_id, client_a_ready, "client", "03_client_a")
-    wait_for_menu_to_disappear(client_a_window_id, "03_client_a")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto client A", "menu contourné via UI_TEST_AUTO_ROLE")
+        time.sleep(1.0)
+    else:
+        client_a_ready = wait_for_menu(client_a_window_id, "03_client_a_menu")
+        phase("Sélection du client A", "fenêtre centre")
+        click_detected_menu_button(client_a_window_id, client_a_ready, "client", "03_client_a")
+        wait_for_menu_to_disappear(client_a_window_id, "03_client_a")
     launched_runtime_window_ids[:] = [server_window_id, client_a_window_id]
 
     phase("Client A ouvre le mur puis ramasse le bois", "attente du scénario déterministe")
@@ -381,10 +393,14 @@ def main() -> int:
     server_window_id, client_a_window_id, client_b_window_id = wait_for_runtime_windows(3)
     launched_runtime_window_ids[:] = [server_window_id, client_a_window_id, client_b_window_id]
     place_window(client_b_window_id, x_positions[2], margin_y, win_w, win_h)
-    client_b_ready = wait_for_menu(client_b_window_id, "05_client_b_menu")
-    phase("Sélection du client B", "late join après bombe et pickup")
-    click_detected_menu_button(client_b_window_id, client_b_ready, "client", "05_client_b")
-    wait_for_menu_to_disappear(client_b_window_id, "05_client_b")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto client B", "late join contourné via UI_TEST_AUTO_ROLE")
+        time.sleep(1.0)
+    else:
+        client_b_ready = wait_for_menu(client_b_window_id, "05_client_b_menu")
+        phase("Sélection du client B", "late join après bombe et pickup")
+        click_detected_menu_button(client_b_window_id, client_b_ready, "client", "05_client_b")
+        wait_for_menu_to_disappear(client_b_window_id, "05_client_b")
 
     phase("Client B rejoint tard", "vérification état persistant")
     client_b_state = wait_for_json(OUT_DIR / "late_join_client_b.json", timeout_sec=10.0)

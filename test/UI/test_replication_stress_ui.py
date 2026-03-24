@@ -136,11 +136,10 @@ def place_window(window_id: str, x: int, y: int, width: int, height: int) -> Non
 
 
 def click_window(window_id: str, x: int, y: int) -> None:
-    geometry = window_geometry(window_id)
-    abs_x = geometry["X"] + x
-    abs_y = geometry["Y"] + y
     activate_window(window_id)
-    run_cmd(["xdotool", "mousemove", "--sync", str(abs_x), str(abs_y), "click", "1"])
+    time.sleep(0.1)
+    run_cmd(["xdotool", "mousemove", "--window", window_id, str(x), str(y)])
+    run_cmd(["xdotool", "click", "1"])
 
 
 def menu_visible_in_window_capture(image_path: Path) -> bool:

@@ -26,6 +26,7 @@ const PUFF_SCENE := preload("smoke_puff/smoke_puff.tscn")
 @onready var _patrol_center: Vector3 = global_position
 @onready var _patrol_angle := 0.0
 @onready var _remote_target_transform: Transform3D = global_transform
+@onready var _director_active: bool = true
 
 
 func _ready() -> void:
@@ -44,7 +45,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _removed:
+	if _removed or not _director_active:
 		return
 
 	if not is_multiplayer_authority():
@@ -123,6 +124,18 @@ func _apply_damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int 
 		coin.spawn()
 	# Finalize dead state on all peers, including future late-join state sync.
 	_finalize_death.rpc()
+
+
+func set_director_active(active: bool) -> void:
+	_director_active = active
+	if _removed:
+		visible = false
+		return
+	visible = active
+	sleeping = not active
+	_target = null
+	_detection_area.monitoring = active
+	_detection_area.monitorable = active
 
 
 func _report_score_for_kill(attacker_peer_id: int) -> void:

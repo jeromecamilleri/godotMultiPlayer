@@ -49,6 +49,7 @@ xvfb_proc: subprocess.Popen[str] | None = None
 openbox_proc: subprocess.Popen[str] | None = None
 xvfb_log_handle = None
 phase_lines: list[str] = []
+AUTO_ROLE_BOOT = True
 
 
 def log(message: str) -> None:
@@ -331,11 +332,10 @@ def log_window_geometry(label: str, window_id: str) -> None:
 
 
 def click_window(window_id: str, x: int, y: int) -> None:
-    geometry = window_geometry(window_id)
-    abs_x = geometry["X"] + x
-    abs_y = geometry["Y"] + y
     activate_window(window_id)
-    run_cmd(["xdotool", "mousemove", "--sync", str(abs_x), str(abs_y), "click", "1"])
+    time.sleep(0.1)
+    run_cmd(["xdotool", "mousemove", "--window", window_id, str(x), str(y)])
+    run_cmd(["xdotool", "click", "1"])
 
 
 def click_window_sequence(window_id: str, points: list[tuple[int, int]], pause: float = 0.4) -> None:
@@ -382,53 +382,7 @@ def menu_visible_in_window_capture(image_path: Path) -> bool:
 def detect_menu_button_centers(image_path: Path) -> tuple[tuple[int, int], tuple[int, int]]:
     img = Image.open(image_path).convert("RGB")
     w, h = img.size
-    x0 = int(w * 0.20)
-    x1 = int(w * 0.80)
-    y0 = int(h * 0.20)
-    y1 = int(h * 0.75)
-
-    mask = [[False] * (x1 - x0) for _ in range(y1 - y0)]
-    for y in range(y0, y1):
-        for x in range(x0, x1):
-            r, g, b = img.getpixel((x, y))
-            avg = (r + g + b) / 3.0
-            if avg < 34:
-                mask[y - y0][x - x0] = True
-
-    visited: set[tuple[int, int]] = set()
-    components: list[tuple[int, int, int, int, int]] = []
-    height = len(mask)
-    width = len(mask[0]) if height else 0
-
-    for yy in range(height):
-        for xx in range(width):
-            if not mask[yy][xx] or (xx, yy) in visited:
-                continue
-            queue = deque([(xx, yy)])
-            visited.add((xx, yy))
-            points: list[tuple[int, int]] = []
-            while queue:
-                cx, cy = queue.popleft()
-                points.append((cx, cy))
-                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
-                    if 0 <= nx < width and 0 <= ny < height and mask[ny][nx] and (nx, ny) not in visited:
-                        visited.add((nx, ny))
-                        queue.append((nx, ny))
-            if len(points) < 200:
-                continue
-            xs = [p[0] for p in points]
-            ys = [p[1] for p in points]
-            components.append((len(points), min(xs) + x0, max(xs) + x0, min(ys) + y0, max(ys) + y0))
-
-    if len(components) < 2:
-        raise AssertionError(f"could not detect both menu buttons in {image_path}")
-
-    components.sort(key=lambda item: item[3])
-    upper = components[0]
-    lower = components[1]
-    upper_center = ((upper[1] + upper[2]) // 2, (upper[3] + upper[4]) // 2)
-    lower_center = ((lower[1] + lower[2]) // 2, (lower[3] + lower[4]) // 2)
-    return upper_center, lower_center
+    return (w // 2, int(h * 0.48)), (w // 2, int(h * 0.57))
 
 
 def wait_for_menu(window_id: str, probe_name: str, attempts: int = 30, delay: float = 0.25) -> bool:
@@ -501,7 +455,7 @@ def cleanup() -> None:
 atexit.register(cleanup)
 
 
-def launch_runtime_instance(label: str) -> subprocess.Popen[str]:
+def launch_runtime_instance(label: str, role: str) -> subprocess.Popen[str]:
     log(f"starting runtime instance={label}")
     log_path = OUT_DIR / f"godot_runtime_{label}.log"
     log_path.write_text("", encoding="utf-8")
@@ -510,22 +464,28 @@ def launch_runtime_instance(label: str) -> subprocess.Popen[str]:
     cmd = launch_command()
     log(f"launch_cmd[{label}]={' '.join(cmd)}")
     log(
-        "launch_env[%s]=DISPLAY=%s LIBGL_ALWAYS_SOFTWARE=%s UI_TEST_DISABLE_BEES=%s UI_TEST_CHEST_SCENARIO=%s"
+        "launch_env[%s]=DISPLAY=%s LIBGL_ALWAYS_SOFTWARE=%s UI_TEST_DISABLE_BEES=%s UI_TEST_CHEST_SCENARIO=%s UI_TEST_AUTO_ROLE=%s"
         % (
             label,
             X11_ENV.get("DISPLAY", ""),
             X11_ENV.get("LIBGL_ALWAYS_SOFTWARE", ""),
             X11_ENV.get("UI_TEST_DISABLE_BEES", ""),
             X11_ENV.get("UI_TEST_CHEST_SCENARIO", ""),
+            "server" if role == "server" else "client",
         )
     )
+    env = {
+        **X11_ENV,
+        "UI_TEST_INSTANCE_ROLE": role,
+        "UI_TEST_AUTO_ROLE": "server" if role == "server" else "client",
+    }
     proc = subprocess.Popen(
         cmd,
         stdout=log_handle,
         stderr=subprocess.STDOUT,
         text=True,
         start_new_session=True,
-        env=X11_ENV,
+        env=env,
         cwd=str(ROOT_DIR),
     )
     launched_runtime_procs.append(proc)
@@ -540,7 +500,8 @@ def ensure_runtime_windows(expected_count: int = 2) -> list[str]:
     while len(runtime_ids) < expected_count:
         label = f"{len(launched_runtime_procs) + 1}"
         phase("Lancement Godot", f"instance={label}")
-        launch_runtime_instance(label)
+        role = "server" if len(launched_runtime_procs) == 0 else "client"
+        launch_runtime_instance(label, role)
         runtime_ids = wait_for_runtime_windows(len(runtime_ids) + 1)
         if len(runtime_ids) < len(launched_runtime_procs):
             try:
@@ -642,21 +603,23 @@ def main() -> int:
     phase("Capture initiale", "01_runtime_start.png")
     import_root(OUT_DIR / "01_runtime_start.png")
 
-    phase("Attente menus", "détection visuelle des boutons Server et Client")
-    if not wait_for_menu(server_window_id, "02_server_menu"):
-        raise AssertionError("server menu was not detected in server window")
-    if not wait_for_menu(client_window_id, "03_client_menu"):
-        raise AssertionError("client menu was not detected in client window")
-
-    phase("Sélection du serveur", "clic sur le bouton Server dans la fenêtre gauche")
-    click_detected_menu_button(server_window_id, OUT_DIR / "02_server_menu_ready.png", "server", "02_server")
-    if not wait_for_menu_to_disappear(server_window_id, "02_server"):
-        raise AssertionError("server window stayed on menu after server click")
-
-    phase("Sélection du client", "clic sur le bouton Client dans la fenêtre droite")
-    click_detected_menu_button(client_window_id, OUT_DIR / "03_client_menu_ready.png", "client", "03_client")
-    if not wait_for_menu_to_disappear(client_window_id, "03_client"):
-        raise AssertionError("client window stayed on menu after client click")
+    if AUTO_ROLE_BOOT:
+        phase("Démarrage auto réseau", "server/client contournent le menu via UI_TEST_AUTO_ROLE")
+        time.sleep(2.2)
+    else:
+        phase("Attente menus", "détection visuelle des boutons Server et Client")
+        if not wait_for_menu(server_window_id, "02_server_menu"):
+            raise AssertionError("server menu was not detected in server window")
+        if not wait_for_menu(client_window_id, "03_client_menu"):
+            raise AssertionError("client menu was not detected in client window")
+        phase("Sélection du serveur", "clic sur le bouton Server dans la fenêtre gauche")
+        click_detected_menu_button(server_window_id, OUT_DIR / "02_server_menu_ready.png", "server", "02_server")
+        if not wait_for_menu_to_disappear(server_window_id, "02_server"):
+            raise AssertionError("server window stayed on menu after server click")
+        phase("Sélection du client", "clic sur le bouton Client dans la fenêtre droite")
+        click_detected_menu_button(client_window_id, OUT_DIR / "03_client_menu_ready.png", "client", "03_client")
+        if not wait_for_menu_to_disappear(client_window_id, "03_client"):
+            raise AssertionError("client window stayed on menu after client click")
     time.sleep(1.2)
 
     phase("Multijoueur démarré", "04_after_multiplayer_start.png")

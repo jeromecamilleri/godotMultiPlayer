@@ -35,11 +35,34 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -150.0
-offset_top = -52.0
+offset_top = -108.0
 offset_right = 150.0
-offset_bottom = 52.0
+offset_bottom = 108.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="EndpointConfig" type="GridContainer" parent="MainMenu/Buttons"]
+layout_mode = 2
+columns = 2
+
+[node name="ServerIpLabel" type="Label" parent="MainMenu/Buttons/EndpointConfig"]
+layout_mode = 2
+text = "Adresse"
+
+[node name="ServerIpEdit" type="LineEdit" parent="MainMenu/Buttons/EndpointConfig"]
+layout_mode = 2
+placeholder_text = "127.0.0.1"
+text = "127.0.0.1"
+
+[node name="ServerPortLabel" type="Label" parent="MainMenu/Buttons/EndpointConfig"]
+layout_mode = 2
+text = "Port"
+
+[node name="ServerPortSpinBox" type="SpinBox" parent="MainMenu/Buttons/EndpointConfig"]
+layout_mode = 2
+min_value = 1.0
+max_value = 65535.0
+value = 5050.0
 
 [node name="Server" type="Button" parent="MainMenu/Buttons" unique_id=1861961801]
 layout_mode = 2
@@ -64,28 +87,83 @@ mouse_filter = 1
 anchors_preset = 0
 script = ExtResource("2_rhohj")
 
+[node name="ServerHudBackdrop" type="ColorRect" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -400.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 376.0
+grow_horizontal = 0
+color = Color(0.05, 0.07, 0.1, 0.82)
+
+[node name="ServerMatchStats" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 76.0
+offset_right = 320.0
+offset_bottom = 220.0
+theme_override_font_sizes/font_size = 26
+text = ""
+horizontal_alignment = 0
+vertical_alignment = 0
+
 [node name="ServerStatus" type="Label" parent="InGameUI" unique_id=1305537441]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -360.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 120.0
+offset_left = -384.0
+offset_top = 28.0
+offset_right = -28.0
+offset_bottom = 146.0
 grow_horizontal = 0
 theme_override_font_sizes/font_size = 18
 text = "SERVER STATUS"
-horizontal_alignment = 2
+horizontal_alignment = 0
+
+[node name="ServerClientStats" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -384.0
+offset_top = 160.0
+offset_right = -28.0
+offset_bottom = 252.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 16
+text = ""
+horizontal_alignment = 0
+vertical_alignment = 0
+
+[node name="ServerPlayerStats" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -384.0
+offset_top = 268.0
+offset_right = -28.0
+offset_bottom = 364.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 16
+text = ""
+horizontal_alignment = 0
+vertical_alignment = 0
 
 [node name="MatchTimer" type="Label" parent="InGameUI" unique_id=208006434]
 layout_mode = 1
 anchors_preset = 10
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -120.0
+offset_left = -160.0
 offset_top = 20.0
-offset_right = 120.0
+offset_right = 160.0
 offset_bottom = 56.0
 grow_horizontal = 2
 theme_override_font_sizes/font_size = 32
@@ -134,23 +212,40 @@ theme_override_font_sizes/font_size = 16
 text = "NET sync..."
 horizontal_alignment = 2
 
+[node name="EndpointReminder" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -92.0
+offset_right = 420.0
+offset_bottom = -64.0
+theme_override_font_sizes/font_size = 16
+text = "Connexion: 127.0.0.1:5050"
+horizontal_alignment = 0
+
 [node name="InventoryToggleButton" type="Button" parent="InGameUI"]
 layout_mode = 1
 anchors_preset = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 24.0
-offset_top = 20.0
+offset_top = -56.0
 offset_right = 164.0
-offset_bottom = 60.0
+offset_bottom = -16.0
 theme_override_font_sizes/font_size = 20
 text = "Sac"
 
 [node name="InventoryToggleHint" type="Label" parent="InGameUI"]
 layout_mode = 1
 anchors_preset = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 176.0
-offset_top = 24.0
+offset_top = -52.0
 offset_right = 360.0
-offset_bottom = 56.0
+offset_bottom = -20.0
 theme_override_font_sizes/font_size = 18
 text = "Touche I"
 
