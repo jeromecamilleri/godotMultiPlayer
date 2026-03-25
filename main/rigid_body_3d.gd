@@ -16,12 +16,14 @@ class_name PullableCube
 @export var reactor_goal_radius := 2.2
 ## Optional explicit path to the reactor node.
 @export var reactor_path: NodePath
+@export var goal_objective_id := "cube_activator_reached"
 
 @export var auto_move_speed := 4.5
 @export var auto_move_force := 28.0
 @export var auto_move_alignment_threshold := 0.0
 @export var auto_move_min_players := 2
 @export var auto_move_glow_boost := 0.9
+@export var coop_goal_snap_radius := 5.5
 
 ## Replicated pull state for remote color feedback.
 @export var _pull_state_sync := 0
@@ -194,6 +196,13 @@ func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 	_attached_peers.clear()
 	_auto_move_active = false
 	_pull_state_sync = PULL_STATE_GOAL
+	if not goal_objective_id.strip_edges().is_empty():
+		var director := get_tree().get_first_node_in_group("match_director")
+		if is_instance_valid(director):
+			if director.has_method("report_objective_progress"):
+				director.report_objective_progress(goal_objective_id, 1)
+			if director.has_method("report_team_won"):
+				director.report_team_won(goal_objective_id)
 	# Freeze so the cube remains clearly parked on the goal.
 	freeze = true
 
@@ -369,6 +378,11 @@ func _resolve_reactor_node() -> void:
 func _update_goal_state() -> void:
 	if _goal_reached:
 		return
+	if is_instance_valid(_reactor_node) and _active_attached_count() >= auto_move_min_players:
+		var coop_goal_distance := global_position.distance_to(_reactor_node.global_position)
+		if coop_goal_distance <= coop_goal_snap_radius:
+			complete_goal(_reactor_node.global_position)
+			return
 	if not evaluate_goal_reached():
 		return
 	complete_goal()

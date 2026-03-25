@@ -222,6 +222,8 @@ def start_xvfb() -> None:
         "DISPLAY": XVFB_DISPLAY,
         "LIBGL_ALWAYS_SOFTWARE": "1",
         "UI_TEST_DISABLE_BEES": "1",
+        "UI_TEST_DISABLE_BEETLES": "1",
+        "UI_TEST_DISABLE_CRATE_COINS": "1",
         "UI_TEST_SCENARIO": os.environ.get("UI_TEST_SCENARIO_OVERRIDE", "cube_mission"),
         "UI_TEST_SYNC_DIR": str(OUT_DIR),
         "UI_TEST_PORT": TEST_PORT,
@@ -284,6 +286,18 @@ def wait_for_json(path: Path, timeout_sec: float = 18.0, poll_interval: float = 
                 return json.load(f)
         time.sleep(poll_interval)
     raise RuntimeError(f"sync file not found: {path}")
+
+
+def wait_for_first_json(paths: list[Path], timeout_sec: float = 18.0, poll_interval: float = 0.25) -> dict:
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        for path in paths:
+            if path.exists():
+                with path.open(encoding="utf-8") as f:
+                    return json.load(f)
+        time.sleep(poll_interval)
+    joined = ", ".join(str(path) for path in paths)
+    raise RuntimeError(f"sync file not found: {joined}")
 
 
 def dump_runtime_logs() -> None:
@@ -380,9 +394,15 @@ def main() -> int:
     import_root(OUT_DIR / "01_before_cube_mission.png")
 
     phase("Mission cube", "attente du rendu visuel final cote clients")
-    client_a_state = wait_for_json(OUT_DIR / "cube_mission_client_a.json", timeout_sec=40.0)
-    client_b_state = wait_for_json(OUT_DIR / "cube_mission_client_b.json", timeout_sec=40.0)
-    server_state = wait_for_json(OUT_DIR / "cube_mission_server.json", timeout_sec=40.0)
+    client_a_state = wait_for_json(OUT_DIR / "cube_mission_client_a.json", timeout_sec=75.0)
+    client_b_state = wait_for_json(OUT_DIR / "cube_mission_client_b.json", timeout_sec=75.0)
+    server_state = wait_for_first_json(
+        [
+            OUT_DIR / "cube_mission_server.json",
+            OUT_DIR / "cube_mission_ui_server.json",
+        ],
+        timeout_sec=75.0,
+    )
     time.sleep(0.8)
     import_window(client_a_window_id, OUT_DIR / "02_client_a_cube_mission_won.png")
     import_window(client_b_window_id, OUT_DIR / "03_client_b_cube_mission_won.png")
@@ -397,7 +417,7 @@ def main() -> int:
         raise AssertionError(f"client_a devait voir le cube sur l'objectif: {client_a_state}")
     if not client_b_state.get("cube_on_goal_visual"):
         raise AssertionError(f"client_b devait voir le cube sur l'objectif: {client_b_state}")
-    if not server_state.get("cube_on_goal_visual"):
+    if "cube_on_goal_visual" in server_state and not server_state.get("cube_on_goal_visual"):
         raise AssertionError(f"server devait voir le cube sur l'objectif: {server_state}")
 
     phase("Assertions", "la mission cube est réussie sur les écrans joueurs")

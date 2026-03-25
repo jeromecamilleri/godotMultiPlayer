@@ -29,9 +29,11 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 @onready var _removed: bool = false
 @onready var _remote_target_transform: Transform3D = global_transform
 @onready var _health: int = max_health
+@onready var _last_visual_position: Vector3 = global_position
 var _last_attack_time_sec := -100.0
 var _charge_until_sec := -100.0
 var _last_charge_time_sec := -100.0
+var _visual_state := "Idle"
 
 
 func _ready() -> void:
@@ -45,7 +47,7 @@ func _ready() -> void:
 		push_error("BeetlebotSkin missing in beetle_bot.tscn")
 		return
 	_health = max_health
-	_beetle_skin.idle()
+	_set_visual_state("Idle")
 	if is_multiplayer_authority():
 		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
@@ -58,6 +60,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if not is_multiplayer_authority():
 		global_transform = global_transform.interpolate_with(_remote_target_transform, 0.35)
+		_update_remote_visual_animation()
 		return
 	if not _alive:
 		return
@@ -65,11 +68,9 @@ func _physics_process(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		sleeping = false
 		linear_velocity = Vector3.ZERO
-		if _beetle_skin != null:
-			_beetle_skin.idle()
+		_set_visual_state("Idle")
 		return
 
-	_beetle_skin.walk()
 	sleeping = false
 	var target_look_position := _target.global_position
 	target_look_position.y = global_position.y
@@ -93,6 +94,7 @@ func _physics_process(delta: float) -> void:
 
 	if _navigation_agent.is_target_reached() or direction.length() <= stopping_distance:
 		linear_velocity = Vector3.ZERO
+		_set_visual_state("Idle")
 	else:
 		var current_speed := move_speed
 		if now_sec <= _charge_until_sec:
@@ -101,6 +103,7 @@ func _physics_process(delta: float) -> void:
 		linear_velocity.x = direction.x * current_speed
 		linear_velocity.z = direction.z * current_speed
 		linear_velocity.y = 0.0
+		_set_visual_state("Walk")
 
 	if to_target.length() <= attack_range:
 		_try_attack_target(_target)
@@ -163,8 +166,7 @@ func _on_body_exited(body: Node3D) -> void:
 	if body is Player:
 		_target = null
 		_reaction_animation_player.play("lost_player")
-		if _beetle_skin != null:
-			_beetle_skin.idle()
+		_set_visual_state("Idle")
 
 
 func _try_attack_target(target: Node3D) -> void:
@@ -179,8 +181,7 @@ func _try_attack_target(target: Node3D) -> void:
 	force.y = 0.5
 	force *= 10.0
 	target.damage(impact_point, force)
-	if _beetle_skin != null:
-		_beetle_skin.attack()
+	_set_visual_state("Attack")
 
 
 func _compute_damage_amount(force: Vector3) -> int:
@@ -190,6 +191,32 @@ func _compute_damage_amount(force: Vector3) -> int:
 	if magnitude >= 2.0:
 		return maxi(1, int(round(magnitude * bullet_damage_multiplier / 2.5)))
 	return 1
+
+
+func _set_visual_state(state_name: String) -> void:
+	if _beetle_skin == null or _visual_state == state_name:
+		return
+	_visual_state = state_name
+	match state_name:
+		"Idle":
+			_beetle_skin.idle()
+		"Walk":
+			_beetle_skin.walk()
+		"Attack":
+			_beetle_skin.attack()
+		"PowerOff":
+			_beetle_skin.power_off()
+
+
+func _update_remote_visual_animation() -> void:
+	if not _alive or _removed:
+		return
+	var moved_distance := global_position.distance_to(_last_visual_position)
+	_last_visual_position = global_position
+	if moved_distance > 0.01:
+		_set_visual_state("Walk")
+	else:
+		_set_visual_state("Idle")
 
 
 func _report_score_for_kill(attacker_peer_id: int) -> void:
@@ -207,8 +234,7 @@ func _start_death_visuals(impact_point: Vector3, clamped_force: Vector3) -> void
 	_alive = false
 	_target = null
 	_defeat_sound.play()
-	if _beetle_skin != null:
-		_beetle_skin.power_off()
+	_set_visual_state("PowerOff")
 	if _detection_area.body_entered.is_connected(_on_body_entered):
 		_detection_area.body_entered.disconnect(_on_body_entered)
 	if _detection_area.body_exited.is_connected(_on_body_exited):
@@ -248,6 +274,17 @@ func _finalize_death() -> void:
 	gravity_scale = 0.0
 	sleeping = true
 	linear_velocity = Vector3.ZERO
+
+
+func set_director_active(active: bool) -> void:
+	if _removed:
+		visible = false
+		return
+	visible = active
+	sleeping = not active
+	if not active:
+		_target = null
+		_set_visual_state("Idle")
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")

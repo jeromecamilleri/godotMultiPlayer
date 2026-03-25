@@ -26,7 +26,8 @@
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
 [ext_resource type="Script" uid="uid://cm7s4xumgm12v" path="res://main/cube_activator.gd" id="24_actvt"]
 [ext_resource type="Script" uid="uid://dhaimx368gaeq" path="res://enemies/bee_director.gd" id="25_beedir"]
-[ext_resource type="PackedScene" path="res://enemies/beetle_bot.tscn" id="27_d8vpj"]
+[ext_resource type="PackedScene" uid="uid://oxyn25v5khuk" path="res://enemies/beetle_bot.tscn" id="27_d8vpj"]
+[ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="28_box"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -166,6 +167,14 @@ patrol_circle = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.442793, 5.3034263, 4.753208)
 patrol_circle = true
 
+[node name="BeetleDirector" type="Node3D" parent="HubLevel/Env/Enemies" unique_id=427815088]
+
+[node name="beetle_anchor_1" type="Node3D" parent="HubLevel/Env/Enemies/BeetleDirector" unique_id=1871911569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 4.3, 10.4)
+
+[node name="beetle_anchor_2" type="Node3D" parent="HubLevel/Env/Enemies/BeetleDirector" unique_id=1993271963]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.2, 4.2, -6.8)
+
 [node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
 
@@ -199,6 +208,15 @@ inventory_name = "Coffre du hub"
 initial_items = Array[Resource]([ExtResource("23_itemw"), ExtResource("22_itema")])
 initial_quantities = PackedInt32Array(6, 2)
 
+[node name="Crate1" parent="HubLevel/Env/Interactives" groups=["cube_mission_crates"] unique_id=192837465 instance=ExtResource("28_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, -3)
+
+[node name="Crate2" parent="HubLevel/Env/Interactives" groups=["cube_mission_crates"] unique_id=192837466 instance=ExtResource("28_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, -3)
+
+[node name="Crate3" parent="HubLevel/Env/Interactives" groups=["cube_mission_crates"] unique_id=192837467 instance=ExtResource("28_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 4, -3)
+
 [node name="BombDoor" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=1227783314]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.125907, 6, 9.972226)
 script = ExtResource("19_bd01")
@@ -223,7 +241,7 @@ open_height = 4.0
 objective_id = "bomb_door_opened"
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor2" unique_id=1486915985]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4487038, 0.031926632, 0.0059223175)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4487038, -0.01113081, 0.0059223175)
 mesh = SubResource("BoxMesh_bd01")
 skeleton = NodePath("../../BombDoor2")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
@@ -240,7 +258,7 @@ open_height = 4.0
 objective_id = "bomb_door_opened"
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor3" unique_id=964734067]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, 0)
 mesh = SubResource("BoxMesh_bd01")
 skeleton = NodePath("../../BombDoor3")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
@@ -264,7 +282,7 @@ script = ExtResource("12_fwcvl")
 base_mass = 1.5
 mass_per_player = 1.5
 pull_force_per_player = 28.0
-reactor_goal_radius = 2.8
+reactor_goal_radius = 4.3
 auto_move_speed = 6.2
 auto_move_force = 52.0
 
@@ -329,6 +347,15 @@ transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.0431
 
 [node name="GroundEnemy" parent="." unique_id=224605041 instance=ExtResource("27_d8vpj")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5330186, 4.0344095, 14.488432)
+
+[node name="Box" parent="." groups=["cube_mission_crates"] unique_id=1135939642 instance=ExtResource("28_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.656343, 4.5842094, 14.815784)
+
+[node name="Box2" parent="." groups=["cube_mission_crates"] unique_id=268105007 instance=ExtResource("28_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.547671, 4.5842094, 14.4864)
+
+[node name="Box3" parent="." groups=["cube_mission_crates"] unique_id=1133351624 instance=ExtResource("28_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.0644455, 5.998046, 15.057129)
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]

@@ -28,6 +28,9 @@ var _cube_mission := {
 	"win_requested": false,
 	"lock_enabled": false,
 	"locked_intent": Vector3.ZERO,
+	"crate_index": 0,
+	"crate_waiting": false,
+	"crate_phase_started": 0,
 }
 var _proximity := {
 	"state": "",
@@ -429,7 +432,7 @@ func _setup_cube_mission_scenario(player) -> void:
 			_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
 		"client_a":
 			_cube_mission["anchor_offset"] = Vector3(-1.2, 0.0, 0.0)
-			_cube_mission["state"] = "open_door"
+			_cube_mission["state"] = "destroy_crates"
 			_cube_mission["started_ms"] = Time.get_ticks_msec()
 			_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
 		"client_b":
@@ -452,8 +455,8 @@ func _setup_cube_mission_scenario(player) -> void:
 func _update_cube_mission_scenario(player) -> void:
 	var cube := _find_primary_pull_cube(player)
 	var activator := _find_cube_activator(player)
-	var bomb_door := _find_bomb_door(player)
-	if cube == null or activator == null or bomb_door == null:
+	var bomb_doors: Array[Node3D] = _find_cube_mission_bomb_doors(player)
+	if cube == null or activator == null or bomb_doors.is_empty():
 		return
 	var director := _find_match_director(player)
 	if director == null:
@@ -475,11 +478,13 @@ func _update_cube_mission_scenario(player) -> void:
 				)
 				_cube_mission["state"] = "done"
 		"open_door":
-			_perform_cube_mission_open_door(player, bomb_door, cube, activator, director)
+			_perform_cube_mission_open_door(player, bomb_doors, cube, activator, director)
+		"destroy_crates":
+			_perform_cube_mission_destroy_crates(player, cube, activator, director)
 		"wait_door_open":
-			_perform_cube_mission_wait_door(player, bomb_door, cube, activator, director)
+			_perform_cube_mission_wait_door(player, bomb_doors, cube, activator, director)
 		"pull_cube":
-			_perform_real_cube_pull(player, cube, activator, bomb_door, director)
+			_perform_real_cube_pull(player, cube, activator, bomb_doors, director)
 		"wait_win":
 			if _director_state_name(director) == "WON":
 				var cube_on_goal_visual_wait := cube.global_position.distance_to(activator.global_position) <= 3.0
@@ -647,11 +652,15 @@ func _move_player_to_chest(player, chest: Node3D, offset: Vector3) -> void:
 
 
 func _look_at_node(player, node: Node3D) -> void:
-	var look_target := node.global_position
+	_look_at_position(player, node.global_position)
+
+
+func _look_at_position(player, target: Vector3) -> void:
+	var look_target := target
 	look_target.y = player.global_position.y
 	player.look_at(look_target, Vector3.UP, true)
 	if is_instance_valid(player._camera_controller):
-		var camera_target := node.global_position
+		var camera_target := target
 		camera_target.y = player._camera_controller.global_position.y
 		player._camera_controller.look_at(camera_target, Vector3.UP, true)
 
@@ -712,6 +721,50 @@ func _find_bomb_door_in_subtree(root: Node) -> Node3D:
 		var found := _find_bomb_door_in_subtree(child)
 		if found != null:
 			return found
+	return null
+
+
+func _find_cube_mission_bomb_doors(player) -> Array[Node3D]:
+	var scene_root: Node = player.get_tree().current_scene
+	if scene_root == null:
+		return []
+	var doors: Array[Node3D] = []
+	_collect_cube_mission_bomb_doors(scene_root, doors)
+	doors.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return a.global_position.x < b.global_position.x
+	)
+	return doors
+
+
+func _collect_cube_mission_bomb_doors(root: Node, out: Array[Node3D]) -> void:
+	if root is Node3D and root.name.begins_with("BombDoor") and root.has_method("is_open"):
+		out.append(root as Node3D)
+	for child in root.get_children():
+		_collect_cube_mission_bomb_doors(child, out)
+
+
+func _get_cube_mission_door_anchor(bomb_doors: Array[Node3D]) -> Vector3:
+	if bomb_doors.is_empty():
+		return Vector3.ZERO
+	var center := Vector3.ZERO
+	for bomb_door in bomb_doors:
+		center += bomb_door.global_position
+	return center / float(bomb_doors.size())
+
+
+func _are_cube_mission_doors_open(bomb_doors: Array[Node3D]) -> bool:
+	if bomb_doors.is_empty():
+		return false
+	for bomb_door in bomb_doors:
+		if not bomb_door.has_method("is_open") or not bool(bomb_door.call("is_open")):
+			return false
+	return true
+
+
+func _first_closed_cube_mission_door(bomb_doors: Array[Node3D]) -> Node3D:
+	for bomb_door in bomb_doors:
+		if bomb_door.has_method("is_open") and not bool(bomb_door.call("is_open")):
+			return bomb_door
 	return null
 
 
@@ -790,18 +843,23 @@ func _send_cube_pull_intent(player, cube: Node3D, start: bool, override_intent: 
 		cube.request_update_pull_intent.rpc_id(authority, intent)
 
 
-func _get_cube_mission_pull_intent(player, cube: Node3D) -> Vector3:
+func _get_cube_mission_pull_intent(player, cube: Node3D, activator: Node3D, bomb_doors: Array[Node3D]) -> Vector3:
 	if _scenario_name == "cube_mission_lock" and _instance_role == "client_a" and bool(_cube_mission["lock_enabled"]):
 		var locked_intent: Vector3 = _cube_mission["locked_intent"]
 		locked_intent.y = 0.0
 		if locked_intent.length_squared() > 0.0001:
 			return locked_intent.normalized()
-	var intent: Vector3 = player.global_position - cube.global_position
+	var navigation_target := _get_cube_mission_navigation_target(cube, activator, bomb_doors)
+	var intent: Vector3 = navigation_target - cube.global_position
+	intent.y = 0.0
+	if intent.length_squared() > 0.0001:
+		return intent.normalized()
+	intent = player.global_position - cube.global_position
 	intent.y = 0.0
 	return intent.normalized() if intent.length_squared() > 0.0001 else Vector3.ZERO
 
 
-func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_door: Node3D, director: Node) -> void:
+func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_doors: Array[Node3D], director: Node) -> void:
 	var now_ms := Time.get_ticks_msec()
 	if _director_state_name(director) == "WON":
 		var cube_on_goal_visual := cube.global_position.distance_to(activator.global_position) <= 3.0
@@ -823,7 +881,7 @@ func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_door:
 	if _director_state_name(director) == "LOBBY":
 		_write_cube_mission_progress(player, cube, activator, director, "waiting_running")
 		return
-	var navigation_target := _get_cube_mission_navigation_target(cube, activator, bomb_door)
+	var navigation_target := _get_cube_mission_navigation_target(cube, activator, bomb_doors)
 	var to_goal: Vector3 = navigation_target - cube.global_position
 	to_goal.y = 0.0
 	if to_goal.length_squared() < 0.001:
@@ -842,22 +900,26 @@ func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_door:
 		player.global_position = desired_position
 		player.velocity = Vector3.ZERO
 		_look_at_node(player, cube)
-	var lock_ready := cube.global_position.z > bomb_door.global_position.z + 1.2
+	var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
+	var lock_ready := cube.global_position.z > door_anchor.z + 1.2
 	if _scenario_name == "cube_mission_lock" and _instance_role == "client_a" and not bool(_cube_mission["lock_enabled"]) and lock_ready:
-		var locked_intent: Vector3 = player.global_position - cube.global_position
+		var locked_intent: Vector3 = navigation_target - cube.global_position
 		locked_intent.y = 0.0
+		if locked_intent.length_squared() <= 0.0001:
+			locked_intent = player.global_position - cube.global_position
+			locked_intent.y = 0.0
 		if locked_intent.length_squared() > 0.0001:
 			_cube_mission["locked_intent"] = locked_intent.normalized()
 		_cube_mission["lock_enabled"] = true
 		player.set_debug_position_lock(true)
 	if not bool(_cube_mission["pull_started"]) or now_ms - int(_cube_mission["last_pull_start_ms"]) > 900:
-		_send_cube_pull_intent(player, cube, true, _get_cube_mission_pull_intent(player, cube))
+		_send_cube_pull_intent(player, cube, true, _get_cube_mission_pull_intent(player, cube, activator, bomb_doors))
 		_cube_mission["pull_started"] = true
 		_cube_mission["last_pull_start_ms"] = now_ms
 	else:
-		_send_cube_pull_intent(player, cube, false, _get_cube_mission_pull_intent(player, cube))
+		_send_cube_pull_intent(player, cube, false, _get_cube_mission_pull_intent(player, cube, activator, bomb_doors))
 	_write_cube_mission_progress(player, cube, activator, director, "pulling")
-	if now_ms - int(_cube_mission["started_ms"]) > 30000 and not bool(_cube_mission["written"]):
+	if now_ms - int(_cube_mission["started_ms"]) > 60000 and not bool(_cube_mission["written"]):
 		_write_sync_result(
 			"cube_mission_debug_%s.json" % _instance_role,
 			{
@@ -872,49 +934,106 @@ func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_door:
 		_cube_mission["state"] = "done"
 
 
-func _perform_cube_mission_open_door(player, bomb_door: Node3D, cube: Node3D, activator: Node3D, director: Node) -> void:
+func _perform_cube_mission_open_door(player, bomb_doors: Array[Node3D], cube: Node3D, activator: Node3D, director: Node) -> void:
 	var director_state := _director_state_name(director)
 	if director_state == "LOBBY":
 		_write_cube_mission_progress(player, cube, activator, director, "waiting_running")
 		return
-	if bomb_door.has_method("is_open") and bool(bomb_door.call("is_open")):
+	if _are_cube_mission_doors_open(bomb_doors):
+		_cube_mission["win_requested"] = false
 		_cube_mission["state"] = "pull_cube"
 		_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
 		return
+	var target_door: Node3D = _first_closed_cube_mission_door(bomb_doors)
+	if target_door == null:
+		return
 	if Time.get_ticks_msec() - int(_cube_mission["phase_started_ms"]) < 700:
-		_move_player_for_bomb_door(player, bomb_door)
+		_move_player_for_single_bomb_door(player, target_door)
 		_write_cube_mission_progress(player, cube, activator, director, "approach_door")
 		return
 	if not bool(_cube_mission.get("win_requested", false)):
-		_move_player_for_bomb_door(player, bomb_door)
-		player.place_bomb()
+		_move_player_for_single_bomb_door(player, target_door)
+		_spawn_bomb_at_target_door(player, target_door)
 		_cube_mission["win_requested"] = true
+		_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
 		_write_cube_mission_progress(player, cube, activator, director, "bomb_placed")
 		return
-	_move_player_for_bomb_door(player, bomb_door)
+	if target_door.has_method("is_open") and bool(target_door.call("is_open")):
+		_cube_mission["win_requested"] = false
+		_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
+		_write_cube_mission_progress(player, cube, activator, director, "door_opened")
+		return
+	if Time.get_ticks_msec() - int(_cube_mission["phase_started_ms"]) > 6500:
+		_cube_mission["win_requested"] = false
+		_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
+		_write_cube_mission_progress(player, cube, activator, director, "retry_bomb")
+		return
+	_move_player_for_single_bomb_door(player, target_door)
 	_write_cube_mission_progress(player, cube, activator, director, "waiting_door_open")
 
 
-func _perform_cube_mission_wait_door(player, bomb_door: Node3D, cube: Node3D, activator: Node3D, director: Node) -> void:
+func _perform_cube_mission_destroy_crates(player, cube: Node3D, activator: Node3D, director: Node) -> void:
+	if _instance_role != "client_a":
+		return
+	var paths: Array[Node3D] = _find_cube_mission_crates(player)
+	var index: int = int(_cube_mission["crate_index"])
+	if index >= paths.size():
+		_cube_mission["state"] = "open_door"
+		_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
+		return
+	var crate: Node3D = paths[index]
+	if crate == null:
+		_cube_mission["crate_index"] = index + 1
+		return
+	var now := Time.get_ticks_msec()
+	if not bool(_cube_mission["crate_waiting"]):
+		if crate.has_method("damage"):
+			crate.call("damage", Vector3.ZERO, Vector3.ZERO)
+		_cube_mission["crate_waiting"] = true
+		_cube_mission["crate_phase_started"] = now
+		_write_cube_mission_progress(player, cube, activator, director, "destroying_crate_%d" % index)
+		return
+	if now - int(_cube_mission["crate_phase_started"]) > 800:
+		_cube_mission["crate_index"] = index + 1
+		_cube_mission["crate_waiting"] = false
+
+
+func _perform_cube_mission_wait_door(player, bomb_doors: Array[Node3D], cube: Node3D, activator: Node3D, director: Node) -> void:
 	if _director_state_name(director) == "LOBBY":
 		_write_cube_mission_progress(player, cube, activator, director, "waiting_running")
 		return
-	if bomb_door.has_method("is_open") and bool(bomb_door.call("is_open")):
+	if _are_cube_mission_doors_open(bomb_doors):
 		_cube_mission["state"] = "pull_cube"
 		_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
 		return
-	_move_player_near_cube(player, cube, activator, bomb_door)
+	var target_door: Node3D = _first_closed_cube_mission_door(bomb_doors)
+	if target_door != null:
+		_move_player_for_single_bomb_door(player, target_door)
+	else:
+		_move_player_near_cube(player, cube, activator, bomb_doors)
 	_write_cube_mission_progress(player, cube, activator, director, "waiting_door_open")
 
 
-func _move_player_for_bomb_door(player, bomb_door: Node3D) -> void:
+func _move_player_for_bomb_door(player, bomb_doors: Array[Node3D]) -> void:
+	var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
+	player.global_position = door_anchor + Vector3(0.0, 0.0, -2.4)
+	player.velocity = Vector3.ZERO
+	_look_at_position(player, door_anchor)
+
+
+func _move_player_for_single_bomb_door(player, bomb_door: Node3D) -> void:
 	player.global_position = bomb_door.global_position + Vector3(-2.0, 0.0, 0.8)
 	player.velocity = Vector3.ZERO
 	_look_at_node(player, bomb_door)
 
 
-func _move_player_near_cube(player, cube: Node3D, activator: Node3D, bomb_door: Node3D) -> void:
-	var navigation_target := _get_cube_mission_navigation_target(cube, activator, bomb_door)
+func _spawn_bomb_at_target_door(player, bomb_door: Node3D) -> void:
+	var bomb_position := bomb_door.global_position + Vector3(0.0, 1.0, 0.0)
+	player.spawn_bomb.rpc(bomb_position, Vector3.ZERO)
+
+
+func _move_player_near_cube(player, cube: Node3D, activator: Node3D, bomb_doors: Array[Node3D]) -> void:
+	var navigation_target := _get_cube_mission_navigation_target(cube, activator, bomb_doors)
 	var to_goal: Vector3 = navigation_target - cube.global_position
 	to_goal.y = 0.0
 	if to_goal.length_squared() < 0.001:
@@ -933,12 +1052,13 @@ func _move_player_near_cube(player, cube: Node3D, activator: Node3D, bomb_door: 
 	_look_at_node(player, cube)
 
 
-func _get_cube_mission_navigation_target(cube: Node3D, activator: Node3D, bomb_door: Node3D) -> Vector3:
-	var door_waypoint := bomb_door.global_position + Vector3(-0.8, -2.0, 0.2)
+func _get_cube_mission_navigation_target(cube: Node3D, activator: Node3D, bomb_doors: Array[Node3D]) -> Vector3:
+	var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
+	var door_waypoint := door_anchor + Vector3(0.0, -2.0, 0.2)
 	var bridge_waypoint := Vector3(
-		bomb_door.global_position.x + 0.4,
+		door_anchor.x + 0.4,
 		cube.global_position.y,
-		bomb_door.global_position.z + 3.2
+		door_anchor.z + 3.2
 	)
 	var final_waypoint := activator.global_position + Vector3(-0.8, 0.0, -1.1)
 	if cube.global_position.distance_to(door_waypoint) > 2.8:
@@ -971,6 +1091,32 @@ func _write_cube_mission_progress(player, cube: Node3D, activator: Node3D, direc
 			"cube_on_goal_visual": cube_on_goal_visual,
 		}
 	)
+
+
+func _find_node_by_path(player: Node3D, path: String) -> Node3D:
+	if player == null:
+		return null
+	var tree := player.get_tree()
+	if tree == null:
+		return null
+	var root: Node = tree.get_root()
+	var node := root.get_node_or_null(path)
+	if node is Node3D:
+		return node
+	return null
+
+
+func _find_cube_mission_crates(player: Node3D) -> Array[Node3D]:
+	if player == null or player.get_tree() == null:
+		return []
+	var crates: Array[Node3D] = []
+	for candidate in player.get_tree().get_nodes_in_group("cube_mission_crates"):
+		if candidate is Node3D:
+			crates.append(candidate as Node3D)
+	crates.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return a.global_position.x < b.global_position.x
+	)
+	return crates
 
 
 func _find_world_item(player, node_name: String) -> Node3D:

@@ -163,6 +163,37 @@ func _ready() -> void:
 		call_deferred("_queue_inventory_snapshot_broadcast", true)
 	if _ui_test_driver.is_enabled():
 		call_deferred("_begin_ui_test_driver")
+	_register_unused_debug_fields()
+
+
+func _register_unused_debug_fields() -> void:
+	var _unused_fields: Array = [
+		_rotation_root,
+		_pull_ray,
+		_attack_animation_player,
+		_ground_shapecast,
+		_interaction_area,
+		_nickname,
+		_lives_overlay,
+		_lives_label,
+		_death_overlay,
+		_hit_sound,
+		_last_strong_direction,
+		_gravity,
+		_ground_height,
+		_position,
+		_velocity,
+		_direction,
+		_strong_direction,
+		_is_sliding_sync,
+		_lives,
+		_coins,
+		_last_hit_time_sec,
+		_is_sliding,
+		_slide_visual_factor,
+	]
+	if _unused_fields.is_empty():
+		return
 
 
 func _process(_delta: float) -> void:
