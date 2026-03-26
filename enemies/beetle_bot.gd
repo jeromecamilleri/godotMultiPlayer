@@ -30,6 +30,7 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 @onready var _remote_target_transform: Transform3D = global_transform
 @onready var _health: int = max_health
 @onready var _last_visual_position: Vector3 = global_position
+var _assigned_target_peer_id := -1
 var _last_attack_time_sec := -100.0
 var _charge_until_sec := -100.0
 var _last_charge_time_sec := -100.0
@@ -38,6 +39,7 @@ var _visual_state := "Idle"
 
 func _ready() -> void:
 	add_to_group("ground_enemies")
+	add_to_group("beetles")
 	can_sleep = false
 	_detection_area.body_entered.connect(_on_body_entered)
 	_detection_area.body_exited.connect(_on_body_exited)
@@ -64,6 +66,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if not _alive:
 		return
+
+	_refresh_assigned_target()
 
 	if _target == null or not is_instance_valid(_target):
 		sleeping = false
@@ -157,12 +161,16 @@ func _apply_damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int 
 
 
 func _on_body_entered(body: Node3D) -> void:
+	if _assigned_target_peer_id > 0:
+		return
 	if body is Player:
 		_target = body
 		_reaction_animation_player.play("found_player")
 
 
 func _on_body_exited(body: Node3D) -> void:
+	if _assigned_target_peer_id > 0:
+		return
 	if body is Player:
 		_target = null
 		_reaction_animation_player.play("lost_player")
@@ -285,6 +293,50 @@ func set_director_active(active: bool) -> void:
 	if not active:
 		_target = null
 		_set_visual_state("Idle")
+
+
+func set_assigned_target_peer_id(peer_id: int) -> void:
+	_assigned_target_peer_id = peer_id
+	if peer_id <= 0:
+		_target = null
+		return
+	_refresh_assigned_target()
+
+
+func get_assigned_target_peer_id() -> int:
+	return _assigned_target_peer_id
+
+
+func get_current_target_peer_id() -> int:
+	if _target == null or not is_instance_valid(_target):
+		return -1
+	return _target.get_multiplayer_authority()
+
+
+func _refresh_assigned_target() -> void:
+	if _assigned_target_peer_id <= 0:
+		return
+	var assigned_player := _find_player_by_peer(_assigned_target_peer_id)
+	if assigned_player == null:
+		_target = null
+		return
+	if assigned_player.has_method("is_dead") and bool(assigned_player.call("is_dead")):
+		_target = null
+		return
+	if _target == assigned_player:
+		return
+	_target = assigned_player
+	if _reaction_animation_player != null:
+		_reaction_animation_player.play("found_player")
+
+
+func _find_player_by_peer(peer_id: int) -> Node3D:
+	for node in get_tree().get_nodes_in_group("players"):
+		if not (node is Node3D):
+			continue
+		if node.get_multiplayer_authority() == peer_id:
+			return node as Node3D
+	return null
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")

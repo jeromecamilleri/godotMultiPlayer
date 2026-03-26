@@ -26,6 +26,7 @@
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
 [ext_resource type="Script" uid="uid://cm7s4xumgm12v" path="res://main/cube_activator.gd" id="24_actvt"]
 [ext_resource type="Script" uid="uid://dhaimx368gaeq" path="res://enemies/bee_director.gd" id="25_beedir"]
+[ext_resource type="Script" path="res://enemies/beetle_director.gd" id="26_betdir"]
 [ext_resource type="PackedScene" uid="uid://oxyn25v5khuk" path="res://enemies/beetle_bot.tscn" id="27_d8vpj"]
 [ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="28_box"]
 
@@ -168,6 +169,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.442793, 5.3034263, 4.753208
 patrol_circle = true
 
 [node name="BeetleDirector" type="Node3D" parent="HubLevel/Env/Enemies" unique_id=427815088]
+script = ExtResource("26_betdir")
 
 [node name="beetle_anchor_1" type="Node3D" parent="HubLevel/Env/Enemies/BeetleDirector" unique_id=1871911569]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 4.3, 10.4)

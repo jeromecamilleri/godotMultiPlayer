@@ -54,6 +54,9 @@ Pour les tests, il faut privilégier ces identifiants et des assertions toléran
 # Mission cube coop avec lock L simulé sur client_a
 ./test/UI/test_cube_mission_lock_ui.sh [OUT_DIR]
 
+# Répartition des scarabées (serveur + client_1 + client_2 + client_3)
+./test/UI/test_beetle_targeting_ui.sh [OUT_DIR]
+
 # Campagne de charge réplication (par défaut 10 joueurs, ou liste "2,4,6,8,10")
 ./test/UI/test_replication_stress_ui.sh [OUT_DIR] [PLAYER_COUNTS]
 ```
@@ -65,7 +68,7 @@ Prérequis : Linux, Xvfb, xdotool, ImageMagick (`import`), python3, PIL.
 Les tests E2E sont appelés depuis GUT via le script **`test/test_ui_e2e.gd`** :
 
 - **Sans variable d’environnement** : les deux tests (coffre, transfert multijoueur) sont ignorés (retour immédiat, succès).
-- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_late_join_bomb_wood_ui.sh`, `test_cube_mission_ui.sh` et `test_cube_mission_lock_ui.sh` et vérifie que le code de sortie est 0.
+- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_late_join_bomb_wood_ui.sh`, `test_cube_mission_ui.sh`, `test_cube_mission_lock_ui.sh` et `test_beetle_targeting_ui.sh` et vérifie que le code de sortie est 0.
 
 Le test de charge `test_replication_stress_ui.sh` n’est pas branché dans `RUN_UI_E2E=1` par défaut, car il est volontairement plus lourd.
 
@@ -149,6 +152,33 @@ Pour lancer la suite GUT en incluant les tests UI E2E :
 ```bash
 RUN_UI_E2E=1 godot --path . --headless -s addons/gut/gut_cmdln.gd -gdir=test -gfile=test_ui_e2e.gd
 ```
+
+### Répartition des scarabées
+
+Par défaut, le script écrit dans :
+
+```bash
+/tmp/beetle-targeting-ui
+```
+
+Ce scénario couvre :
+
+- 4 joueurs au total (`server + client_1 + client_2 + client_3`)
+- 3 scarabées attendus
+- une répartition des cibles sans doublon tant qu'il y a assez de joueurs vivants
+
+Sorties utiles :
+
+- `01_before_beetle_targeting.png`
+- `02_server_beetle_targeting.png`
+- `03_client_1_beetle_targeting.png`
+- `04_client_2_beetle_targeting.png`
+- `05_client_3_beetle_targeting.png`
+- `06_after_beetle_targeting.png`
+- `beetle_targeting_server.json`
+- `beetle_targeting_client_1.json`
+- `beetle_targeting_client_2.json`
+- `beetle_targeting_client_3.json`
 
 ### Lancer Godot avec `RUN_UI_E2E=1` pour exécuter les E2E depuis l’éditeur
 

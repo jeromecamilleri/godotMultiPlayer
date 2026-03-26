@@ -57,6 +57,11 @@ var _replication_stress := {
 	"did_transfer": false,
 	"requested_chest_snapshot": false,
 }
+var _beetle_targeting := {
+	"state": "",
+	"started_ms": 0,
+	"written": false,
+}
 
 
 func setup() -> void:
@@ -84,6 +89,8 @@ func begin(player) -> void:
 			_setup_inventory_proximity_scenario(player)
 		"replication_stress":
 			_setup_replication_stress_scenario(player)
+		"beetle_targeting":
+			_setup_beetle_targeting_scenario(player)
 
 
 func process(player) -> void:
@@ -100,6 +107,8 @@ func process(player) -> void:
 			_update_inventory_proximity_scenario(player)
 		"replication_stress":
 			_update_replication_stress_scenario(player)
+		"beetle_targeting":
+			_update_beetle_targeting_scenario(player)
 
 
 func _read_scenario_name() -> String:
@@ -408,6 +417,94 @@ func _write_replication_stress_result(player, bomb_door: Node3D, chest: Node3D, 
 	}
 	_write_sync_result("replication_stress_%s.json" % _instance_role, result)
 	_replication_stress["written"] = true
+
+
+func _setup_beetle_targeting_scenario(player) -> void:
+	if String(_beetle_targeting["state"]) != "" or not player.is_multiplayer_authority():
+		return
+	var beetle_director := _find_beetle_director(player)
+	var activator := _find_cube_activator(player)
+	var chest := _find_chest(player)
+	var apple := _find_world_item(player, "ApplePickup")
+	var wood := _find_world_item(player, "WoodPickup")
+	if beetle_director == null or activator == null or chest == null or apple == null or wood == null:
+		return
+	player.velocity = Vector3.ZERO
+	match _instance_role:
+		"server":
+			player.global_position = chest.global_position + Vector3(-0.8, 0.0, 2.1)
+			_look_at_node(player, chest)
+		"client_1":
+			player.global_position = apple.global_position + Vector3(0.8, 0.0, 2.0)
+			_look_at_node(player, apple)
+		"client_2":
+			player.global_position = wood.global_position + Vector3(-0.6, 0.0, 2.2)
+			_look_at_node(player, wood)
+		"client_3":
+			player.global_position = activator.global_position + Vector3(0.0, 0.0, -2.2)
+			_look_at_node(player, activator)
+		_:
+			player.global_position = chest.global_position + Vector3(0.8, 0.0, 2.0)
+			_look_at_node(player, chest)
+	_beetle_targeting["state"] = "observe"
+	_beetle_targeting["started_ms"] = Time.get_ticks_msec()
+	_beetle_targeting["written"] = false
+
+
+func _update_beetle_targeting_scenario(player) -> void:
+	if bool(_beetle_targeting["written"]):
+		return
+	var director := _find_match_director(player)
+	if director == null:
+		return
+	if _instance_role == "server" and _director_state_name(director) == "LOBBY" and director.has_method("start_match"):
+		if Time.get_ticks_msec() - int(_beetle_targeting["started_ms"]) > 800:
+			director.call("start_match")
+	if Time.get_ticks_msec() - int(_beetle_targeting["started_ms"]) < 5500:
+		return
+	var beetles: Array[Node3D] = _find_beetles(player)
+	var players: Array[Node3D] = _find_active_players(player)
+	var assigned_targets: Array[int] = []
+	var current_targets: Array[int] = []
+	var beetle_rows: Array[Dictionary] = []
+	for beetle in beetles:
+		var assigned_peer_id := -1
+		var current_peer_id := -1
+		if beetle.has_method("get_assigned_target_peer_id"):
+			assigned_peer_id = int(beetle.call("get_assigned_target_peer_id"))
+		if beetle.has_method("get_current_target_peer_id"):
+			current_peer_id = int(beetle.call("get_current_target_peer_id"))
+		if assigned_peer_id > 0 and not assigned_targets.has(assigned_peer_id):
+			assigned_targets.append(assigned_peer_id)
+		if current_peer_id > 0 and not current_targets.has(current_peer_id):
+			current_targets.append(current_peer_id)
+		beetle_rows.append({
+			"name": beetle.name,
+			"assigned_target_peer_id": assigned_peer_id,
+			"current_target_peer_id": current_peer_id,
+			"position": [beetle.global_position.x, beetle.global_position.y, beetle.global_position.z],
+		})
+	var player_peer_ids: Array[int] = []
+	for observed_player in players:
+		player_peer_ids.append(observed_player.get_multiplayer_authority())
+	player_peer_ids.sort()
+	var participant_count: int = player.multiplayer.get_peers().size() + 1
+	var result := {
+		"role": _instance_role,
+		"state": _director_state_name(director),
+		"participant_count": participant_count,
+		"player_count": players.size(),
+		"player_peer_ids": player_peer_ids,
+		"beetle_count": beetles.size(),
+		"unique_assigned_target_count": assigned_targets.size(),
+		"unique_current_target_count": current_targets.size(),
+		"assigned_target_peer_ids": assigned_targets,
+		"current_target_peer_ids": current_targets,
+		"beetles": beetle_rows,
+	}
+	_write_sync_result("beetle_targeting_%s.json" % _instance_role, result)
+	_beetle_targeting["written"] = true
+	_beetle_targeting["state"] = "done"
 
 
 func _setup_cube_mission_scenario(player) -> void:
@@ -804,6 +901,52 @@ func _find_primary_pull_cube_in_subtree(root: Node) -> Node3D:
 
 func _find_match_director(player) -> Node:
 	return player.get_tree().get_first_node_in_group("match_director")
+
+
+func _find_beetle_director(player) -> Node3D:
+	var scene_root: Node = player.get_tree().current_scene
+	if scene_root == null:
+		return null
+	return _find_beetle_director_in_subtree(scene_root)
+
+
+func _find_beetle_director_in_subtree(root: Node) -> Node3D:
+	if root is Node3D and root.name == "BeetleDirector":
+		return root as Node3D
+	for child in root.get_children():
+		var found := _find_beetle_director_in_subtree(child)
+		if found != null:
+			return found
+	return null
+
+
+func _find_beetles(player) -> Array[Node3D]:
+	if player == null or player.get_tree() == null:
+		return []
+	var beetles: Array[Node3D] = []
+	for candidate in player.get_tree().get_nodes_in_group("beetles"):
+		if candidate is Node3D and candidate.visible:
+			beetles.append(candidate as Node3D)
+	beetles.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return String(a.name) < String(b.name)
+	)
+	return beetles
+
+
+func _find_active_players(player) -> Array[Node3D]:
+	if player == null or player.get_tree() == null:
+		return []
+	var players: Array[Node3D] = []
+	for candidate in player.get_tree().get_nodes_in_group("players"):
+		if not (candidate is Node3D):
+			continue
+		if candidate.has_method("is_dead") and bool(candidate.call("is_dead")):
+			continue
+		players.append(candidate as Node3D)
+	players.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return a.get_multiplayer_authority() < b.get_multiplayer_authority()
+	)
+	return players
 
 
 func _director_state_name(director: Node) -> String:

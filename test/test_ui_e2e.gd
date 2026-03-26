@@ -92,3 +92,14 @@ func test_ui_e2e_cube_mission_lock() -> void:
 		return
 	var result := _run_ui_script("test/UI/test_cube_mission_lock_ui.sh")
 	_assert_e2e_result("test_cube_mission_lock_ui.sh", result)
+
+
+func test_ui_e2e_beetle_targeting() -> void:
+	if OS.get_name() != "Linux":
+		assert_true(true, "E2E UI ignoré : Linux uniquement.")
+		return
+	if OS.get_environment("RUN_UI_E2E").is_empty():
+		assert_true(true, "E2E UI ignoré : définir RUN_UI_E2E=1 pour lancer (ex. lancer Godot depuis un terminal avec cette variable).")
+		return
+	var result := _run_ui_script("test/UI/test_beetle_targeting_ui.sh")
+	_assert_e2e_result("test_beetle_targeting_ui.sh", result)
