@@ -5,7 +5,6 @@ import atexit
 import json
 import os
 import random
-import shutil
 import subprocess
 import sys
 import time
@@ -13,7 +12,7 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-OUT_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/beetle-targeting-ui")
+OUT_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/beetle-door-charge-ui")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 SUMMARY_PATH = OUT_DIR / "summary.txt"
 
@@ -36,7 +35,7 @@ launched_runtime_window_ids: list[str] = []
 launched_runtime_log_handles: list[object] = []
 xvfb_log_handle = None
 X11_ENV = dict(os.environ)
-TEST_PORT = str(25000 + (os.getpid() % 10000) + random.randint(0, 999))
+TEST_PORT = str(27000 + (os.getpid() % 10000) + random.randint(0, 999))
 
 
 def log(message: str) -> None:
@@ -120,7 +119,7 @@ def wait_for_runtime_windows(expected_count: int) -> list[str]:
     raise RuntimeError(f"expected {expected_count} runtime windows")
 
 
-def wait_for_json(path: Path, timeout_sec: float = 30.0, poll_interval: float = 0.25) -> dict:
+def wait_for_json(path: Path, timeout_sec: float = 45.0, poll_interval: float = 0.25) -> dict:
     deadline = time.monotonic() + timeout_sec
     while time.monotonic() < deadline:
         if path.exists():
@@ -186,7 +185,7 @@ def start_xvfb() -> None:
         "DISPLAY": XVFB_DISPLAY,
         "LIBGL_ALWAYS_SOFTWARE": "1",
         "UI_TEST_DISABLE_BEES": "1",
-        "UI_TEST_SCENARIO": "beetle_targeting",
+        "UI_TEST_SCENARIO": "beetle_door_charge",
         "UI_TEST_SYNC_DIR": str(OUT_DIR),
         "UI_TEST_PORT": TEST_PORT,
     }
@@ -237,80 +236,58 @@ def main() -> int:
     margin_x = 18
     margin_y = 72
     gap_x = 18
-    gap_y = 18
-    win_w = min(760, max(520, (screen_w - (margin_x * 2) - gap_x) // 2))
-    win_h = min(460, max(380, (screen_h - margin_y - 120 - gap_y) // 2))
+    win_w = min(760, max(560, (screen_w - (margin_x * 2) - (gap_x * 2)) // 3))
+    win_h = min(520, max(400, screen_h - margin_y - 120))
     positions = [
         (margin_x, margin_y),
         (margin_x + win_w + gap_x, margin_y),
-        (margin_x, margin_y + win_h + gap_y),
-        (margin_x + win_w + gap_x, margin_y + win_h + gap_y),
+        (margin_x + ((win_w + gap_x) * 2), margin_y),
     ]
 
     launch_runtime_instance("1", "server")
     server_window_id = wait_for_runtime_windows(1)[0]
     place_window(server_window_id, positions[0][0], positions[0][1], win_w, win_h)
-    phase("Démarrage auto serveur", "menu contourné via UI_TEST_AUTO_ROLE")
-    time.sleep(1.2)
+    time.sleep(1.0)
 
     launch_runtime_instance("2", "client_1")
     server_window_id, client_1_window_id = wait_for_runtime_windows(2)
     place_window(client_1_window_id, positions[1][0], positions[1][1], win_w, win_h)
-    phase("Démarrage auto client 1", "menu contourné via UI_TEST_AUTO_ROLE")
     time.sleep(1.0)
 
     launch_runtime_instance("3", "client_2")
     server_window_id, client_1_window_id, client_2_window_id = wait_for_runtime_windows(3)
+    launched_runtime_window_ids[:] = [server_window_id, client_1_window_id, client_2_window_id]
     place_window(client_2_window_id, positions[2][0], positions[2][1], win_w, win_h)
-    phase("Démarrage auto client 2", "menu contourné via UI_TEST_AUTO_ROLE")
-    time.sleep(1.0)
+    phase("Fenêtres runtime détectées", f"server={server_window_id} client_1={client_1_window_id} client_2={client_2_window_id}")
 
-    launch_runtime_instance("4", "client_3")
-    server_window_id, client_1_window_id, client_2_window_id, client_3_window_id = wait_for_runtime_windows(4)
-    launched_runtime_window_ids[:] = [server_window_id, client_1_window_id, client_2_window_id, client_3_window_id]
-    place_window(client_3_window_id, positions[3][0], positions[3][1], win_w, win_h)
-    phase(
-        "Fenêtres runtime détectées",
-        "server=%s client_1=%s client_2=%s client_3=%s" % (server_window_id, client_1_window_id, client_2_window_id, client_3_window_id),
-    )
     time.sleep(1.2)
+    phase("Capture initiale", "01_before_beetle_door_charge.png")
+    import_root(OUT_DIR / "01_before_beetle_door_charge.png")
 
-    phase("Capture initiale", "01_before_beetle_targeting.png")
-    import_root(OUT_DIR / "01_before_beetle_targeting.png")
-
-    phase("Observation scarabées", "attente des fichiers de synchro gameplay")
-    client_1_state = wait_for_json(OUT_DIR / "beetle_targeting_client_1.json", timeout_sec=35.0)
-    client_2_state = wait_for_json(OUT_DIR / "beetle_targeting_client_2.json", timeout_sec=35.0)
-    client_3_state = wait_for_json(OUT_DIR / "beetle_targeting_client_3.json", timeout_sec=35.0)
+    phase("Observation ouverture mur + charge", "attente de beetle_door_charge_client_2.json")
+    client_2_state = wait_for_json(OUT_DIR / "beetle_door_charge_client_2.json", timeout_sec=45.0)
 
     time.sleep(0.8)
-    import_window(server_window_id, OUT_DIR / "02_server_beetle_targeting.png")
-    import_window(client_1_window_id, OUT_DIR / "03_client_1_beetle_targeting.png")
-    import_window(client_2_window_id, OUT_DIR / "04_client_2_beetle_targeting.png")
-    import_window(client_3_window_id, OUT_DIR / "05_client_3_beetle_targeting.png")
-    import_root(OUT_DIR / "06_after_beetle_targeting.png")
+    import_window(server_window_id, OUT_DIR / "02_server_beetle_door_charge.png")
+    import_window(client_1_window_id, OUT_DIR / "03_client_1_beetle_door_charge.png")
+    import_window(client_2_window_id, OUT_DIR / "04_client_2_beetle_door_charge.png")
+    import_root(OUT_DIR / "05_after_beetle_door_charge.png")
 
-    for client_state in [client_1_state, client_2_state, client_3_state]:
-        if int(client_state.get("participant_count", 0)) != 4:
-            raise AssertionError(f"Le scénario devait tourner avec 4 participants: {client_state}")
-        if int(client_state.get("player_count", 0)) != 3:
-            raise AssertionError(f"Le host ne spawnant pas de joueur local, chaque client doit observer 3 joueurs actifs: {client_state}")
-        if int(client_state.get("beetle_count", -1)) != 3:
-            raise AssertionError(f"Chaque client doit observer 3 scarabées: {client_state}")
-        if int(client_state.get("unique_assigned_target_count", 0)) != 3:
-            raise AssertionError(f"Les 3 scarabées doivent viser 3 joueurs distincts: {client_state}")
-        player_ids = set(int(v) for v in client_state.get("player_peer_ids", []))
-        assigned_ids = set(int(v) for v in client_state.get("assigned_target_peer_ids", []))
-        if not assigned_ids.issubset(player_ids):
-            raise AssertionError(f"Les cibles assignées doivent être des joueurs actifs: {client_state}")
-        current_ids = set(int(v) for v in client_state.get("current_target_peer_ids", []))
-        if not current_ids.issubset(player_ids):
-            raise AssertionError(f"Les cibles courantes doivent rester des joueurs actifs: {client_state}")
+    if not bool(client_2_state.get("door_open")):
+        raise AssertionError(f"Le client cible devait observer le mur ouvert: {client_2_state}")
+    if int(client_2_state.get("participant_count", 0)) != 3:
+        raise AssertionError(f"Le scénario devait tourner avec 3 participants: {client_2_state}")
+    if int(client_2_state.get("beetle_count", -1)) != 2:
+        raise AssertionError(f"Avec 3 participants, on attend 2 scarabées: {client_2_state}")
+    if not bool(client_2_state.get("is_targeting_player")):
+        raise AssertionError(f"Un scarabée devait cibler le joueur d'observation: {client_2_state}")
+    if not bool(client_2_state.get("charge_observed")):
+        raise AssertionError(f"La distance d'un scarabée ciblant le joueur devait diminuer nettement après l'ouverture du mur: {client_2_state}")
+    if float(client_2_state.get("closest_distance_seen", 999.0)) >= float(client_2_state.get("initial_distance", -1.0)):
+        raise AssertionError(f"Le scarabée devait se rapprocher du joueur: {client_2_state}")
 
-    phase("Assertions", "3 scarabées pour 4 joueurs, avec 3 cibles assignées distinctes et une garde locale cohérente")
-    log(f"client_1_state={client_1_state}")
+    phase("Assertions", "mur ouvert puis charge réelle d'un scarabée sur client_2")
     log(f"client_2_state={client_2_state}")
-    log(f"client_3_state={client_3_state}")
     phase("Fin du scénario", f"captures={OUT_DIR}")
     write_summary()
     return 0

@@ -66,6 +66,7 @@ func start_match() -> void:
 		return
 	_state = MatchState.RUNNING
 	_time_left_sec = maxf(0.0, match_duration_sec)
+	_record_sync_event("match", "etat RUNNING")
 	_emit_snapshot()
 
 
@@ -95,6 +96,7 @@ func report_team_won(reason: String = "objective_complete") -> void:
 		return
 	_state = MatchState.WON
 	DebugLog.gameplay("[MatchDirector] state=WON reason=%s" % reason)
+	_record_sync_event("match", "etat WON (%s)" % reason)
 	_emit_snapshot()
 
 
@@ -105,6 +107,7 @@ func report_team_lost(reason: String = "team_eliminated") -> void:
 		return
 	_state = MatchState.LOST
 	DebugLog.gameplay("[MatchDirector] state=LOST reason=%s" % reason)
+	_record_sync_event("match", "etat LOST (%s)" % reason)
 	_emit_snapshot()
 
 
@@ -204,6 +207,7 @@ func report_objective_progress(objective_id: String, delta: int = 1) -> void:
 	if not _team_progress.has(objective_id):
 		_team_progress[objective_id] = 0
 	_team_progress[objective_id] = int(_team_progress[objective_id]) + delta
+	_record_sync_event("match", "objectif %s=%d" % [objective_id, int(_team_progress[objective_id])])
 	_emit_snapshot()
 
 
@@ -356,3 +360,9 @@ func _count_alive_players() -> int:
 		if int(_lives_by_peer.get(peer_id, initial_lives_per_player)) > 0:
 			alive += 1
 	return alive
+
+
+func _record_sync_event(source: String, detail: String) -> void:
+	var connection := get_tree().get_first_node_in_group("connection_service")
+	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
+		connection.call("record_sync_event", source, detail)

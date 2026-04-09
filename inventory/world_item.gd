@@ -70,6 +70,8 @@ func set_collected_state(collected: bool, server_event_ms: int = -1) -> void:
 	if collected and server_event_ms >= 0 and not _is_server_instance():
 		_last_collected_replication_delay_ms = maxi(0, Time.get_ticks_msec() - server_event_ms)
 	_last_collected_server_ms = server_event_ms
+	if collected:
+		_record_sync_event("pickup", "%s collecte" % get_display_name())
 	_apply_collected_state(collected)
 
 
@@ -92,6 +94,8 @@ func _on_peer_connected(peer_id: int) -> void:
 func _push_current_state_to_peer(peer_id: int) -> void:
 	if peer_id <= 0:
 		return
+	if _is_collected:
+		_record_sync_event("pickup", "etat collecte -> J%d (%s)" % [peer_id, get_display_name()])
 	set_collected_state.rpc_id(peer_id, _is_collected, _last_collected_server_ms if _is_collected else -1)
 
 
@@ -128,3 +132,9 @@ func mark_collected_on_server() -> void:
 
 func get_last_collected_replication_delay_ms() -> int:
 	return _last_collected_replication_delay_ms
+
+
+func _record_sync_event(source: String, detail: String) -> void:
+	var connection := get_tree().get_first_node_in_group("connection_service")
+	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
+		connection.call("record_sync_event", source, detail)

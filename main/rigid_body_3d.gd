@@ -60,8 +60,15 @@ func _ready() -> void:
 	_resolve_reactor_node()
 	if is_multiplayer_authority():
 		_update_mass_for_player_count()
-		multiplayer.peer_connected.connect(_on_player_count_changed)
-		multiplayer.peer_disconnected.connect(_on_player_count_changed)
+		if multiplayer.has_multiplayer_peer():
+			if not multiplayer.peer_connected.is_connected(_on_player_count_changed):
+				multiplayer.peer_connected.connect(_on_player_count_changed)
+			if not multiplayer.peer_disconnected.is_connected(_on_player_count_changed):
+				multiplayer.peer_disconnected.connect(_on_player_count_changed)
+			if not multiplayer.peer_connected.is_connected(_on_peer_connected):
+				multiplayer.peer_connected.connect(_on_peer_connected)
+	elif multiplayer.has_multiplayer_peer():
+		call_deferred("_request_current_state_when_connected")
 	_apply_visual_state()
 
 
@@ -205,6 +212,86 @@ func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 				director.report_team_won(goal_objective_id)
 	# Freeze so the cube remains clearly parked on the goal.
 	freeze = true
+
+
+func _request_current_state_when_connected() -> void:
+	if is_multiplayer_authority():
+		return
+	if multiplayer.multiplayer_peer == null:
+		return
+	var authority_id: int = get_multiplayer_authority()
+	if authority_id <= 0:
+		authority_id = server_peer_id
+	_request_current_state.rpc_id(authority_id)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_current_state() -> void:
+	if not is_multiplayer_authority():
+		return
+	var sender_id: int = multiplayer.get_remote_sender_id()
+	if sender_id <= 0:
+		return
+	_push_current_state_to_peer(sender_id)
+
+
+func _on_peer_connected(peer_id: int) -> void:
+	if not is_multiplayer_authority():
+		return
+	call_deferred("_push_current_state_to_peer", peer_id)
+
+
+func _push_current_state_to_peer(peer_id: int) -> void:
+	if not is_multiplayer_authority():
+		return
+	_sync_current_state.rpc_id(
+		peer_id,
+		_goal_reached,
+		freeze,
+		global_transform,
+		linear_velocity,
+		angular_velocity,
+		_pull_state_sync,
+		_auto_move_active,
+	)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_current_state(
+	goal_reached: bool,
+	frozen: bool,
+	synced_transform: Transform3D,
+	synced_linear_velocity: Vector3,
+	synced_angular_velocity: Vector3,
+	pull_state: int,
+	auto_move_active: bool
+) -> void:
+	_apply_current_state(goal_reached, frozen, synced_transform, synced_linear_velocity, synced_angular_velocity, pull_state, auto_move_active)
+
+
+func _apply_current_state(
+	goal_reached: bool,
+	frozen: bool,
+	synced_transform: Transform3D,
+	synced_linear_velocity: Vector3,
+	synced_angular_velocity: Vector3,
+	pull_state: int,
+	auto_move_active: bool
+) -> void:
+	_goal_reached = goal_reached
+	global_transform = synced_transform
+	linear_velocity = synced_linear_velocity
+	angular_velocity = synced_angular_velocity
+	_pull_state_sync = pull_state
+	_auto_move_active = auto_move_active and not goal_reached
+	if goal_reached:
+		_attached_peers.clear()
+	if is_multiplayer_authority():
+		freeze = frozen
+	else:
+		freeze = true
+		sleeping = true
+	_apply_visual_state()
 
 
 func _get_goal_direction() -> Vector3:

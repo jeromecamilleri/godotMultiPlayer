@@ -26,9 +26,11 @@
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
 [ext_resource type="Script" uid="uid://cm7s4xumgm12v" path="res://main/cube_activator.gd" id="24_actvt"]
 [ext_resource type="Script" uid="uid://dhaimx368gaeq" path="res://enemies/bee_director.gd" id="25_beedir"]
-[ext_resource type="Script" path="res://enemies/beetle_director.gd" id="26_betdir"]
+[ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="26_betdir"]
 [ext_resource type="PackedScene" uid="uid://oxyn25v5khuk" path="res://enemies/beetle_bot.tscn" id="27_d8vpj"]
 [ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="28_box"]
+[ext_resource type="PackedScene" path="res://main/mission_cube_beetle_director.tscn" id="29_betpkg"]
+[ext_resource type="PackedScene" path="res://main/mission_cube_interactives.tscn" id="30_intpkg"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -118,7 +120,10 @@ player_spawner = NodePath("../PlayerSpawner")
 [node name="HubLevel" parent="." unique_id=1150027112 instance=ExtResource("3_0cpj8")]
 
 [node name="blockLarge25" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="11" unique_id=1410779600]
-transform = Transform3D(0.69277984, 0, 0, 0, 0.9685669, 0, 0, 0, 0.7369841, 11.101039, 0.04037154, 15.097778)
+transform = Transform3D(0.88795847, 0, 0, 0, 0.9685669, 0, 0, 0, 1.224237, 10.57421, 0.19436131, 15.097778)
+
+[node name="blockLarge24" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="16" unique_id=1368536629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.06341648, 16)
 
 [node name="blockHexagonLow2" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="25" unique_id=1091026581]
 transform = Transform3D(0.9999982, 0.0019024077, 0, -0.0019024077, 0.9999982, 0, 0, 0, 1, 16, 4, -11)
@@ -138,7 +143,7 @@ transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -17.98
 [node name="Activator" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=547915941 instance=ExtResource("14_q0sk7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7847384, 11.671597, 3.6642096, 15.255287)
 
-[node name="CubeActivator" type="Area3D" parent="HubLevel/Ground/Activator" unique_id=1286740292]
+[node name="CubeActivator" type="Area3D" parent="HubLevel/Ground/Activator" unique_id=1286740292 groups=["gameplay_objectives", "defense_zones", "mission_cube_goal_zones"]]
 script = ExtResource("24_actvt")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Ground/Activator/CubeActivator" unique_id=779171009]
@@ -155,10 +160,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, -2.1932158)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6542916, 4, 14)
 
 [node name="plant7" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="19" unique_id=59418837]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.173691, 4, 16.568993)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.173691, 4.0735116, 16.568993)
 
 [node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001]
 script = ExtResource("25_beedir")
+managed_seed_bee_paths = Array[NodePath]([NodePath("bee_bot"), NodePath("bee_bot2")])
 
 [node name="bee_bot" parent="HubLevel/Env/Enemies" unique_id=1866323019 instance=ExtResource("14_73k8k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.7566595, 5.3034263, 5.0660505)
@@ -168,14 +174,7 @@ patrol_circle = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.442793, 5.3034263, 4.753208)
 patrol_circle = true
 
-[node name="BeetleDirector" type="Node3D" parent="HubLevel/Env/Enemies" unique_id=427815088]
-script = ExtResource("26_betdir")
-
-[node name="beetle_anchor_1" type="Node3D" parent="HubLevel/Env/Enemies/BeetleDirector" unique_id=1871911569]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 4.3, 10.4)
-
-[node name="beetle_anchor_2" type="Node3D" parent="HubLevel/Env/Enemies/BeetleDirector" unique_id=1993271963]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.2, 4.2, -6.8)
+[node name="BeetleDirector" parent="HubLevel/Env/Enemies" unique_id=427815088 instance=ExtResource("29_betpkg")]
 
 [node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
@@ -189,85 +188,7 @@ transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -8.722778, 4.
 [node name="Tree1Geo2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="43" unique_id=1115235982 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.02946, 2.7943625)
 
-[node name="Interactives" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=162002002]
-
-[node name="Coin" parent="HubLevel/Env/Interactives" unique_id=280593003 instance=ExtResource("18_4hmqs")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.677925, 4.6177497, 6.7908463)
-
-[node name="ApplePickup" parent="HubLevel/Env/Interactives" unique_id=244336620 instance=ExtResource("20_invwi")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.267, 4.42, 8.454)
-item_definition = ExtResource("22_itema")
-quantity = 3
-
-[node name="WoodPickup" parent="HubLevel/Env/Interactives" unique_id=676708511 instance=ExtResource("20_invwi")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.799579, 5.0195103, -0.44950914)
-item_definition = ExtResource("23_itemw")
-quantity = 5
-
-[node name="Chest" parent="HubLevel/Env/Interactives" unique_id=580767468 instance=ExtResource("21_invct")]
-transform = Transform3D(-0.1311519, 0, -0.8359003, 0, 1.8925308, 0, 1.1570579, 0, -0.09474889, -14.864765, 4.7570124, -3.0847158)
-inventory_name = "Coffre du hub"
-initial_items = Array[Resource]([ExtResource("23_itemw"), ExtResource("22_itema")])
-initial_quantities = PackedInt32Array(6, 2)
-
-[node name="Crate1" parent="HubLevel/Env/Interactives" groups=["cube_mission_crates"] unique_id=192837465 instance=ExtResource("28_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, -3)
-
-[node name="Crate2" parent="HubLevel/Env/Interactives" groups=["cube_mission_crates"] unique_id=192837466 instance=ExtResource("28_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, -3)
-
-[node name="Crate3" parent="HubLevel/Env/Interactives" groups=["cube_mission_crates"] unique_id=192837467 instance=ExtResource("28_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 4, -3)
-
-[node name="BombDoor" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=1227783314]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.125907, 6, 9.972226)
-script = ExtResource("19_bd01")
-trigger_radius = 3.5
-open_height = 4.0
-objective_id = "bomb_door_opened"
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor" unique_id=117215163]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5623875, 0, 0)
-mesh = SubResource("BoxMesh_bd01")
-surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor" unique_id=2101783992]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5490217, 0, -0.009033203)
-shape = SubResource("BoxShape3D_bd01")
-
-[node name="BombDoor2" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=1915983913]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.2358866, 6.011131, 9.989155)
-script = ExtResource("19_bd01")
-trigger_radius = 3.5
-open_height = 4.0
-objective_id = "bomb_door_opened"
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor2" unique_id=1486915985]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4487038, -0.01113081, 0.0059223175)
-mesh = SubResource("BoxMesh_bd01")
-skeleton = NodePath("../../BombDoor2")
-surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor2" unique_id=1192373912]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4683838, 0, 0.019042969)
-shape = SubResource("BoxShape3D_bd01")
-
-[node name="BombDoor3" type="StaticBody3D" parent="HubLevel/Env/Interactives" unique_id=98848486]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4385548, 6.0222616, 10.0060835)
-script = ExtResource("19_bd01")
-trigger_radius = 3.5
-open_height = 4.0
-objective_id = "bomb_door_opened"
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/Interactives/BombDoor3" unique_id=964734067]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, 0)
-mesh = SubResource("BoxMesh_bd01")
-skeleton = NodePath("../../BombDoor3")
-surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/Interactives/BombDoor3" unique_id=714042191]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
-shape = SubResource("BoxShape3D_bd01")
+[node name="Interactives" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=162002002 instance=ExtResource("30_intpkg")]
 
 [node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
 transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, 1.3171921, 0)
@@ -277,7 +198,7 @@ surface_material_override/0 = ExtResource("15_wat01")
 
 [node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003]
 
-[node name="RigidCube3D" type="RigidBody3D" parent="HubLevel/Env/PhysicsObjects" unique_id=1479604479]
+[node name="RigidCube3D" type="RigidBody3D" parent="HubLevel/Env/PhysicsObjects" unique_id=1479604479 groups=["mission_cube_primary"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.895, 4.565)
 physics_material_override = SubResource("PhysicsMaterial_fwcvl")
 script = ExtResource("12_fwcvl")
@@ -341,22 +262,16 @@ delta_interval = 0.033
 replication_config = SubResource("SceneReplicationConfig_fwcvl")
 visibility_update_mode = 1
 
-[node name="GroundEnemy" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="47" unique_id=1160227923 instance=ExtResource("27_d8vpj")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.472565, 3.9490497, 12.973047)
-
 [node name="Portal" parent="HubLevel/Portals" parent_id_path=PackedInt32Array(1150027112, 515313060) index="0" unique_id=878852613]
 transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.04313103, -23.057299, 12, 10.07815)
 
-[node name="GroundEnemy" parent="." unique_id=224605041 instance=ExtResource("27_d8vpj")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5330186, 4.0344095, 14.488432)
-
-[node name="Box" parent="." groups=["cube_mission_crates"] unique_id=1135939642 instance=ExtResource("28_box")]
+[node name="Box" parent="." unique_id=1135939642 groups=["cube_mission_crates"] instance=ExtResource("28_box")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.656343, 4.5842094, 14.815784)
 
-[node name="Box2" parent="." groups=["cube_mission_crates"] unique_id=268105007 instance=ExtResource("28_box")]
+[node name="Box2" parent="." unique_id=268105007 groups=["cube_mission_crates"] instance=ExtResource("28_box")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.547671, 4.5842094, 14.4864)
 
-[node name="Box3" parent="." groups=["cube_mission_crates"] unique_id=1133351624 instance=ExtResource("28_box")]
+[node name="Box3" parent="." unique_id=1133351624 groups=["cube_mission_crates"] instance=ExtResource("28_box")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.0644455, 5.998046, 15.057129)
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]

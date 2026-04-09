@@ -57,6 +57,9 @@ Pour les tests, il faut privilégier ces identifiants et des assertions toléran
 # Répartition des scarabées (serveur + client_1 + client_2 + client_3)
 ./test/UI/test_beetle_targeting_ui.sh [OUT_DIR]
 
+# Ouverture du mur puis charge scarabée (serveur + client_1 + client_2)
+./test/UI/test_beetle_door_charge_ui.sh [OUT_DIR]
+
 # Campagne de charge réplication (par défaut 10 joueurs, ou liste "2,4,6,8,10")
 ./test/UI/test_replication_stress_ui.sh [OUT_DIR] [PLAYER_COUNTS]
 ```
@@ -68,7 +71,7 @@ Prérequis : Linux, Xvfb, xdotool, ImageMagick (`import`), python3, PIL.
 Les tests E2E sont appelés depuis GUT via le script **`test/test_ui_e2e.gd`** :
 
 - **Sans variable d’environnement** : les deux tests (coffre, transfert multijoueur) sont ignorés (retour immédiat, succès).
-- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_late_join_bomb_wood_ui.sh`, `test_cube_mission_ui.sh`, `test_cube_mission_lock_ui.sh` et `test_beetle_targeting_ui.sh` et vérifie que le code de sortie est 0.
+- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_late_join_bomb_wood_ui.sh`, `test_cube_mission_ui.sh`, `test_cube_mission_lock_ui.sh`, `test_beetle_targeting_ui.sh` et `test_beetle_door_charge_ui.sh` et vérifie que le code de sortie est 0.
 
 Le test de charge `test_replication_stress_ui.sh` n’est pas branché dans `RUN_UI_E2E=1` par défaut, car il est volontairement plus lourd.
 
@@ -179,6 +182,30 @@ Sorties utiles :
 - `beetle_targeting_client_1.json`
 - `beetle_targeting_client_2.json`
 - `beetle_targeting_client_3.json`
+
+### Charge scarabée après ouverture du mur
+
+Par défaut, le script écrit dans :
+
+```bash
+/tmp/beetle-door-charge-ui
+```
+
+Ce scénario couvre :
+
+- serveur + `client_1` + `client_2`
+- `client_1` ouvre réellement les `BombDoor`
+- `client_2` attend derrière le mur
+- le test vérifie qu'au moins un scarabée ciblant `client_2` réduit réellement sa distance vers lui après l'ouverture
+
+Sorties utiles :
+
+- `01_before_beetle_door_charge.png`
+- `02_server_beetle_door_charge.png`
+- `03_client_1_beetle_door_charge.png`
+- `04_client_2_beetle_door_charge.png`
+- `05_after_beetle_door_charge.png`
+- `beetle_door_charge_client_2.json`
 
 ### Lancer Godot avec `RUN_UI_E2E=1` pour exécuter les E2E depuis l’éditeur
 

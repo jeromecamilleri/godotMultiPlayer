@@ -45,6 +45,10 @@ const WorldItemScene: PackedScene = preload("res://inventory/world_item.tscn")
 @export var slide_visual_lerp_speed := 7.0
 ## Minimum downhill speed to display sliding visual state.
 @export var slide_visual_speed_threshold := 0.9
+## Ground braking applied when no movement input is held.
+@export var ground_brake_strength := 24.0
+## Extra braking applied on remote interpolated players when no input is replicated.
+@export var remote_ground_brake_strength := 18.0
 ## Horizontal distance in front of the player where bombs are spawned.
 @export var bomb_spawn_forward_offset := 1.1
 ## Vertical spawn offset to avoid clipping bombs into the ground.
@@ -391,6 +395,27 @@ func get_target_inventory_contents() -> Array[Dictionary]:
 	if contents is Array:
 		return contents
 	return []
+
+
+func get_inventory_debug_summary() -> String:
+	var lines: Array[String] = []
+	lines.append("inventaire_ouvert=%s" % str(_inventory_mode_open))
+	lines.append("sac_slots=%d" % inventory.get_slot_count())
+	var target: Node = get_focused_inventory_target()
+	if target == null:
+		lines.append("cible=aucune")
+		return " | ".join(lines)
+	var target_name := get_target_inventory_display_name()
+	if target_name.is_empty():
+		target_name = String(target.name)
+	lines.append("cible=%s" % target_name)
+	if target.has_method("get_snapshot_revision"):
+		lines.append("rev=%s" % str(target.call("get_snapshot_revision")))
+	if target.has_method("get_last_sync_mode"):
+		lines.append("mode=%s" % String(target.call("get_last_sync_mode")))
+	if target.has_method("get_last_snapshot_replication_delay_ms"):
+		lines.append("replication=%s ms" % str(target.call("get_last_snapshot_replication_delay_ms")))
+	return " | ".join(lines)
 
 
 func request_pickup_world_item(target_path: NodePath) -> void:

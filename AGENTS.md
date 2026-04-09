@@ -264,4 +264,3 @@ This project is multiplayer and stateful:
 small mistakes lead to desynchronization bugs.
 
 Always think before modifying.
-

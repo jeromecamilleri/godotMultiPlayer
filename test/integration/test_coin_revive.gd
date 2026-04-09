@@ -61,3 +61,55 @@ func test_coin_revives_downed_player_with_one_life() -> void:
 	assert_eq(1, player.get_lives(), "Le player doit etre synchronise a 1 vie apres revive")
 	assert_false(player.can_be_revived(), "Le player ne doit plus etre downed apres revive")
 	assert_false(player.is_in_group("downed_players"), "Le groupe downed doit etre nettoye apres revive")
+	assert_true(is_instance_valid(coin), "La coin consommee doit rester instanciee pour resynchroniser les late joiners.")
+	assert_false(coin.is_queued_for_deletion(), "La coin consommee ne doit plus etre queue_free immediatement.")
+
+
+func test_coin_consumed_state_can_be_reapplied_to_late_join_copy() -> void:
+	var world: Node3D = await _spawn_world()
+	var players_root := Node3D.new()
+	players_root.name = "Players"
+	world.add_child(players_root)
+
+	var player: Player = PLAYER_SCENE.instantiate() as Player
+	assert_not_null(player)
+	player.set_multiplayer_authority(3)
+	players_root.add_child(player)
+	player.global_position = Vector3(2.0, 0.0, 0.0)
+	await wait_process_frames(2)
+
+	var coin: Coin = COIN_SCENE.instantiate() as Coin
+	assert_not_null(coin)
+	world.add_child(coin)
+	await wait_process_frames(1)
+
+	coin._sync_coin_state(true, player.get_multiplayer_authority(), Vector3(1.5, 0.5, 0.0), 1250, false)
+
+	assert_true(coin.is_consumed_state(), "La coin late join doit reappliquer l'etat consomme.")
+	assert_false(coin.visible, "La coin late join consommee doit rester invisible.")
+	assert_eq(-1, coin.get_target_peer_id(), "Une coin consommee ne doit plus garder de cible active.")
+
+
+func test_coin_target_state_tracks_target_peer_for_debug_and_sync() -> void:
+	var world: Node3D = await _spawn_world()
+	var players_root := Node3D.new()
+	players_root.name = "Players"
+	world.add_child(players_root)
+
+	var player: Player = PLAYER_SCENE.instantiate() as Player
+	assert_not_null(player)
+	player.set_multiplayer_authority(4)
+	players_root.add_child(player)
+	player.global_position = Vector3(1.0, 0.0, 0.0)
+	await wait_process_frames(2)
+
+	var coin: Coin = COIN_SCENE.instantiate() as Coin
+	assert_not_null(coin)
+	world.add_child(coin)
+	await wait_process_frames(1)
+
+	coin.set_target(player)
+	await wait_process_frames(1)
+
+	assert_eq(4, coin.get_target_peer_id(), "La coin doit memoriser le peer cible pour le debug/sync.")
+	assert_string_contains(coin.get_debug_sync_summary(), "cible=J4")

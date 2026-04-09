@@ -27,9 +27,11 @@ const PUFF_SCENE := preload("smoke_puff/smoke_puff.tscn")
 @onready var _patrol_angle := 0.0
 @onready var _remote_target_transform: Transform3D = global_transform
 @onready var _director_active: bool = true
+var _assigned_target_peer_id := -1
 
 
 func _ready() -> void:
+	add_to_group("enemy_instances")
 	add_to_group("bee_bots")
 	_detection_area.monitoring = true
 	_detection_area.monitorable = true
@@ -136,6 +138,23 @@ func set_director_active(active: bool) -> void:
 	_target = null
 	_detection_area.monitoring = active
 	_detection_area.monitorable = active
+
+
+func apply_director_config(bee_config: Dictionary) -> void:
+	if bee_config.has("shoot_timer"):
+		shoot_timer = float(bee_config["shoot_timer"])
+	if bee_config.has("bullet_speed"):
+		bullet_speed = float(bee_config["bullet_speed"])
+
+
+func set_assigned_target_peer_id(peer_id: int) -> void:
+	_assigned_target_peer_id = peer_id
+
+
+func get_assigned_target_peer_id() -> int:
+	if _assigned_target_peer_id > 0:
+		return _assigned_target_peer_id
+	return get_current_target_peer_id()
 
 
 func _report_score_for_kill(attacker_peer_id: int) -> void:
@@ -272,9 +291,15 @@ func _update_target_from_overlaps() -> void:
 
 	if closest_target != null:
 		_shoot_count = 0.0
-		_target = closest_target
 		sleeping = false
 		_reaction_animation_player.play("found_player")
+	_target = closest_target
+
+
+func get_current_target_peer_id() -> int:
+	if not is_instance_valid(_target):
+		return -1
+	return _target.get_multiplayer_authority()
 
 
 func _is_player_body(body: Node) -> bool:

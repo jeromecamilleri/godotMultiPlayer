@@ -62,7 +62,10 @@ func place_bomb(player) -> void:
 func spawn_bomb(player, pos: Vector3, throw_velocity: Vector3) -> void:
 	DebugLog.gameplay("Bomb creating")
 	var bomb = BOMB_SCENE.instantiate()
-	player.get_parent().add_child(bomb)
+	var parent_node: Node = player.get_tree().current_scene
+	if parent_node == null:
+		parent_node = player
+	parent_node.add_child(bomb)
 	# Bomb physics should stay server-authoritative when synchronizer is present.
 	if bomb is Node:
 		bomb.set_multiplayer_authority(1)

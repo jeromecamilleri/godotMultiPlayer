@@ -24,6 +24,15 @@ func interpolate_client(player, delta: float) -> void:
 	player._movement.orient_character_to_direction(player, player._strong_direction, delta)
 
 	if player._direction.length() == 0:
+		var replicated_horizontal_velocity := Vector3(player._velocity.x, 0.0, player._velocity.z)
+		var should_apply_ground_brake: bool = not player._is_sliding and replicated_horizontal_velocity.length() < player.stopping_speed
+		if should_apply_ground_brake:
+			var horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
+			horizontal_velocity = horizontal_velocity.move_toward(Vector3.ZERO, player.remote_ground_brake_strength * delta)
+			if horizontal_velocity.length() < player.stopping_speed:
+				horizontal_velocity = Vector3.ZERO
+			player.velocity.x = horizontal_velocity.x
+			player.velocity.z = horizontal_velocity.z
 		# Don't interpolate to avoid small jitter when stopping.
 		if (player._position - player.position).length() > 1.0 and player._velocity.is_zero_approx():
 			player.position = player._position

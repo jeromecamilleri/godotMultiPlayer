@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="1_betdir"]
+
+[node name="BeetleDirector" type="Node3D" groups=["enemy_directors", "mission_cube_beetle_directors"]]
+script = ExtResource("1_betdir")
+defense_zone_path = NodePath("HubLevel/Ground/Activator/CubeActivator")
+managed_seed_beetle_paths = Array[NodePath]([])
+guard_chase_radius = 9.5
+guard_return_radius = 12.0
+
+[node name="beetle_anchor_1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.2, 4.1, 12.8)
+
+[node name="beetle_anchor_2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.0, 4.1, 12.6)
+
+[node name="beetle_anchor_3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4, 4.1, 9.6)

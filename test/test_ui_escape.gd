@@ -6,6 +6,7 @@ class MockConnection:
 
 	var disconnect_peer_called := false
 	var shutdown_server_called := false
+	var fake_recent_sync_events: Array[String] = ["[00:00.001] coin | consomme (revive)"]
 
 	func _ready() -> void:
 		pass
@@ -15,6 +16,15 @@ class MockConnection:
 
 	func shutdown_server() -> void:
 		shutdown_server_called = true
+
+	func get_network_stats_text() -> String:
+		return "NET 12 ms | avg 10.0 | jitter 1.0"
+
+	func get_server_client_network_stats_text() -> String:
+		return "J2 12 ms  avg 10  jit 1  maj 20 ms"
+
+	func get_recent_sync_events() -> Array[String]:
+		return fake_recent_sync_events.duplicate()
 
 
 class MockFallChecker:
@@ -70,6 +80,14 @@ func _build_ui_context() -> Dictionary:
 	status.name = "ServerStatus"
 	in_game.add_child(status)
 
+	var debug_backdrop := ColorRect.new()
+	debug_backdrop.name = "DebugOverlayBackdrop"
+	in_game.add_child(debug_backdrop)
+
+	var debug_label := Label.new()
+	debug_label.name = "DebugOverlayLabel"
+	in_game.add_child(debug_label)
+
 	root.add_child(ui)
 
 	await wait_process_frames(2)
@@ -85,6 +103,13 @@ func _escape_event() -> InputEventKey:
 	var event := InputEventKey.new()
 	event.pressed = true
 	event.keycode = KEY_ESCAPE
+	return event
+
+
+func _f3_event() -> InputEventKey:
+	var event := InputEventKey.new()
+	event.pressed = true
+	event.keycode = KEY_F3
 	return event
 
 
@@ -112,3 +137,26 @@ func test_escape_server_triggers_server_exit() -> void:
 
 	assert_true(ui.exit_server_called, "Escape cote serveur doit lancer la sortie serveur")
 	assert_false(ui.exit_client_called, "Escape cote serveur ne doit pas lancer la sortie client")
+
+
+func test_f3_toggle_affiche_et_masque_le_debug_overlay() -> void:
+	var ctx: Dictionary = await _build_ui_context()
+	var ui: TestUI = ctx["ui"] as TestUI
+	var debug_label := ui.get_node("InGameUI/DebugOverlayLabel") as Label
+	ui.hide_ui()
+	await wait_process_frames(1)
+
+	assert_false(debug_label.visible)
+
+	ui._unhandled_input(_f3_event())
+	await wait_process_frames(1)
+	assert_true(debug_label.visible, "F3 doit afficher l'overlay debug.")
+	assert_string_contains(debug_label.text, "DEBUG F3")
+	assert_string_contains(debug_label.text, "MATCH")
+	assert_string_contains(debug_label.text, "RESEAU")
+	assert_string_contains(debug_label.text, "SYNCS")
+	assert_string_contains(debug_label.text, "coin | consomme")
+
+	ui._unhandled_input(_f3_event())
+	await wait_process_frames(1)
+	assert_false(debug_label.visible, "Un second F3 doit masquer l'overlay debug.")

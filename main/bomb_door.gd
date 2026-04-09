@@ -55,6 +55,7 @@ func on_bomb_exploded(world_pos: Vector3, explosion_radius: float, _owner_peer_i
 		return
 
 	_last_open_server_ms = Time.get_ticks_msec()
+	_record_sync_event("porte", "%s ouverte" % String(name))
 	_apply_open_state(true)
 	_set_open_state.rpc(true, _last_open_server_ms)
 	if objective_id.strip_edges() != "":
@@ -90,6 +91,8 @@ func _on_peer_connected(peer_id: int) -> void:
 func _push_current_state_to_peer(peer_id: int) -> void:
 	if peer_id <= 0:
 		return
+	if _is_open:
+		_record_sync_event("porte", "%s etat ouvert -> J%d" % [String(name), peer_id])
 	_set_open_state.rpc_id(peer_id, _is_open, _last_open_server_ms if _is_open else -1)
 
 
@@ -134,3 +137,9 @@ func is_open() -> bool:
 
 func get_last_open_replication_delay_ms() -> int:
 	return _last_open_replication_delay_ms
+
+
+func _record_sync_event(source: String, detail: String) -> void:
+	var connection := get_tree().get_first_node_in_group("connection_service")
+	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
+		connection.call("record_sync_event", source, detail)

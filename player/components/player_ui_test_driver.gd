@@ -1,6 +1,12 @@
 extends RefCounted
 class_name PlayerUiTestDriver
 
+const GROUP_MISSION_HUB_CHESTS := "mission_hub_chests"
+const GROUP_MISSION_CUBE_BOMB_DOORS := "mission_cube_bomb_doors"
+const GROUP_MISSION_CUBE_GOAL_ZONES := "mission_cube_goal_zones"
+const GROUP_MISSION_CUBE_PRIMARY := "mission_cube_primary"
+const GROUP_MISSION_CUBE_BEETLE_DIRECTORS := "mission_cube_beetle_directors"
+const GROUP_MISSION_CUBE_BLOCKERS := "mission_cube_blockers"
 
 var _scenario_name := ""
 var _instance_role := ""
@@ -62,6 +68,19 @@ var _beetle_targeting := {
 	"started_ms": 0,
 	"written": false,
 }
+var _beetle_door_charge := {
+	"state": "",
+	"started_ms": 0,
+	"phase_started_ms": 0,
+	"written": false,
+	"bomb_requested": false,
+	"initial_distance": -1.0,
+	"final_distance": -1.0,
+	"closest_distance_seen": -1.0,
+	"targeting_observed": false,
+	"tracked_beetle_name": "",
+	"target_peer_id": -1,
+}
 
 
 func setup() -> void:
@@ -91,6 +110,8 @@ func begin(player) -> void:
 			_setup_replication_stress_scenario(player)
 		"beetle_targeting":
 			_setup_beetle_targeting_scenario(player)
+		"beetle_door_charge":
+			_setup_beetle_door_charge_scenario(player)
 
 
 func process(player) -> void:
@@ -109,6 +130,8 @@ func process(player) -> void:
 			_update_replication_stress_scenario(player)
 		"beetle_targeting":
 			_update_beetle_targeting_scenario(player)
+		"beetle_door_charge":
+			_update_beetle_door_charge_scenario(player)
 
 
 func _read_scenario_name() -> String:
@@ -451,6 +474,43 @@ func _setup_beetle_targeting_scenario(player) -> void:
 	_beetle_targeting["written"] = false
 
 
+func _setup_beetle_door_charge_scenario(player) -> void:
+	if String(_beetle_door_charge["state"]) != "" or not player.is_multiplayer_authority():
+		return
+	var beetle_director := _find_beetle_director(player)
+	var bomb_doors: Array[Node3D] = _find_cube_mission_bomb_doors(player)
+	var activator := _find_cube_activator(player)
+	if beetle_director == null or bomb_doors.is_empty() or activator == null:
+		return
+	var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
+	var observation_position := activator.global_position + Vector3(0.0, 0.0, 3.2)
+	player.velocity = Vector3.ZERO
+	match _instance_role:
+		"server":
+			player.global_position = door_anchor + Vector3(-6.0, 0.0, -4.0)
+			_look_at_position(player, door_anchor)
+			_beetle_door_charge["state"] = "monitor"
+		"client_1":
+			_move_player_for_single_bomb_door(player, bomb_doors[0])
+			_beetle_door_charge["state"] = "open_door"
+		"client_2":
+			player.global_position = observation_position
+			_look_at_position(player, activator.global_position)
+			_beetle_door_charge["target_peer_id"] = player.get_multiplayer_authority()
+			_beetle_door_charge["state"] = "wait_door_open"
+		_:
+			_beetle_door_charge["state"] = "idle"
+	_beetle_door_charge["started_ms"] = Time.get_ticks_msec()
+	_beetle_door_charge["phase_started_ms"] = Time.get_ticks_msec()
+	_beetle_door_charge["written"] = false
+	_beetle_door_charge["bomb_requested"] = false
+	_beetle_door_charge["initial_distance"] = -1.0
+	_beetle_door_charge["final_distance"] = -1.0
+	_beetle_door_charge["closest_distance_seen"] = -1.0
+	_beetle_door_charge["targeting_observed"] = false
+	_beetle_door_charge["tracked_beetle_name"] = ""
+
+
 func _update_beetle_targeting_scenario(player) -> void:
 	if bool(_beetle_targeting["written"]):
 		return
@@ -460,10 +520,14 @@ func _update_beetle_targeting_scenario(player) -> void:
 	if _instance_role == "server" and _director_state_name(director) == "LOBBY" and director.has_method("start_match"):
 		if Time.get_ticks_msec() - int(_beetle_targeting["started_ms"]) > 800:
 			director.call("start_match")
-	if Time.get_ticks_msec() - int(_beetle_targeting["started_ms"]) < 5500:
+	var elapsed_ms: int = Time.get_ticks_msec() - int(_beetle_targeting["started_ms"])
+	if elapsed_ms < 2200:
 		return
 	var beetles: Array[Node3D] = _find_beetles(player)
 	var players: Array[Node3D] = _find_active_players(player)
+	var participant_count: int = player.multiplayer.get_peers().size() + 1
+	if (participant_count < 4 or players.size() < 3 or beetles.size() < 3) and elapsed_ms < 9000:
+		return
 	var assigned_targets: Array[int] = []
 	var current_targets: Array[int] = []
 	var beetle_rows: Array[Dictionary] = []
@@ -488,7 +552,9 @@ func _update_beetle_targeting_scenario(player) -> void:
 	for observed_player in players:
 		player_peer_ids.append(observed_player.get_multiplayer_authority())
 	player_peer_ids.sort()
-	var participant_count: int = player.multiplayer.get_peers().size() + 1
+	var expected_unique_targets: int = mini(beetles.size(), players.size())
+	if assigned_targets.size() < expected_unique_targets and elapsed_ms < 11000:
+		return
 	var result := {
 		"role": _instance_role,
 		"state": _director_state_name(director),
@@ -505,6 +571,45 @@ func _update_beetle_targeting_scenario(player) -> void:
 	_write_sync_result("beetle_targeting_%s.json" % _instance_role, result)
 	_beetle_targeting["written"] = true
 	_beetle_targeting["state"] = "done"
+
+
+func _update_beetle_door_charge_scenario(player) -> void:
+	if bool(_beetle_door_charge["written"]):
+		return
+	var director := _find_match_director(player)
+	var bomb_doors: Array[Node3D] = _find_cube_mission_bomb_doors(player)
+	if director == null or bomb_doors.is_empty():
+		return
+	if _instance_role == "server":
+		if _director_state_name(director) == "LOBBY" and director.has_method("start_match") and Time.get_ticks_msec() - int(_beetle_door_charge["started_ms"]) > 800:
+			director.call("start_match")
+		if _are_cube_mission_doors_open(bomb_doors):
+			_write_sync_result("beetle_door_charge_server.json", {
+				"state": _director_state_name(director),
+				"door_open": true,
+				"beetle_count": _find_beetles(player).size(),
+				"participant_count": player.multiplayer.get_peers().size() + 1,
+			})
+			_beetle_door_charge["written"] = true
+			_beetle_door_charge["state"] = "done"
+		return
+	match String(_beetle_door_charge["state"]):
+		"open_door":
+			_perform_beetle_door_charge_open_door(player, bomb_doors, director)
+		"wait_door_open":
+			if _are_cube_mission_doors_open(bomb_doors):
+				_beetle_door_charge["state"] = "observe_charge"
+				_beetle_door_charge["phase_started_ms"] = Time.get_ticks_msec()
+				_beetle_door_charge["initial_distance"] = -1.0
+				_beetle_door_charge["closest_distance_seen"] = -1.0
+				_beetle_door_charge["tracked_beetle_name"] = ""
+			else:
+				var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
+				player.global_position = door_anchor + Vector3(0.0, 0.0, 6.0)
+				player.velocity = Vector3.ZERO
+				_look_at_position(player, door_anchor)
+		"observe_charge":
+			_perform_beetle_charge_observation(player, bomb_doors, director)
 
 
 func _setup_cube_mission_scenario(player) -> void:
@@ -789,10 +894,7 @@ func _find_other_player(player):
 
 
 func _find_chest(player) -> Node3D:
-	var scene_root: Node = player.get_tree().current_scene
-	if scene_root == null:
-		return null
-	return _find_chest_in_subtree(scene_root)
+	return _find_first_node3d_in_group(player, GROUP_MISSION_HUB_CHESTS)
 
 func _find_chest_in_subtree(root: Node) -> Node3D:
 	if root is Node3D and root.name == "Chest" and root.has_method("get_inventory_component"):
@@ -805,10 +907,10 @@ func _find_chest_in_subtree(root: Node) -> Node3D:
 
 
 func _find_bomb_door(player) -> Node3D:
-	var scene_root: Node = player.get_tree().current_scene
-	if scene_root == null:
+	var bomb_doors: Array[Node3D] = _find_cube_mission_bomb_doors(player)
+	if bomb_doors.is_empty():
 		return null
-	return _find_bomb_door_in_subtree(scene_root)
+	return bomb_doors[0]
 
 
 func _find_bomb_door_in_subtree(root: Node) -> Node3D:
@@ -822,22 +924,11 @@ func _find_bomb_door_in_subtree(root: Node) -> Node3D:
 
 
 func _find_cube_mission_bomb_doors(player) -> Array[Node3D]:
-	var scene_root: Node = player.get_tree().current_scene
-	if scene_root == null:
-		return []
-	var doors: Array[Node3D] = []
-	_collect_cube_mission_bomb_doors(scene_root, doors)
+	var doors: Array[Node3D] = _find_nodes3d_in_group(player, GROUP_MISSION_CUBE_BOMB_DOORS)
 	doors.sort_custom(func(a: Node3D, b: Node3D) -> bool:
 		return a.global_position.x < b.global_position.x
 	)
 	return doors
-
-
-func _collect_cube_mission_bomb_doors(root: Node, out: Array[Node3D]) -> void:
-	if root is Node3D and root.name.begins_with("BombDoor") and root.has_method("is_open"):
-		out.append(root as Node3D)
-	for child in root.get_children():
-		_collect_cube_mission_bomb_doors(child, out)
 
 
 func _get_cube_mission_door_anchor(bomb_doors: Array[Node3D]) -> Vector3:
@@ -866,37 +957,11 @@ func _first_closed_cube_mission_door(bomb_doors: Array[Node3D]) -> Node3D:
 
 
 func _find_cube_activator(player) -> Node3D:
-	var scene_root: Node = player.get_tree().current_scene
-	if scene_root == null:
-		return null
-	return _find_cube_activator_in_subtree(scene_root)
-
-
-func _find_cube_activator_in_subtree(root: Node) -> Node3D:
-	if root is Node3D and root.name == "CubeActivator":
-		return root as Node3D
-	for child in root.get_children():
-		var found := _find_cube_activator_in_subtree(child)
-		if found != null:
-			return found
-	return null
+	return _find_first_node3d_in_group(player, GROUP_MISSION_CUBE_GOAL_ZONES)
 
 
 func _find_primary_pull_cube(player) -> Node3D:
-	var scene_root: Node = player.get_tree().current_scene
-	if scene_root == null:
-		return null
-	return _find_primary_pull_cube_in_subtree(scene_root)
-
-
-func _find_primary_pull_cube_in_subtree(root: Node) -> Node3D:
-	if root is Node3D and root.name == "RigidCube3D" and root.is_in_group("pullable_cubes"):
-		return root as Node3D
-	for child in root.get_children():
-		var found := _find_primary_pull_cube_in_subtree(child)
-		if found != null:
-			return found
-	return null
+	return _find_first_node3d_in_group(player, GROUP_MISSION_CUBE_PRIMARY)
 
 
 func _find_match_director(player) -> Node:
@@ -904,20 +969,7 @@ func _find_match_director(player) -> Node:
 
 
 func _find_beetle_director(player) -> Node3D:
-	var scene_root: Node = player.get_tree().current_scene
-	if scene_root == null:
-		return null
-	return _find_beetle_director_in_subtree(scene_root)
-
-
-func _find_beetle_director_in_subtree(root: Node) -> Node3D:
-	if root is Node3D and root.name == "BeetleDirector":
-		return root as Node3D
-	for child in root.get_children():
-		var found := _find_beetle_director_in_subtree(child)
-		if found != null:
-			return found
-	return null
+	return _find_first_node3d_in_group(player, GROUP_MISSION_CUBE_BEETLE_DIRECTORS)
 
 
 func _find_beetles(player) -> Array[Node3D]:
@@ -931,6 +983,59 @@ func _find_beetles(player) -> Array[Node3D]:
 		return String(a.name) < String(b.name)
 	)
 	return beetles
+
+
+func _find_beetle_by_name(player, beetle_name: String) -> Node3D:
+	if beetle_name.is_empty():
+		return null
+	for beetle in _find_beetles(player):
+		if beetle.name == beetle_name:
+			return beetle
+	return null
+
+
+func _observe_targeting_beetle_for_player(player) -> Dictionary:
+	var own_peer_id: int = player.get_multiplayer_authority()
+	var closest_targeting_beetle: Node3D = null
+	var closest_targeting_distance: float = INF
+	var fallback_beetle: Node3D = null
+	var fallback_distance: float = INF
+	for beetle in _find_beetles(player):
+		var distance: float = beetle.global_position.distance_to(player.global_position)
+		if distance < fallback_distance:
+			fallback_distance = distance
+			fallback_beetle = beetle
+		var assigned_peer_id := -1
+		var current_peer_id := -1
+		if beetle.has_method("get_assigned_target_peer_id"):
+			assigned_peer_id = int(beetle.call("get_assigned_target_peer_id"))
+		if beetle.has_method("get_current_target_peer_id"):
+			current_peer_id = int(beetle.call("get_current_target_peer_id"))
+		if assigned_peer_id != own_peer_id and current_peer_id != own_peer_id:
+			continue
+		if distance < closest_targeting_distance:
+			closest_targeting_distance = distance
+			closest_targeting_beetle = beetle
+	if closest_targeting_beetle != null:
+		return {
+			"name": closest_targeting_beetle.name,
+			"distance": closest_targeting_distance,
+			"assigned_target_peer_id": int(closest_targeting_beetle.call("get_assigned_target_peer_id")) if closest_targeting_beetle.has_method("get_assigned_target_peer_id") else -1,
+			"current_target_peer_id": int(closest_targeting_beetle.call("get_current_target_peer_id")) if closest_targeting_beetle.has_method("get_current_target_peer_id") else -1,
+		}
+	if fallback_beetle != null:
+		return {
+			"name": fallback_beetle.name,
+			"distance": fallback_distance,
+			"assigned_target_peer_id": int(fallback_beetle.call("get_assigned_target_peer_id")) if fallback_beetle.has_method("get_assigned_target_peer_id") else -1,
+			"current_target_peer_id": int(fallback_beetle.call("get_current_target_peer_id")) if fallback_beetle.has_method("get_current_target_peer_id") else -1,
+		}
+	return {
+		"name": "",
+		"distance": -1.0,
+		"assigned_target_peer_id": -1,
+		"current_target_peer_id": -1,
+	}
 
 
 func _find_active_players(player) -> Array[Node3D]:
@@ -1075,6 +1180,79 @@ func _perform_real_cube_pull(player, cube: Node3D, activator: Node3D, bomb_doors
 		)
 		_cube_mission["written"] = true
 		_cube_mission["state"] = "done"
+
+
+func _perform_beetle_door_charge_open_door(player, bomb_doors: Array[Node3D], director: Node) -> void:
+	if _director_state_name(director) == "LOBBY":
+		return
+	if _are_cube_mission_doors_open(bomb_doors):
+		_beetle_door_charge["state"] = "done_opening"
+		return
+	var target_door: Node3D = _first_closed_cube_mission_door(bomb_doors)
+	if target_door == null:
+		return
+	if Time.get_ticks_msec() - int(_beetle_door_charge["phase_started_ms"]) < 900:
+		return
+	_spawn_bomb_at_target_door(player, target_door)
+	_beetle_door_charge["phase_started_ms"] = Time.get_ticks_msec()
+
+
+func _perform_beetle_charge_observation(player, bomb_doors: Array[Node3D], director: Node) -> void:
+	var activator := _find_cube_activator(player)
+	if activator == null:
+		return
+	var observation_position := activator.global_position + Vector3(0.0, 0.0, 3.2)
+	player.global_position = observation_position
+	player.velocity = Vector3.ZERO
+	_look_at_position(player, activator.global_position)
+	var observation: Dictionary = _observe_targeting_beetle_for_player(player)
+	var tracked_beetle_name: String = String(observation.get("name", ""))
+	var elapsed_ms: int = Time.get_ticks_msec() - int(_beetle_door_charge["phase_started_ms"])
+	var beetles: Array[Node3D] = _find_beetles(player)
+	var beetle_count: int = beetles.size()
+	var expected_beetle_count: int = beetle_count
+	var beetle_director := _find_beetle_director(player)
+	if beetle_director != null and beetle_director.has_method("_get_desired_beetle_count"):
+		expected_beetle_count = int(beetle_director.call("_get_desired_beetle_count"))
+	if beetle_count < expected_beetle_count and elapsed_ms < 9000:
+		return
+	var final_distance: float = float(observation.get("distance", -1.0))
+	var own_peer_id: int = player.get_multiplayer_authority()
+	var is_targeting_player: bool = int(observation.get("assigned_target_peer_id", -1)) == own_peer_id or int(observation.get("current_target_peer_id", -1)) == own_peer_id
+	if is_targeting_player:
+		_beetle_door_charge["targeting_observed"] = true
+		_beetle_door_charge["tracked_beetle_name"] = tracked_beetle_name
+		if float(_beetle_door_charge["initial_distance"]) < 0.0 and final_distance >= 0.0:
+			_beetle_door_charge["initial_distance"] = final_distance
+			_beetle_door_charge["closest_distance_seen"] = final_distance
+	if is_targeting_player and final_distance >= 0.0:
+		var closest_distance_seen: float = float(_beetle_door_charge["closest_distance_seen"])
+		if closest_distance_seen < 0.0 or final_distance < closest_distance_seen:
+			_beetle_door_charge["closest_distance_seen"] = final_distance
+	var initial_distance: float = float(_beetle_door_charge["initial_distance"])
+	var closest_distance: float = float(_beetle_door_charge["closest_distance_seen"])
+	var targeting_observed: bool = bool(_beetle_door_charge["targeting_observed"])
+	var charge_observed: bool = targeting_observed and initial_distance > 0.0 and closest_distance >= 0.0 and closest_distance < initial_distance - 1.2
+	if not charge_observed and elapsed_ms < 7200:
+		return
+	_beetle_door_charge["final_distance"] = final_distance
+	_write_sync_result("beetle_door_charge_%s.json" % _instance_role, {
+		"state": _director_state_name(director),
+		"door_open": _are_cube_mission_doors_open(bomb_doors),
+		"participant_count": player.multiplayer.get_peers().size() + 1,
+		"beetle_count": beetle_count,
+		"player_peer_id": own_peer_id,
+		"tracked_beetle_name": tracked_beetle_name,
+		"initial_distance": initial_distance,
+		"final_distance": final_distance,
+		"closest_distance_seen": closest_distance,
+		"assigned_target_peer_id": int(observation.get("assigned_target_peer_id", -1)),
+		"current_target_peer_id": int(observation.get("current_target_peer_id", -1)),
+		"is_targeting_player": targeting_observed,
+		"charge_observed": charge_observed,
+	})
+	_beetle_door_charge["written"] = true
+	_beetle_door_charge["state"] = "done"
 
 
 func _perform_cube_mission_open_door(player, bomb_doors: Array[Node3D], cube: Node3D, activator: Node3D, director: Node) -> void:
@@ -1250,16 +1428,31 @@ func _find_node_by_path(player: Node3D, path: String) -> Node3D:
 
 
 func _find_cube_mission_crates(player: Node3D) -> Array[Node3D]:
-	if player == null or player.get_tree() == null:
-		return []
-	var crates: Array[Node3D] = []
-	for candidate in player.get_tree().get_nodes_in_group("cube_mission_crates"):
-		if candidate is Node3D:
-			crates.append(candidate as Node3D)
+	var crates: Array[Node3D] = _find_nodes3d_in_group(player, GROUP_MISSION_CUBE_BLOCKERS)
 	crates.sort_custom(func(a: Node3D, b: Node3D) -> bool:
 		return a.global_position.x < b.global_position.x
 	)
 	return crates
+
+
+func _find_first_node3d_in_group(player, group_name: String) -> Node3D:
+	var nodes: Array[Node3D] = _find_nodes3d_in_group(player, group_name)
+	if nodes.is_empty():
+		return null
+	return nodes[0]
+
+
+func _find_nodes3d_in_group(player, group_name: String) -> Array[Node3D]:
+	if player == null or player.get_tree() == null:
+		return []
+	var nodes: Array[Node3D] = []
+	for candidate in player.get_tree().get_nodes_in_group(group_name):
+		if candidate is Node3D:
+			nodes.append(candidate as Node3D)
+	nodes.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return String(a.get_path()) < String(b.get_path())
+	)
+	return nodes
 
 
 func _find_world_item(player, node_name: String) -> Node3D:

@@ -89,7 +89,13 @@ func apply_horizontal_velocity(player, delta: float) -> void:
 	# Interpolate horizontal speed while preserving vertical velocity.
 	var y_velocity: float = player.velocity.y
 	player.velocity.y = 0.0
-	player.velocity = player.velocity.lerp(player._move_direction * player.move_speed, player.acceleration * delta)
+	var has_move_input: bool = player._move_direction.length() > 0.001
+	if has_move_input:
+		player.velocity = player.velocity.lerp(player._move_direction * player.move_speed, player.acceleration * delta)
+	elif player.is_on_floor() and not player._is_sliding:
+		player.velocity = player.velocity.move_toward(Vector3.ZERO, player.ground_brake_strength * delta)
+	else:
+		player.velocity = player.velocity.lerp(Vector3.ZERO, minf(1.0, player.acceleration * delta * 0.35))
 	apply_slope_sliding(player, delta)
 	if player._move_direction.length() == 0 and player.velocity.length() < player.stopping_speed:
 		player.velocity = Vector3.ZERO
@@ -222,6 +228,8 @@ func get_slope_angle_deg(floor_normal: Vector3) -> float:
 
 
 func get_downhill_direction(player, floor_normal: Vector3) -> Vector3:
+	if floor_normal.is_zero_approx():
+		return Vector3.ZERO
 	var gravity_vector := Vector3(0.0, player._gravity, 0.0)
 	var tangent := gravity_vector.slide(floor_normal)
 	return tangent.normalized() if not tangent.is_zero_approx() else Vector3.ZERO

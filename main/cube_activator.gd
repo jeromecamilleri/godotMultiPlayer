@@ -35,13 +35,9 @@ func _on_body_entered(body: Node) -> void:
 
 
 func _report_activation() -> void:
-	var director := get_tree().get_first_node_in_group("match_director")
-	if director == null:
-		return
-	if objective_id.strip_edges() != "" and director.has_method("report_objective_progress"):
-		director.report_objective_progress(objective_id, 1)
-	if complete_match_on_activate and director.has_method("report_team_won"):
-		director.report_team_won(win_reason)
+	# The cube itself is authoritative for persistent mission completion state.
+	# Avoid double-counting objective progress when the activator snaps it on goal.
+	pass
 
 
 func _is_server_instance() -> bool:

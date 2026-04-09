@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="1_coin"]
+[ext_resource type="PackedScene" path="res://inventory/world_item.tscn" id="2_world"]
+[ext_resource type="PackedScene" path="res://inventory/inventory_container.tscn" id="3_chest"]
+[ext_resource type="Resource" path="res://inventory/items/apple.tres" id="4_apple"]
+[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="5_wood"]
+[ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="6_box"]
+[ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="7_bomb_door"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_bd01"]
+size = Vector3(4, 4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bd01"]
+albedo_color = Color(1, 0.439216, 0.117647, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bd01"]
+size = Vector3(3.7902527, 4.055664, 0.7084961)
+
+[node name="Interactives" type="Node3D"]
+
+[node name="Coin" parent="." instance=ExtResource("1_coin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.677925, 4.6177497, 6.7908463)
+
+[node name="ApplePickup" parent="." groups=["mission_resource_pickups", "mission_apple_pickups"] instance=ExtResource("2_world")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.267, 4.42, 8.454)
+item_definition = ExtResource("4_apple")
+quantity = 3
+
+[node name="WoodPickup" parent="." groups=["mission_resource_pickups", "mission_wood_pickups"] instance=ExtResource("2_world")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.799579, 5.0195103, -0.44950914)
+item_definition = ExtResource("5_wood")
+quantity = 5
+
+[node name="Chest" parent="." groups=["mission_hub_chests"] instance=ExtResource("3_chest")]
+transform = Transform3D(-0.1311519, 0, -0.8359003, 0, 1.8925308, 0, 1.1570579, 0, -0.09474889, -14.864765, 4.7570124, -3.0847158)
+inventory_name = "Coffre du hub"
+initial_items = Array[Resource]([ExtResource("5_wood"), ExtResource("4_apple")])
+initial_quantities = PackedInt32Array(6, 2)
+
+[node name="Crate1" parent="." groups=["cube_mission_crates", "mission_cube_blockers"] instance=ExtResource("6_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, -3)
+
+[node name="Crate2" parent="." groups=["cube_mission_crates", "mission_cube_blockers"] instance=ExtResource("6_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, -3)
+
+[node name="Crate3" parent="." groups=["cube_mission_crates", "mission_cube_blockers"] instance=ExtResource("6_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 4, -3)
+
+[node name="BombDoor" type="StaticBody3D" parent="." groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.125907, 6, 9.972226)
+script = ExtResource("7_bomb_door")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BombDoor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5623875, 0, 0)
+mesh = SubResource("BoxMesh_bd01")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BombDoor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5490217, 0, -0.009033203)
+shape = SubResource("BoxShape3D_bd01")
+
+[node name="BombDoor2" type="StaticBody3D" parent="." groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.2358866, 6.011131, 9.989155)
+script = ExtResource("7_bomb_door")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BombDoor2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4487038, -0.01113081, 0.0059223175)
+mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor2")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BombDoor2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4683838, 0, 0.019042969)
+shape = SubResource("BoxShape3D_bd01")
+
+[node name="BombDoor3" type="StaticBody3D" parent="." groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4385548, 6.0222616, 10.0060835)
+script = ExtResource("7_bomb_door")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BombDoor3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, 0)
+mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor3")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BombDoor3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
+shape = SubResource("BoxShape3D_bd01")

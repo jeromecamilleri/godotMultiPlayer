@@ -5,6 +5,7 @@ const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 
 @export var min_bees := 2
 @export var bees_per_player := 1
+@export var managed_seed_bee_paths: Array[NodePath] = []
 @export var extra_spawn_ring_radius := 4.5
 @export var base_shoot_timer := 1.5
 @export var min_shoot_timer := 0.7
@@ -15,11 +16,14 @@ const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 var _spawn_anchors: Array[Transform3D] = []
 var _spawned_bee_names: Array[String] = []
 var _seed_bee_names: Array[String] = []
+var _seed_bee_paths: Array[NodePath] = []
 var _client_resync_attempts_remaining := 5
 var _client_resync_timer: Timer
 
 
 func _ready() -> void:
+	add_to_group("enemy_directors")
+	add_to_group("bee_directors")
 	_capture_spawn_anchors_from_scene()
 	if multiplayer.is_server():
 		if multiplayer.has_multiplayer_peer() and not multiplayer.peer_connected.is_connected(_on_peer_connected):
@@ -36,8 +40,21 @@ func _ready() -> void:
 
 
 func _capture_spawn_anchors_from_scene() -> void:
+	_seed_bee_names.clear()
+	_seed_bee_paths.clear()
+	_spawn_anchors.clear()
+	if not managed_seed_bee_paths.is_empty():
+		for seed_path in managed_seed_bee_paths:
+			var bee := _resolve_seed_bee(seed_path)
+			if bee == null:
+				continue
+			_seed_bee_paths.append(seed_path)
+			_seed_bee_names.append(String(bee.name))
+			_spawn_anchors.append(bee.transform)
+		return
 	for child in get_children():
 		if child is Node3D and String(child.name).begins_with("bee_bot"):
+			_seed_bee_paths.append(get_path_to(child))
 			_seed_bee_names.append(String(child.name))
 			_spawn_anchors.append((child as Node3D).transform)
 
@@ -55,7 +72,7 @@ func _refresh_bee_population() -> void:
 		return
 	var desired_count := _get_desired_bee_count()
 	var next_managed_names: Array[String] = []
-	var config := _build_bee_config(desired_count)
+	var config: Dictionary = _build_bee_config(desired_count)
 	for bee_index in range(desired_count):
 		var bee_name := _bee_name_for_index(bee_index)
 		var bee_transform := _transform_for_bee_index(bee_index)
@@ -225,6 +242,9 @@ func _on_client_resync_timeout() -> void:
 func _apply_bee_config(bee: Node, bee_config: Dictionary) -> void:
 	if bee == null:
 		return
+	if bee.has_method("apply_director_config"):
+		bee.call("apply_director_config", bee_config)
+		return
 	if "shoot_timer" in bee and bee_config.has("shoot_timer"):
 		bee.shoot_timer = float(bee_config["shoot_timer"])
 	if "bullet_speed" in bee and bee_config.has("bullet_speed"):
@@ -262,3 +282,25 @@ func _rpc_spawn_bee(bee_name: String, bee_transform: Transform3D, bee_config: Di
 	_stop_client_resync_watchdog()
 	if bee_name not in _spawned_bee_names:
 		_spawned_bee_names.append(bee_name)
+
+
+func _resolve_seed_bee(seed_path: NodePath) -> Node3D:
+	if seed_path.is_empty():
+		return null
+	var local_candidate := get_node_or_null(seed_path)
+	if local_candidate is Node3D:
+		return local_candidate as Node3D
+	var scene_root: Node = _get_scene_root()
+	if scene_root != null:
+		var candidate := scene_root.get_node_or_null(seed_path)
+		if candidate is Node3D:
+			return candidate as Node3D
+	return null
+
+
+func _get_scene_root() -> Node:
+	if get_tree() == null:
+		return null
+	if get_tree().current_scene != null:
+		return get_tree().current_scene
+	return get_tree().root

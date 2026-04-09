@@ -67,3 +67,38 @@ func test_cube_reaching_reactor_switches_to_goal_state() -> void:
 	assert_true(cube.evaluate_goal_reached(), "Cube should be detected inside reactor goal radius")
 	assert_true(cube.freeze, "Cube should freeze once parked in reactor")
 	assert_eq(3, cube._pull_state_sync, "Goal state should be replicated as state=3")
+
+
+func test_cube_late_join_state_snapshot_reapplies_goal_visual_state() -> void:
+	var world := Node3D.new()
+	add_child_autofree(world)
+
+	var authoritative_cube: PullableCube = PULL_CUBE_SCRIPT.new() as PullableCube
+	assert_not_null(authoritative_cube)
+	authoritative_cube.server_peer_id = multiplayer.get_unique_id()
+	world.add_child(authoritative_cube)
+	await wait_process_frames(1)
+
+	var goal_transform := Transform3D(Basis.IDENTITY, Vector3(6.0, 1.2, -3.0))
+	authoritative_cube.complete_goal(goal_transform.origin)
+	authoritative_cube.global_transform = goal_transform
+
+	var late_join_cube: PullableCube = PULL_CUBE_SCRIPT.new() as PullableCube
+	assert_not_null(late_join_cube)
+	world.add_child(late_join_cube)
+	await wait_process_frames(1)
+
+	late_join_cube._apply_current_state(
+		true,
+		true,
+		goal_transform,
+		Vector3.ZERO,
+		Vector3.ZERO,
+		authoritative_cube.PULL_STATE_GOAL,
+		false
+	)
+
+	assert_true(late_join_cube.is_goal_reached(), "Un late joiner doit voir le cube deja termine comme objectif atteint.")
+	assert_true(late_join_cube.freeze, "Le cube resynchronise doit etre fige chez le late joiner.")
+	assert_eq(goal_transform.origin, late_join_cube.global_transform.origin, "La position repliquée du cube doit etre reappliquee au late joiner.")
+	assert_eq(authoritative_cube.PULL_STATE_GOAL, late_join_cube._pull_state_sync, "L'etat visuel GOAL doit etre reapplique au late joiner.")

@@ -14,6 +14,8 @@ signal connect_client
 @onready var _server_match_stats_label: Label = get_node_or_null("InGameUI/ServerMatchStats") as Label
 @onready var _server_client_stats_label: Label = get_node_or_null("InGameUI/ServerClientStats") as Label
 @onready var _server_player_stats_label: Label = get_node_or_null("InGameUI/ServerPlayerStats") as Label
+@onready var _debug_overlay_backdrop: Control = get_node_or_null("InGameUI/DebugOverlayBackdrop") as Control
+@onready var _debug_overlay_label: Label = get_node_or_null("InGameUI/DebugOverlayLabel") as Label
 @onready var _player_inventory_panel: Control = get_node_or_null("InGameUI/PlayerInventoryPanel") as Control
 @onready var _external_inventory_panel: Control = get_node_or_null("InGameUI/TargetInventoryPanel") as Control
 @onready var _player_list_margin: Control = get_node_or_null("InGameUI/MarginContainer") as Control
@@ -35,6 +37,7 @@ var _player_selected_slot := 0
 var _external_selected_slot := 0
 var _ui_test_result_written := false
 var _last_ui_test_layout_signature := ""
+var _debug_overlay_enabled := false
 
 
 func _ready():
@@ -84,6 +87,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	var key_event := event as InputEventKey
+	if key_event.keycode == KEY_F3:
+		_debug_overlay_enabled = not _debug_overlay_enabled
+		_refresh_server_status_visibility()
+		_update_debug_overlay()
+		get_viewport().set_input_as_handled()
+		return
 	if key_event.keycode != KEY_ESCAPE:
 		return
 	var local_player := _get_local_player()
@@ -106,6 +115,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_refresh_inventory_panels()
+	_update_debug_overlay()
 	_write_ui_test_layout_snapshot()
 
 
@@ -186,6 +196,10 @@ func _refresh_server_status_visibility() -> void:
 		_server_client_stats_label.visible = $InGameUI.visible and _is_server_instance()
 	if is_instance_valid(_server_player_stats_label):
 		_server_player_stats_label.visible = $InGameUI.visible and _is_server_instance()
+	if is_instance_valid(_debug_overlay_backdrop):
+		_debug_overlay_backdrop.visible = $InGameUI.visible and _debug_overlay_enabled
+	if is_instance_valid(_debug_overlay_label):
+		_debug_overlay_label.visible = $InGameUI.visible and _debug_overlay_enabled
 	if is_instance_valid(_player_inventory_panel):
 		var local_player := _get_local_player()
 		var inventory_open := local_player != null and local_player.is_inventory_mode_open()
@@ -352,6 +366,8 @@ func _register_test_ids() -> void:
 		_player_inventory_panel.set_meta("test_id", "player_inventory_panel")
 	if is_instance_valid(_external_inventory_panel):
 		_external_inventory_panel.set_meta("test_id", "external_inventory_panel")
+	if is_instance_valid(_debug_overlay_label):
+		_debug_overlay_label.set_meta("test_id", "debug_overlay")
 
 
 func _write_ui_test_layout_snapshot() -> void:
@@ -425,6 +441,218 @@ func _get_ui_test_sync_dir() -> String:
 	if not sync_dir.is_empty():
 		return sync_dir
 	return OS.get_environment("UI_TEST_CHEST_SYNC_DIR").strip_edges()
+
+
+func _update_debug_overlay() -> void:
+	if not is_instance_valid(_debug_overlay_label):
+		return
+	if not _debug_overlay_enabled or not $InGameUI.visible:
+		_debug_overlay_label.text = ""
+		return
+	_debug_overlay_label.text = _build_debug_overlay_text()
+
+
+func _build_debug_overlay_text() -> String:
+	var sections: Array[String] = []
+	sections.append("DEBUG F3")
+	sections.append(_build_debug_match_section())
+	sections.append(_build_debug_network_section())
+	sections.append(_build_debug_inventory_section())
+	sections.append(_build_debug_enemy_section())
+	sections.append(_build_debug_sync_section())
+	return "\n\n".join(sections)
+
+
+func _build_debug_match_section() -> String:
+	var lines: Array[String] = ["MATCH"]
+	lines.append("etat=%s" % _extract_state_name(_match_status_text))
+	lines.append("chrono=%s" % _format_match_clock())
+	lines.append("joueurs=%s" % _extract_snapshot_value("players"))
+	lines.append("vies=%s" % _format_snapshot_compact_section("lives"))
+	lines.append("scores=%s" % _format_snapshot_compact_section("score"))
+	lines.append("morts=%s" % _format_snapshot_compact_section("deaths"))
+	lines.append("objectifs=%s" % _format_debug_objectives_summary())
+	return "\n".join(lines)
+
+
+func _build_debug_network_section() -> String:
+	var lines: Array[String] = ["RESEAU"]
+	lines.append(_connection.get_network_stats_text())
+	if _is_server_instance():
+		lines.append(_connection.get_server_client_network_stats_text())
+	return "\n".join(lines)
+
+
+func _build_debug_inventory_section() -> String:
+	var lines: Array[String] = ["INVENTAIRES"]
+	var local_player := _get_local_player()
+	if local_player == null:
+		lines.append("joueur_local=aucun")
+	else:
+		if local_player.has_method("get_inventory_debug_summary"):
+			lines.append(String(local_player.call("get_inventory_debug_summary")))
+		else:
+			lines.append("resume indisponible")
+	var chest: Node = _find_first_inventory_container()
+	if is_instance_valid(chest):
+		var chest_rev := "-"
+		var chest_mode := "-"
+		if chest.has_method("get_snapshot_revision"):
+			chest_rev = str(chest.call("get_snapshot_revision"))
+		if chest.has_method("get_last_sync_mode"):
+			chest_mode = String(chest.call("get_last_sync_mode"))
+		lines.append("coffre rev=%s mode=%s" % [chest_rev, chest_mode])
+	return "\n".join(lines)
+
+
+func _build_debug_enemy_section() -> String:
+	var lines: Array[String] = ["ENNEMIS"]
+	var beetle_lines := _collect_beetle_debug_lines()
+	var bee_lines := _collect_bee_debug_lines()
+	lines.append("scarabees=%d abeilles=%d" % [beetle_lines.size(), bee_lines.size()])
+	if beetle_lines.is_empty() and bee_lines.is_empty():
+		lines.append("aucun suivi")
+		return "\n".join(lines)
+	for line in beetle_lines:
+		lines.append(line)
+	for line in bee_lines:
+		lines.append(line)
+	return "\n".join(lines)
+
+
+func _build_debug_sync_section() -> String:
+	var lines: Array[String] = ["SYNCS"]
+	var sync_items: Array[String] = []
+	var bomb_door: Node = get_tree().get_first_node_in_group("bomb_reactives")
+	if is_instance_valid(bomb_door) and bomb_door.has_method("get_last_open_replication_delay_ms"):
+		var door_delay := int(bomb_door.call("get_last_open_replication_delay_ms"))
+		sync_items.append("porte=%s" % ("-" if door_delay < 0 else "%d ms" % door_delay))
+	var world_items: Array[Node] = get_tree().get_nodes_in_group("world_items")
+	for item in world_items:
+		if is_instance_valid(item) and item.has_method("get_last_collected_replication_delay_ms"):
+			var pickup_delay := int(item.call("get_last_collected_replication_delay_ms"))
+			if pickup_delay >= 0:
+				sync_items.append("pickup=%d ms" % pickup_delay)
+				break
+	var chest: Node = _find_first_inventory_container()
+	if is_instance_valid(chest):
+		if chest.has_method("get_snapshot_revision"):
+			sync_items.append("coffre_rev=%s" % str(chest.call("get_snapshot_revision")))
+		if chest.has_method("get_last_sync_mode"):
+			sync_items.append("coffre_mode=%s" % String(chest.call("get_last_sync_mode")))
+		if chest.has_method("get_last_snapshot_replication_delay_ms"):
+			var chest_delay := int(chest.call("get_last_snapshot_replication_delay_ms"))
+			sync_items.append("coffre=%s" % ("-" if chest_delay < 0 else "%d ms" % chest_delay))
+	var coin := _find_first_revive_coin()
+	if is_instance_valid(coin):
+		if coin.has_method("get_debug_sync_summary"):
+			sync_items.append(String(coin.call("get_debug_sync_summary")))
+	if sync_items.is_empty():
+		lines.append("aucune mesure")
+	else:
+		lines.append(" | ".join(sync_items))
+	var recent_events: Array[String] = _connection.get_recent_sync_events()
+	if recent_events.is_empty():
+		lines.append("events: aucun")
+	else:
+		lines.append("events:")
+		for event_line in recent_events:
+			lines.append("- " + event_line)
+	return "\n".join(lines)
+
+
+func _collect_beetle_debug_lines() -> Array[String]:
+	var lines: Array[String] = []
+	for node in get_tree().get_nodes_in_group("beetles"):
+		if not is_instance_valid(node):
+			continue
+		var assigned_peer := -1
+		var current_peer := -1
+		if node.has_method("get_assigned_target_peer_id"):
+			assigned_peer = int(node.call("get_assigned_target_peer_id"))
+		if node.has_method("get_current_target_peer_id"):
+			current_peer = int(node.call("get_current_target_peer_id"))
+		lines.append("scarabee %s -> assigne J%s / courant J%s" % [
+			String(node.name),
+			"-" if assigned_peer <= 0 else str(assigned_peer),
+			"-" if current_peer <= 0 else str(current_peer),
+		])
+	return lines
+
+
+func _collect_bee_debug_lines() -> Array[String]:
+	var lines: Array[String] = []
+	for node in get_tree().get_nodes_in_group("bee_bots"):
+		if not is_instance_valid(node):
+			continue
+		var current_peer := -1
+		if node.has_method("get_current_target_peer_id"):
+			current_peer = int(node.call("get_current_target_peer_id"))
+		lines.append("abeille %s -> courant J%s" % [
+			String(node.name),
+			"-" if current_peer <= 0 else str(current_peer),
+		])
+	return lines
+
+
+func _find_first_inventory_container() -> Node:
+	var nodes: Array[Node] = get_tree().get_nodes_in_group("inventory_containers")
+	for node in nodes:
+		return node
+	var fallback: Node = get_tree().root.find_child("Chest", true, false)
+	return fallback
+
+
+func _find_first_revive_coin() -> Node:
+	var nodes: Array[Node] = get_tree().get_nodes_in_group("revive_coins")
+	for node in nodes:
+		return node
+	return null
+
+
+func _format_match_clock() -> String:
+	var seconds_left: float = _extract_time_left_seconds(_match_status_text)
+	var total_seconds: int = maxi(0, int(ceil(seconds_left)))
+	return "%02d:%02d" % [total_seconds / 60, total_seconds % 60]
+
+
+func _format_debug_objectives_summary() -> String:
+	var objective_lines: Array[String] = []
+	for line in _match_status_text.split("\n"):
+		var trimmed := line.strip_edges()
+		if trimmed.is_empty():
+			continue
+		if trimmed == "objectives:":
+			continue
+		if trimmed.find(":") <= 0:
+			continue
+		if trimmed.begins_with("peer_"):
+			continue
+		if trimmed.begins_with("state:") or trimmed.begins_with("time_left:") or trimmed.begins_with("players:") or trimmed == "MATCH" or trimmed == "score:" or trimmed == "lives:" or trimmed == "deaths:":
+			continue
+		var parts := trimmed.split(":")
+		if parts.size() < 2:
+			continue
+		var key := String(parts[0]).strip_edges()
+		var value := String(parts[1]).strip_edges()
+		objective_lines.append("%s=%s" % [key, value])
+	if objective_lines.is_empty():
+		return "-"
+	return ", ".join(objective_lines)
+
+
+func _format_snapshot_compact_section(section_name: String) -> String:
+	var section_values := _extract_snapshot_section(section_name)
+	if section_values.is_empty():
+		return "-"
+	var peer_ids: Array[int] = []
+	for peer_id in section_values.keys():
+		peer_ids.append(int(peer_id))
+	peer_ids.sort()
+	var items: Array[String] = []
+	for peer_id in peer_ids:
+		items.append("J%d:%s" % [peer_id, str(section_values.get(peer_id, "-"))])
+	return ", ".join(items)
 func _extract_time_left_seconds(snapshot_text: String) -> float:
 	for line in snapshot_text.split("\n"):
 		if not line.begins_with("time_left:"):

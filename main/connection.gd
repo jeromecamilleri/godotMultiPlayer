@@ -6,6 +6,8 @@ signal disconnected
 signal server_status_changed(status_text: String)
 signal network_stats_changed(stats_text: String)
 
+const MAX_RECENT_SYNC_EVENTS := 12
+
 static var is_peer_connected: bool
 var _connected_clients: Dictionary = {}
 var _client_latency_reports: Dictionary = {}
@@ -25,9 +27,11 @@ var _last_ping_sent_ms := -1
 var _last_rtt_ms := -1
 var _avg_rtt_ms := -1.0
 var _jitter_ms := 0.0
+var _recent_sync_events: Array[String] = []
 
 
 func _ready() -> void:
+	add_to_group("connection_service")
 	_resolve_runtime_network_config()
 	# Dedicated server mode is selected by command-line argument.
 	if Connection.is_server(): start_server()
@@ -56,6 +60,7 @@ func start_server() -> void:
 	else:
 		DebugLog.net("Server started on port %d" % _resolved_port)
 		connected.emit()
+		record_sync_event("reseau", "serveur demarre sur %s" % get_runtime_endpoint_display())
 	
 	multiplayer.multiplayer_peer = peer
 	# Server tracks joins/leaves to drive in-game status UI.
@@ -79,6 +84,7 @@ func start_client() -> void:
 		disconnected.emit()
 		return
 	else: DebugLog.net("Connecting to server %s:%d..." % [address, _resolved_port])
+	record_sync_event("reseau", "connexion %s:%d" % [address, _resolved_port])
 	
 	multiplayer.multiplayer_peer = peer
 	# Client listens for successful connect and failure/disconnect paths.
@@ -91,6 +97,7 @@ func disconnect_peer() -> void:
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
+	record_sync_event("reseau", "session fermee")
 	disconnected.emit()
 
 
@@ -106,12 +113,14 @@ func shutdown_server() -> void:
 
 func connected_to_server() -> void:
 	DebugLog.net("Connected to server")
+	record_sync_event("reseau", "client connecte au serveur")
 	connected.emit()
 	_emit_network_stats()
 
 
 func server_connection_failure() -> void:
 	DebugLog.net("Disconnected")
+	record_sync_event("reseau", "deconnexion client")
 	disconnected.emit()
 	_emit_network_stats()
 
@@ -127,6 +136,7 @@ func peer_connected(id: int) -> void:
 		"jitter_ms": 0.0,
 		"last_report_ms": 0,
 	}
+	record_sync_event("reseau", "peer J%d connecte" % id)
 	_print_server_status("peer_connected")
 	_emit_network_stats()
 
@@ -137,6 +147,7 @@ func peer_disconnected(id: int) -> void:
 		return
 	_connected_clients.erase(id)
 	_client_latency_reports.erase(id)
+	record_sync_event("reseau", "peer J%d deconnecte" % id)
 	_print_server_status("peer_disconnected")
 	_emit_network_stats()
 
@@ -317,6 +328,27 @@ func reset_network_metrics() -> void:
 	_avg_rtt_ms = -1.0
 	_jitter_ms = 0.0
 	_emit_network_stats()
+
+
+func record_sync_event(source: String, detail: String) -> void:
+	var trimmed_source := source.strip_edges()
+	if trimmed_source.is_empty():
+		trimmed_source = "sync"
+	var trimmed_detail := detail.strip_edges()
+	if trimmed_detail.is_empty():
+		trimmed_detail = "evenement"
+	var total_ms: int = Time.get_ticks_msec()
+	var minutes: int = total_ms / 60000
+	var seconds: int = (total_ms / 1000) % 60
+	var millis: int = total_ms % 1000
+	var entry := "[%02d:%02d.%03d] %s | %s" % [minutes, seconds, millis, trimmed_source, trimmed_detail]
+	_recent_sync_events.append(entry)
+	if _recent_sync_events.size() > MAX_RECENT_SYNC_EVENTS:
+		_recent_sync_events.remove_at(0)
+
+
+func get_recent_sync_events() -> Array[String]:
+	return _recent_sync_events.duplicate()
 
 
 func _start_latency_probe() -> void:

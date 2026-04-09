@@ -46,6 +46,33 @@ Le `HubLevel` contient notamment:
 - les ennemis (`bee_bot`)
 - les interactifs (`Coin`, `ApplePickup`, `WoodPickup`, `Chest`, `BombDoor`)
 
+Sous-scènes mission désormais extraites depuis `main/` :
+
+- `main/mission_cube_beetle_director.tscn` : encapsule le `BeetleDirector` et ses ancres de défense autour de l'Activator.
+- `main/mission_cube_interactives.tscn` : encapsule le coffre, les pickups, les caisses et les `BombDoor` de la mission cube.
+
+Leur racine conserve les mêmes noms (`BeetleDirector`, `Interactives`) afin de préserver les chemins existants et les tests.
+
+## Debug réseau / gameplay
+
+Le HUD expose un mode debug activable avec `F3` via [`ui/ui.gd`](/home/camillej/godotProjects/godot-multiplayer/ui/ui.gd).
+
+Ce mode doit rester purement observateur :
+
+- état du `MatchDirector`
+- cibles ennemies (abeilles / scarabées)
+- état et révision des inventaires
+- mesures de réplication utiles
+- événements récents de synchronisation
+
+Le nœud [`main/connection.gd`](/home/camillej/godotProjects/godot-multiplayer/main/connection.gd) sert aussi de bus local de debug via le groupe `connection_service` et l'historique `record_sync_event(...)`.
+
+Quand un nouvel objet persistant est ajouté, penser à :
+
+- exposer des getters de debug simples si l'état est utile à lire en `F3`
+- enregistrer un événement de sync sur les transitions importantes
+- conserver la logique gameplay autoritaire côté serveur
+
 ## Systèmes principaux
 
 ### Réseau
@@ -103,6 +130,22 @@ Grandes fonctions:
 - `report_enemy_killed()`: crédite score et progression
 - `report_objective_progress()`: avance les objectifs coop
 
+### Groupes gameplay stables
+
+Pour limiter les couplages aux `NodePath` fragiles dans `main/main.tscn`, préférer les groupes stables suivants :
+
+- `mission_cube_goal_zones` : zone objectif de la mission cube (`CubeActivator`)
+- `mission_cube_bomb_doors` : portes destructibles de la mission cube
+- `mission_cube_blockers` : caisses qui bloquent le passage du cube
+- `mission_cube_primary` : gros cube coop principal
+- `mission_cube_beetle_directors` : directeur scarabées de la mission cube
+- `mission_hub_chests` : coffre principal du hub
+- `mission_resource_pickups` : pickups de ressources visibles par les tests/scénarios
+- `enemy_directors` : groupe générique des directeurs d'ennemis
+- `enemy_instances` : groupe générique des ennemis gérés par un directeur
+
+Les scénarios UI et le debug doivent privilégier ces groupes aux recherches récursives par nom.
+
 ## Checklist Late Join
 
 Pour tout objet gameplay persistant visible par les joueurs, vérifier explicitement le cas "joueur qui rejoint après changement d'état".
@@ -117,10 +160,47 @@ Objets déjà couverts :
 - `BombDoor`
 - `WorldItem`
 - `InventoryContainer3D`
+- `Coin`
 - `BeeBot`
+- `PullableCube`
+- `Box`
+- `BeeDirector`
+- `BeetleDirector`
 - `MatchDirector`
+
+Remarques d'audit :
+- `CubeActivator` ne porte pas d'état visuel persistant indépendant ; il délègue l'état durable au `PullableCube` et au `MatchDirector`.
+- `Portal` ne conserve pas d'état de monde persistant visible entre joueurs ; son cooldown local n'a pas besoin d'une resynchronisation late join dédiée.
+- pour les directeurs d'ennemis, préférer des `NodePath` explicites (zone de défense, graines/anchors) à un scan implicite de la scène, afin de garder un comportement déterministe quand la map évolue.
 - `set_player_lives()`: point d'entrée unique pour modifier les vies
 - `get_snapshot_text()`: fabrique le texte utilisé par l'UI
+
+### Conventions directeurs / ennemis
+
+Contrat minimal désormais attendu pour les ennemis gérés par un directeur :
+
+- `set_director_active(active)`
+- `apply_director_config(config)`
+- `get_current_target_peer_id()`
+- `get_assigned_target_peer_id()`
+
+Contrat minimal désormais attendu pour les directeurs :
+
+- appartenance au groupe `enemy_directors`
+- push explicite de l'état courant aux late joiners
+- configuration explicite des graines/anchors quand la scène le permet
+
+L'objectif est de garder des flux homogènes entre abeilles et scarabées sans multiplier les variantes de debug ou de resynchronisation.
+
+### Réplication du coffre
+
+`InventoryContainer3D` conserve un snapshot complet comme source de vérité pour :
+
+- le late join
+- la récupération après trou de révision
+- le push sur `peer_connected`
+
+Pendant le jeu, le coffre diffuse maintenant de préférence des deltas de slots modifiés quand ils sont plus compacts qu'un snapshot complet. En cas de trou de révision ou de payload invalide, le client redemande automatiquement un snapshot complet au serveur.
 
 #### `main/fall_checker.gd`
 

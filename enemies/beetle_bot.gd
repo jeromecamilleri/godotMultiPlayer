@@ -5,17 +5,29 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 
 @export var coins_count := 5
 @export var stopping_distance := 0.0
-@export var move_speed := 3.0
+@export var move_speed := 2.2
 @export var attack_range := 1.4
 @export var attack_cooldown := 0.6
 @export var direct_chase_distance_threshold := 0.2
 @export var max_health := 3
 @export var bomb_damage_multiplier := 0.6
 @export var bullet_damage_multiplier := 0.8
-@export var charge_speed_multiplier := 2.2
-@export var charge_trigger_distance := 3.0
-@export var charge_duration := 0.45
-@export var charge_cooldown := 1.4
+@export var charge_speed_multiplier := 1.45
+@export var charge_trigger_distance := 2.4
+@export var charge_duration := 0.28
+@export var charge_cooldown := 1.8
+@export var close_stop_distance := 0.05
+@export var ground_probe_height := 0.9
+@export var ground_probe_depth := 8.0
+@export var ground_offset := 0.05
+@export var airborne_tolerance := 0.22
+@export var ground_snap_distance := 0.08
+@export var ground_return_speed := 8.5
+@export var fallback_detection_radius := 8.0
+@export var stuck_nudge_distance := 0.18
+@export var guard_chase_radius := 10.0
+@export var guard_return_radius := 12.5
+@export var return_home_stop_distance := 0.45
 
 @onready var _reaction_animation_player: AnimationPlayer = $ReactionLabel/AnimationPlayer
 @onready var _detection_area: Area3D = $PlayerDetectionArea
@@ -23,13 +35,17 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 @onready var _navigation_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _death_collision_shape: CollisionShape3D = $DeathCollisionShape
 @onready var _defeat_sound: AudioStreamPlayer3D = $DefeatSound
+@onready var _default_collision_layer: int = collision_layer
+@onready var _default_collision_mask: int = collision_mask
 
 @onready var _target: Node3D = null
 @onready var _alive: bool = true
 @onready var _removed: bool = false
 @onready var _remote_target_transform: Transform3D = global_transform
 @onready var _health: int = max_health
-@onready var _last_visual_position: Vector3 = global_position
+@onready var _home_position: Vector3 = global_position
+@onready var _guard_center: Vector3 = global_position
+@onready var _is_network_proxy: bool = false
 var _assigned_target_peer_id := -1
 var _last_attack_time_sec := -100.0
 var _charge_until_sec := -100.0
@@ -38,6 +54,7 @@ var _visual_state := "Idle"
 
 
 func _ready() -> void:
+	add_to_group("enemy_instances")
 	add_to_group("ground_enemies")
 	add_to_group("beetles")
 	can_sleep = false
@@ -49,11 +66,17 @@ func _ready() -> void:
 		push_error("BeetlebotSkin missing in beetle_bot.tscn")
 		return
 	_health = max_health
+	_home_position = global_position
+	_guard_center = global_position
 	_set_visual_state("Idle")
 	if is_multiplayer_authority():
+		freeze = false
 		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
 	else:
+		_is_network_proxy = true
+		freeze = true
+		linear_velocity = Vector3.ZERO
 		_request_alive_state_when_connected()
 
 
@@ -61,42 +84,53 @@ func _physics_process(delta: float) -> void:
 	if _removed:
 		return
 	if not is_multiplayer_authority():
-		global_transform = global_transform.interpolate_with(_remote_target_transform, 0.35)
-		_update_remote_visual_animation()
+		linear_velocity = Vector3.ZERO
+		var remote_origin: Vector3 = _remote_target_transform.origin
+		if global_position.distance_to(remote_origin) > 4.0 or absf(global_position.y - remote_origin.y) > 1.5:
+			global_transform = _remote_target_transform
+		else:
+			global_transform = global_transform.interpolate_with(_remote_target_transform, 0.35)
 		return
 	if not _alive:
 		return
 
 	_refresh_assigned_target()
+	if _target == null or not is_instance_valid(_target):
+		_refresh_target_from_detection_area()
+	if _target != null and not _should_keep_target(_target):
+		_target = null
 
 	if _target == null or not is_instance_valid(_target):
-		sleeping = false
-		linear_velocity = Vector3.ZERO
-		_set_visual_state("Idle")
+		_return_to_guard_position(delta)
 		return
 
 	sleeping = false
+	var position_before: Vector3 = global_position
 	var target_look_position := _target.global_position
 	target_look_position.y = global_position.y
 	var to_target := _target.global_position - global_position
 	to_target.y = 0.0
+	var chase_target_position: Vector3 = _get_chase_target_position(_target.global_position)
+	var to_chase_target := chase_target_position - global_position
+	to_chase_target.y = 0.0
 	if to_target.length() > 0.01:
 		look_at(target_look_position)
 
-	_navigation_agent.target_position = _target.global_position
+	_navigation_agent.target_position = chase_target_position
 	var next_location := _navigation_agent.get_next_path_position()
 	var direction := next_location - global_position
 	direction.y = 0.0
 	var navigation_has_useful_path := not _navigation_agent.is_navigation_finished() and direction.length() > direct_chase_distance_threshold
-	if not navigation_has_useful_path and to_target.length() > stopping_distance:
-		direction = to_target
+	if not navigation_has_useful_path and to_chase_target.length() > stopping_distance:
+		direction = to_chase_target
 	var now_sec := Time.get_ticks_msec() / 1000.0
 	var is_charge_ready := now_sec - _last_charge_time_sec >= charge_cooldown
 	if to_target.length() <= charge_trigger_distance and is_charge_ready:
 		_charge_until_sec = now_sec + charge_duration
 		_last_charge_time_sec = now_sec
 
-	if _navigation_agent.is_target_reached() or direction.length() <= stopping_distance:
+	var stop_threshold: float = maxf(close_stop_distance, stopping_distance)
+	if to_target.length() <= stop_threshold or direction.length() <= 0.001:
 		linear_velocity = Vector3.ZERO
 		_set_visual_state("Idle")
 	else:
@@ -106,8 +140,10 @@ func _physics_process(delta: float) -> void:
 		direction = direction.normalized()
 		linear_velocity.x = direction.x * current_speed
 		linear_velocity.z = direction.z * current_speed
-		linear_velocity.y = 0.0
 		_set_visual_state("Walk")
+
+	_apply_ground_recovery(delta)
+	_try_unstuck_toward_direction(position_before, direction, to_target, stop_threshold)
 
 	if to_target.length() <= attack_range:
 		_try_attack_target(_target)
@@ -202,7 +238,15 @@ func _compute_damage_amount(force: Vector3) -> int:
 
 
 func _set_visual_state(state_name: String) -> void:
-	if _beetle_skin == null or _visual_state == state_name:
+	if _visual_state == state_name:
+		return
+	_apply_visual_state_local(state_name)
+	if is_multiplayer_authority():
+		_sync_visual_state.rpc(state_name)
+
+
+func _apply_visual_state_local(state_name: String) -> void:
+	if _beetle_skin == null:
 		return
 	_visual_state = state_name
 	match state_name:
@@ -216,15 +260,54 @@ func _set_visual_state(state_name: String) -> void:
 			_beetle_skin.power_off()
 
 
-func _update_remote_visual_animation() -> void:
-	if not _alive or _removed:
+@rpc("authority", "call_remote", "reliable")
+func _sync_visual_state(state_name: String) -> void:
+	_apply_visual_state_local(state_name)
+
+
+func _apply_ground_recovery(delta: float) -> void:
+	var ground_y: float = _find_ground_y_below()
+	if is_inf(ground_y):
+		linear_velocity.y = minf(linear_velocity.y, -ground_return_speed)
 		return
-	var moved_distance := global_position.distance_to(_last_visual_position)
-	_last_visual_position = global_position
-	if moved_distance > 0.01:
-		_set_visual_state("Walk")
-	else:
-		_set_visual_state("Idle")
+	var desired_y: float = ground_y + ground_offset
+	var vertical_gap: float = global_position.y - desired_y
+	if vertical_gap > airborne_tolerance:
+		var recovery_speed := ground_return_speed + minf(6.0, vertical_gap * 5.0)
+		linear_velocity.y = minf(linear_velocity.y, -recovery_speed)
+		return
+	if absf(vertical_gap) <= ground_snap_distance:
+		global_position.y = desired_y
+		linear_velocity.y = 0.0
+		return
+	if vertical_gap < -ground_snap_distance:
+		global_position.y = lerpf(global_position.y, desired_y, minf(1.0, delta * 10.0))
+		linear_velocity.y = 0.0
+		return
+	linear_velocity.y = 0.0
+
+
+func _find_ground_y_below() -> float:
+	if get_world_3d() == null:
+		return INF
+	var from: Vector3 = global_position + Vector3.UP * ground_probe_height
+	var to: Vector3 = global_position + Vector3.DOWN * ground_probe_depth
+	var exclude: Array[Variant] = [self]
+	for _attempt in range(8):
+		var query := PhysicsRayQueryParameters3D.create(from, to)
+		query.exclude = exclude
+		query.collide_with_areas = false
+		query.collide_with_bodies = true
+		var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+		if hit.is_empty():
+			return INF
+		var collider: Variant = hit.get("collider")
+		if collider is RigidBody3D or (collider is Node and ((collider as Node).is_in_group("players") or (collider as Node).is_in_group("ground_enemies"))):
+			exclude.append(collider)
+			continue
+		var hit_position: Vector3 = hit.get("position", Vector3.ZERO)
+		return hit_position.y
+	return INF
 
 
 func _report_score_for_kill(attacker_peer_id: int) -> void:
@@ -290,6 +373,24 @@ func set_director_active(active: bool) -> void:
 		return
 	visible = active
 	sleeping = not active
+	if active:
+		collision_layer = _default_collision_layer
+		collision_mask = _default_collision_mask
+		_detection_area.monitoring = true
+		_detection_area.monitorable = true
+		_home_position = global_position
+		if _guard_center == Vector3.ZERO:
+			_guard_center = global_position
+		if not _is_network_proxy:
+			freeze = false
+	else:
+		collision_layer = 0
+		collision_mask = 0
+		_detection_area.monitoring = false
+		_detection_area.monitorable = false
+		linear_velocity = Vector3.ZERO
+		if _is_network_proxy:
+			freeze = true
 	if not active:
 		_target = null
 		_set_visual_state("Idle")
@@ -301,6 +402,27 @@ func set_assigned_target_peer_id(peer_id: int) -> void:
 		_target = null
 		return
 	_refresh_assigned_target()
+
+
+func set_guard_center(world_position: Vector3) -> void:
+	_guard_center = world_position
+
+
+func apply_director_config(config: Dictionary) -> void:
+	if config.has("move_speed"):
+		move_speed = float(config["move_speed"])
+	if config.has("charge_speed_multiplier"):
+		charge_speed_multiplier = float(config["charge_speed_multiplier"])
+	if config.has("guard_chase_radius"):
+		guard_chase_radius = float(config["guard_chase_radius"])
+	if config.has("guard_return_radius"):
+		guard_return_radius = float(config["guard_return_radius"])
+	if config.has("guard_center"):
+		set_guard_center(config["guard_center"])
+
+
+func get_guard_center() -> Vector3:
+	return _guard_center
 
 
 func get_assigned_target_peer_id() -> int:
@@ -330,13 +452,176 @@ func _refresh_assigned_target() -> void:
 		_reaction_animation_player.play("found_player")
 
 
+func _refresh_target_from_detection_area() -> void:
+	var closest_target: Node3D = null
+	var closest_distance_sq: float = INF
+	for body in _detection_area.get_overlapping_bodies():
+		if not (body is Node3D):
+			continue
+		var body_3d: Node3D = body as Node3D
+		if not _is_valid_player_target(body_3d):
+			continue
+		var distance_sq: float = global_position.distance_squared_to(body_3d.global_position)
+		if distance_sq < closest_distance_sq:
+			closest_distance_sq = distance_sq
+			closest_target = body_3d
+	if closest_target == null:
+		closest_target = _find_nearest_player_by_distance()
+	if closest_target == null:
+		return
+	if _target == closest_target:
+		return
+	_target = closest_target
+	if _reaction_animation_player != null:
+		_reaction_animation_player.play("found_player")
+
+
 func _find_player_by_peer(peer_id: int) -> Node3D:
 	for node in get_tree().get_nodes_in_group("players"):
 		if not (node is Node3D):
 			continue
 		if node.get_multiplayer_authority() == peer_id:
-			return node as Node3D
+			var player: Node3D = node as Node3D
+			if _is_valid_player_target(player):
+				return player
+			return null
 	return null
+
+
+func _is_valid_player_target(candidate: Node3D) -> bool:
+	if not is_instance_valid(candidate):
+		return false
+	if candidate.has_method("is_dead") and bool(candidate.call("is_dead")):
+		return false
+	if not _is_within_guard_radius(candidate.global_position, guard_chase_radius):
+		return false
+	return true
+
+
+func _find_nearest_player_by_distance() -> Node3D:
+	var radius: float = _get_detection_radius()
+	var max_distance_sq: float = radius * radius
+	var closest_target: Node3D = null
+	var closest_distance_sq: float = INF
+	for node in get_tree().get_nodes_in_group("players"):
+		if not (node is Node3D):
+			continue
+		var candidate: Node3D = node as Node3D
+		if not _is_valid_player_target(candidate):
+			continue
+		var distance_sq: float = global_position.distance_squared_to(candidate.global_position)
+		if distance_sq > max_distance_sq:
+			continue
+		if distance_sq < closest_distance_sq:
+			closest_distance_sq = distance_sq
+			closest_target = candidate
+	return closest_target
+
+
+func _get_detection_radius() -> float:
+	var collision_shape: CollisionShape3D = _detection_area.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if collision_shape != null and collision_shape.shape is SphereShape3D:
+		return minf(maxf(0.1, (collision_shape.shape as SphereShape3D).radius), fallback_detection_radius)
+	return maxf(0.1, fallback_detection_radius)
+
+
+func _should_keep_target(target: Node3D) -> bool:
+	if not _is_valid_player_target(target):
+		return false
+	if not _is_within_guard_radius(target.global_position, guard_return_radius):
+		return false
+	if not _is_within_guard_radius(global_position, guard_return_radius * 1.15):
+		return false
+	return true
+
+
+func _is_within_guard_radius(world_position: Vector3, radius: float) -> bool:
+	var horizontal_offset := world_position - _guard_center
+	horizontal_offset.y = 0.0
+	return horizontal_offset.length() <= maxf(0.1, radius)
+
+
+func _return_to_guard_position(delta: float) -> void:
+	sleeping = false
+	var to_home := _home_position - global_position
+	to_home.y = 0.0
+	var distance_to_home: float = to_home.length()
+	if distance_to_home <= return_home_stop_distance:
+		linear_velocity.x = 0.0
+		linear_velocity.z = 0.0
+		_apply_ground_recovery(delta)
+		_set_visual_state("Idle")
+		_sync_beetle_transform.rpc(global_transform)
+		return
+	var direction := to_home.normalized()
+	var look_target := _home_position
+	look_target.y = global_position.y
+	look_at(look_target)
+	linear_velocity.x = direction.x * move_speed
+	linear_velocity.z = direction.z * move_speed
+	_apply_ground_recovery(delta)
+	_set_visual_state("Walk")
+	_sync_beetle_transform.rpc(global_transform)
+
+
+func _try_unstuck_toward_direction(position_before: Vector3, direction: Vector3, to_target: Vector3, stop_threshold: float) -> void:
+	if direction.length() <= 0.001 or to_target.length() <= stop_threshold:
+		return
+	if to_target.length() <= maxf(stop_threshold, attack_range + 0.25):
+		return
+	var horizontal_delta := global_position - position_before
+	horizontal_delta.y = 0.0
+	if horizontal_delta.length() > 0.01:
+		return
+	var nudge_direction := direction.normalized()
+	global_position += Vector3(nudge_direction.x, 0.0, nudge_direction.z) * stuck_nudge_distance
+
+
+func _get_chase_target_position(target_position: Vector3) -> Vector3:
+	var waypoint: Vector3 = _find_open_door_waypoint(target_position)
+	return waypoint if not waypoint.is_equal_approx(Vector3.INF) else target_position
+
+
+func _find_open_door_waypoint(target_position: Vector3) -> Vector3:
+	var open_doors: Array[Node3D] = []
+	var min_x: float = INF
+	var max_x: float = -INF
+	var min_z: float = INF
+	var max_z: float = -INF
+	for candidate in get_tree().get_nodes_in_group("bomb_reactives"):
+		if not (candidate is Node3D):
+			continue
+		if not candidate.has_method("is_open") or not bool(candidate.call("is_open")):
+			continue
+		var door: Node3D = candidate as Node3D
+		open_doors.append(door)
+		min_x = minf(min_x, door.global_position.x)
+		max_x = maxf(max_x, door.global_position.x)
+		min_z = minf(min_z, door.global_position.z)
+		max_z = maxf(max_z, door.global_position.z)
+	if open_doors.is_empty():
+		return Vector3.INF
+	var best_door: Node3D = open_doors[0]
+	var best_distance_to_target: float = best_door.global_position.distance_squared_to(target_position)
+	for index in range(1, open_doors.size()):
+		var candidate_door: Node3D = open_doors[index]
+		var candidate_distance: float = candidate_door.global_position.distance_squared_to(target_position)
+		if candidate_distance >= best_distance_to_target:
+			continue
+		best_door = candidate_door
+		best_distance_to_target = candidate_distance
+	var span_x: float = max_x - min_x
+	var span_z: float = max_z - min_z
+	var use_z_axis: bool = span_x >= span_z
+	var beetle_axis_delta: float = global_position.z - best_door.global_position.z if use_z_axis else global_position.x - best_door.global_position.x
+	var target_axis_delta: float = target_position.z - best_door.global_position.z if use_z_axis else target_position.x - best_door.global_position.x
+	if absf(beetle_axis_delta) < 0.9 or absf(target_axis_delta) < 0.9:
+		return Vector3.INF
+	if signf(beetle_axis_delta) == signf(target_axis_delta):
+		return Vector3.INF
+	var waypoint := best_door.global_position
+	waypoint.y = global_position.y
+	return waypoint
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")
@@ -387,3 +672,4 @@ func _on_peer_connected(peer_id: int) -> void:
 	if not is_multiplayer_authority():
 		return
 	_sync_alive_state.rpc_id(peer_id, _alive, _removed)
+	_sync_visual_state.rpc_id(peer_id, _visual_state)

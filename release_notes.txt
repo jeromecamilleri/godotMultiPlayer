@@ -1,0 +1,50 @@
+2026-04-05
+- Scarabées: la scène principale ne mélange plus un scarabée seed hors directeur avec des scarabées dynamiques ; le `BeetleDirector` est désormais l'unique source des scarabées actifs.
+- Scarabées: ajout d'une troisième ancre autour de l'Activator pour éviter les spawns improvisés en anneau et rendre la défense de zone plus stable à 2-4 joueurs.
+- Scarabées: le `BeetleDirector` s'appuie maintenant sur une zone de défense explicite (`Activator`) et sur des graines explicites, au lieu d'un scan global implicite de la scène.
+- Scarabées: les ancres dynamiques ont été replacées autour de l'Activator pour éviter les apparitions lointaines incohérentes et recentrer la défense sur la zone à protéger.
+- Tests: ajout de régressions GUT vérifiant la résolution de la zone de défense et des graines explicites du `BeetleDirector`.
+- Scarabée: ralentissement global de la poursuite et de la charge, avec un comportement recentré sur la défense de la zone Activator plutôt qu'une poursuite sur toute la map.
+- Scarabée: ajout d'un leash de garde autour de la position d'origine, avec retour automatique vers la zone si la cible ou le scarabée s'éloigne trop.
+- Directeur scarabées: progression de vitesse par joueur adoucie pour garder une difficulté défensive plutôt qu'hyper agressive.
+- Tests: ajout d'une régression GUT vérifiant qu'un scarabée abandonne une cible trop lointaine et revient vers sa zone de garde.
+- Joueur: freinage horizontal renforcé sans input côté autorité et interpolation distante pour supprimer le glissement résiduel après relâchement des touches.
+- Joueur: garde supplémentaire dans `player/components/player_movement.gd` pour éviter les calculs de pente avec une normale de sol nulle.
+- Scarabée: synchro de l'état visuel `Idle/Walk/Attack/PowerOff` depuis l'autorité pour éviter les pattes figées côté clients pendant la poussée.
+- Scarabée: poursuite améliorée via waypoint sur `BombDoor` ouverts lorsque la cible est de l'autre côté du mur, plus un léger `unstuck` serveur quand la charge est bloquée par la géométrie.
+- Tests UI: ajout du scénario `test/UI/test_beetle_door_charge_ui.sh` qui ouvre réellement le mur puis vérifie qu'un scarabée ciblant `client_2` se rapproche effectivement de lui.
+- Tests GUT: ajout de `test/test_player_net_sync.gd` pour verrouiller le freinage réseau d'un joueur sans direction répliquée.
+- Tests UI scarabées: stabilisation du scénario `beetle_targeting` pour attendre le vrai quorum 4 participants / 3 joueurs actifs avant de snapshotter la répartition des cibles.
+- Scarabée: ajout d'un retour rapide au sol côté autorité dans `enemies/beetle_bot.gd`.
+- Scarabée: le raycast de sol ignore désormais les corps dynamiques et les autres entités vivantes pour éviter qu'un scarabée "surfe" sur un cube ou un joueur.
+- Tests: ajout d'un test GUT vérifiant qu'un scarabée soulevé redescend bien vers le sol dans `test/test_beetle_bot.gd`.
+- Audit late join: `PullableCube` pousse maintenant explicitement son état courant aux nouveaux peers et accepte une demande de resynchronisation client dans `main/rigid_body_3d.gd`.
+- Audit late join: `InventoryContainer3D` complète maintenant sa stratégie snapshot par un push serveur sur `peer_connected` en plus de la demande client dans `inventory/inventory_container.gd`.
+- Tests: ajout d'un test GUT de resynchronisation late join du cube dans `test/test_pull_cube.gd`.
+- Mission cube: suppression du double comptage de l'objectif entre `CubeActivator` et `PullableCube` dans `main/cube_activator.gd`.
+- UI debug: ajout d'un overlay minimal activable avec `F3` pour afficher état du match, réseau, résumé inventaire, cibles ennemies et mesures de sync.
+- Scarabée: reprise robuste de cible via balayage de la zone de détection et fallback par distance sur le groupe `players`, pour éviter un blocage après ouverture du mur.
+- Scarabée: locomotion rapprochée plus fluide avec distance d'arrêt réduite et animation de marche conservée au contact.
+- Tests: ajout de régressions scarabée sur acquisition de cible sans signal et maintien de l'état `Walk` en poussée proche.
+- Scène principale: suppression d'une instance parasite de `GroundEnemy` à la racine de `main/main.tscn`, qui créait un scarabée "fantôme" physiquement actif hors du flux normal du directeur.
+- Scarabée: `set_director_active(false)` désactive maintenant aussi collisions et détection pour qu'un scarabée inactif ne puisse plus pousser le joueur invisiblement.
+- Tests: ajout d'une régression GUT vérifiant qu'aucun scarabée n'est instancié à la racine de `main/main.tscn`.
+- Tests UI scarabées: le scénario `beetle_door_charge` attend désormais aussi le nombre attendu de scarabées avant de conclure, pour éviter un faux négatif pendant la montée en charge des clients.
+- Tests UI scarabées: le scénario `beetle_targeting` attend maintenant aussi la redistribution effective des cibles avant de snapshotter, pour éviter un état intermédiaire avec des cibles encore dupliquées.
+- Bombes: le spawn de bombe utilise désormais explicitement la scène courante comme parent dans `player/components/player_interactions.gd`, ce qui évite un échec RPC dans les scénarios UI scarabées.
+
+2026-04-09
+- Scène principale: formalisation de groupes gameplay stables dans `main/main.tscn` (`mission_cube_goal_zones`, `mission_cube_bomb_doors`, `mission_cube_blockers`, `mission_cube_primary`, `mission_hub_chests`, `enemy_directors`, etc.) pour découpler les scénarios/tests des noms de nœuds fragiles.
+- Tests UI: `player/components/player_ui_test_driver.gd` utilise désormais ces groupes stables pour retrouver coffre, portes, Activator, cube principal et directeur scarabées.
+- Ennemis: unification légère du contrat `director/enemy` pour abeilles et scarabées avec groupes runtime communs (`enemy_directors`, `enemy_instances`) et méthodes homogènes (`apply_director_config`, `set_director_active`, getters de cible).
+- Abeilles: `BeeDirector` supporte maintenant des graines explicites via `managed_seed_bee_paths`, alignées sur le style déjà utilisé côté scarabées.
+- Coffre: `InventoryContainer3D` diffuse maintenant des deltas de slots modifiés quand ils sont plus compacts qu'un snapshot complet, tout en conservant les snapshots complets pour le late join et la récupération.
+- Tests: ajout de `test/test_enemy_director_conventions.gd` et `test/test_inventory_container.gd` pour verrouiller respectivement le contrat directeurs/ennemis et la logique de delta du coffre.
+- Modularisation: extraction de `main/mission_cube_beetle_director.tscn` et `main/mission_cube_interactives.tscn` pour alléger `main/main.tscn` sans changer les chemins racine utiles (`BeetleDirector`, `Interactives`).
+- Debug réseau/gameplay: `Connection` conserve maintenant un historique borné des événements de synchronisation (`record_sync_event`) consulté par le panneau `F3`.
+- UI debug: le mode `F3` affiche désormais plus de détail sur le `MatchDirector` (vies, scores, morts), le mode de réplication du coffre, l'état du coin de résurrection et les événements récents de sync.
+- Coin: le coin de résurrection suit maintenant la checklist late join au lieu d'être `queue_free` à la consommation ; il reste caché/désactivé et pousse explicitement son état courant aux nouveaux peers.
+- Coin: ajout d'une synchronisation de cible/consommation pour éviter qu'un coin utilisé ou déplacé réapparaisse chez un client après une revive.
+- Observabilité: `BombDoor`, `WorldItem`, `InventoryContainer3D`, `MatchDirector` et `Coin` enregistrent désormais des événements de sync utiles au debug multi.
+- Tests: `test/integration/test_coin_revive.gd` couvre maintenant la persistance du coin consommé, la réapplication d'état late join et la mémorisation de la cible de revive.
+- Tests UI: `test/test_ui_escape.gd` vérifie aussi que l'overlay `F3` expose bien les sections debug et les événements récents de synchronisation.

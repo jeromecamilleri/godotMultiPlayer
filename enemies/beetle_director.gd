@@ -6,10 +6,14 @@ const BEETLE_SCENE := preload("res://enemies/beetle_bot.tscn")
 @export var min_beetles := 1
 @export var beetles_participant_offset := -1
 @export var extra_spawn_radius := 5.0
-@export var base_move_speed := 3.0
-@export var move_speed_step_per_extra_player := 0.25
-@export var base_charge_speed_multiplier := 2.2
-@export var charge_speed_step_per_extra_player := 0.15
+@export var defense_zone_path: NodePath
+@export var managed_seed_beetle_paths: Array[NodePath] = []
+@export var base_move_speed := 2.2
+@export var move_speed_step_per_extra_player := 0.1
+@export var base_charge_speed_multiplier := 1.45
+@export var charge_speed_step_per_extra_player := 0.05
+@export var guard_chase_radius := 9.5
+@export var guard_return_radius := 12.0
 @export var target_rebalance_interval_sec := 0.5
 
 var _spawn_anchors: Array[Transform3D] = []
@@ -22,6 +26,8 @@ var _target_rebalance_timer: Timer
 
 
 func _ready() -> void:
+	add_to_group("enemy_directors")
+	add_to_group("beetle_directors")
 	_capture_spawn_anchors()
 	if multiplayer.is_server():
 		if multiplayer.has_multiplayer_peer() and not multiplayer.peer_connected.is_connected(_on_peer_connected):
@@ -52,18 +58,16 @@ func _capture_spawn_anchors() -> void:
 
 func _capture_seed_beetles_from_scene() -> void:
 	_seed_beetle_paths.clear()
-	var scene_root: Node = get_tree().current_scene
+	var scene_root: Node = _get_scene_root()
 	if scene_root == null:
 		return
-	for candidate in get_tree().get_nodes_in_group("beetles"):
+	for seed_path in managed_seed_beetle_paths:
+		if seed_path.is_empty():
+			continue
+		var candidate := _resolve_seed_node(seed_path)
 		if not (candidate is Node3D):
 			continue
-		if self.is_ancestor_of(candidate):
-			continue
-		_seed_beetle_paths.append(scene_root.get_path_to(candidate))
-	_seed_beetle_paths.sort_custom(func(a: NodePath, b: NodePath) -> bool:
-		return String(a) < String(b)
-	)
+		_seed_beetle_paths.append(seed_path)
 
 
 func _find_player_spawner() -> Node:
@@ -158,6 +162,9 @@ func _build_beetle_config(count: int) -> Dictionary:
 	return {
 		"move_speed": base_move_speed + (extra * move_speed_step_per_extra_player),
 		"charge_speed_multiplier": base_charge_speed_multiplier + (extra * charge_speed_step_per_extra_player),
+		"guard_center": _resolve_guard_center(),
+		"guard_chase_radius": guard_chase_radius,
+		"guard_return_radius": guard_return_radius,
 	}
 
 
@@ -223,10 +230,10 @@ func _on_target_rebalance_timeout() -> void:
 
 @rpc("authority", "call_local", "reliable")
 func _rpc_set_seed_beetle_state(seed_path: NodePath, active: bool, config: Dictionary) -> void:
-	var scene_root: Node = get_tree().current_scene
+	var scene_root: Node = _get_scene_root()
 	if scene_root == null:
 		return
-	var beetle := scene_root.get_node_or_null(seed_path)
+	var beetle := _resolve_seed_node(seed_path)
 	if beetle == null:
 		return
 	if beetle.has_method("set_director_active"):
@@ -236,10 +243,10 @@ func _rpc_set_seed_beetle_state(seed_path: NodePath, active: bool, config: Dicti
 
 @rpc("authority", "call_local", "reliable")
 func _rpc_assign_seed_beetle_target(seed_path: NodePath, assigned_peer_id: int) -> void:
-	var scene_root: Node = get_tree().current_scene
+	var scene_root: Node = _get_scene_root()
 	if scene_root == null:
 		return
-	var beetle := scene_root.get_node_or_null(seed_path)
+	var beetle := _resolve_seed_node(seed_path)
 	if beetle == null:
 		return
 	if beetle.has_method("set_assigned_target_peer_id"):
@@ -287,10 +294,19 @@ func _rpc_assign_dynamic_beetle_target(name: String, assigned_peer_id: int) -> v
 func _apply_beetle_config(beetle: Node, config: Dictionary) -> void:
 	if not is_instance_valid(beetle):
 		return
+	if beetle.has_method("apply_director_config"):
+		beetle.call("apply_director_config", config)
+		return
 	if config.has("move_speed"):
 		beetle.set("move_speed", config["move_speed"])
 	if config.has("charge_speed_multiplier"):
 		beetle.set("charge_speed_multiplier", config["charge_speed_multiplier"])
+	if config.has("guard_chase_radius"):
+		beetle.set("guard_chase_radius", config["guard_chase_radius"])
+	if config.has("guard_return_radius"):
+		beetle.set("guard_return_radius", config["guard_return_radius"])
+	if config.has("guard_center") and beetle.has_method("set_guard_center"):
+		beetle.call("set_guard_center", config["guard_center"])
 
 
 func _on_peer_connected(peer_id: int) -> void:
@@ -372,3 +388,36 @@ func _on_client_resync_timeout() -> void:
 
 func _on_player_count_changed(_id: int, _player = null) -> void:
 	_refresh_beetle_population()
+
+
+func _resolve_guard_center() -> Vector3:
+	var local_target := get_node_or_null(defense_zone_path)
+	if local_target is Node3D:
+		return (local_target as Node3D).global_position
+	var scene_root: Node = _get_scene_root()
+	if scene_root != null:
+		var scene_target := scene_root.get_node_or_null(defense_zone_path)
+		if scene_target is Node3D:
+			return (scene_target as Node3D).global_position
+	if not _spawn_anchors.is_empty():
+		return _spawn_anchors[0].origin
+	return global_position
+
+
+func _get_scene_root() -> Node:
+	if get_tree() == null:
+		return null
+	if get_tree().current_scene != null:
+		return get_tree().current_scene
+	return get_tree().root
+
+
+func _resolve_seed_node(seed_path: NodePath) -> Node:
+	var scene_root: Node = _get_scene_root()
+	if scene_root != null:
+		var candidate := scene_root.get_node_or_null(seed_path)
+		if candidate != null:
+			return candidate
+	if get_tree() != null and get_tree().root != null:
+		return get_tree().root.get_node_or_null(seed_path)
+	return null
