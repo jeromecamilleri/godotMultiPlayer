@@ -1,4 +1,4 @@
-extends RigidBody3D
+extends "res://enemies/enemy_instance_base.gd"
 
 const COIN_SCENE := preload("res://player/coin/coin.tscn")
 const BULLET_SCENE := preload("res://player/bullet.tscn")
@@ -27,12 +27,10 @@ const PUFF_SCENE := preload("smoke_puff/smoke_puff.tscn")
 @onready var _patrol_angle := 0.0
 @onready var _remote_target_transform: Transform3D = global_transform
 @onready var _director_active: bool = true
-var _assigned_target_peer_id := -1
 
 
 func _ready() -> void:
-	add_to_group("enemy_instances")
-	add_to_group("bee_bots")
+	_register_enemy_groups(PackedStringArray(["bee_bots"]))
 	_detection_area.monitoring = true
 	_detection_area.monitorable = true
 	_patrol_center = global_position
@@ -129,6 +127,7 @@ func _apply_damage(impact_point: Vector3, force: Vector3, attacker_peer_id: int 
 
 
 func set_director_active(active: bool) -> void:
+	_bump_state_revision()
 	_director_active = active
 	if _removed:
 		visible = false
@@ -141,14 +140,11 @@ func set_director_active(active: bool) -> void:
 
 
 func apply_director_config(bee_config: Dictionary) -> void:
+	_bump_state_revision()
 	if bee_config.has("shoot_timer"):
 		shoot_timer = float(bee_config["shoot_timer"])
 	if bee_config.has("bullet_speed"):
 		bullet_speed = float(bee_config["bullet_speed"])
-
-
-func set_assigned_target_peer_id(peer_id: int) -> void:
-	_assigned_target_peer_id = peer_id
 
 
 func get_assigned_target_peer_id() -> int:
@@ -174,6 +170,7 @@ func _get_match_director_or_null() -> Node:
 func _finalize_death() -> void:
 	if _removed:
 		return
+	_bump_state_revision()
 	# Keep node in scene as a replicated "dead state" for late-join consistency.
 	_removed = true
 	visible = false
@@ -300,6 +297,27 @@ func get_current_target_peer_id() -> int:
 	if not is_instance_valid(_target):
 		return -1
 	return _target.get_multiplayer_authority()
+
+
+func _request_current_state_from_server_impl() -> void:
+	_request_alive_state_when_connected()
+
+
+func _push_current_state_to_peer_impl(peer_id: int) -> void:
+	if peer_id <= 0 or not is_multiplayer_authority():
+		return
+	_sync_alive_state.rpc_id(peer_id, _alive, _removed)
+	_sync_bee_transform.rpc_id(peer_id, global_transform)
+
+
+func _get_debug_sync_summary_impl() -> String:
+	return "abeille=%s alive=%s active=%s cible=J%s rev=%d" % [
+		String(name),
+		str(_alive and not _removed),
+		str(_director_active),
+		"-" if get_current_target_peer_id() <= 0 else str(get_current_target_peer_id()),
+		_state_revision,
+	]
 
 
 func _is_player_body(body: Node) -> bool:

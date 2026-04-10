@@ -24,6 +24,7 @@ var _last_sync_mode := "snapshot"
 
 func _ready() -> void:
 	add_to_group("inventory_containers")
+	add_to_group("replicated_persistent_objects")
 	if inventory == null:
 		inventory = InventoryComponentScript.new()
 		inventory.name = "Inventory"
@@ -217,6 +218,27 @@ func get_snapshot_revision() -> int:
 
 func get_last_sync_mode() -> String:
 	return _last_sync_mode
+
+
+func request_current_state_from_server() -> void:
+	_request_snapshot_when_connected()
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	_push_current_snapshot_to_peer(peer_id)
+
+
+func get_state_revision() -> int:
+	return _snapshot_revision
+
+
+func get_debug_sync_summary() -> String:
+	return "coffre=%s rev=%d mode=%s rep=%s" % [
+		inventory_name,
+		_snapshot_revision,
+		_last_sync_mode,
+		"-" if _last_snapshot_replication_delay_ms < 0 else "%d ms" % _last_snapshot_replication_delay_ms,
+	]
 
 
 func _should_use_delta_replication(force: bool, delta_payload: Dictionary, delta_json: String, snapshot_json: String) -> bool:

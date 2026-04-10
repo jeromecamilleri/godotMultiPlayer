@@ -17,6 +17,8 @@ func test_enemy_instances_expose_common_director_contract() -> void:
 
 	assert_true(bee.is_in_group("enemy_instances"), "Une abeille doit exposer le groupe générique des ennemis gérés.")
 	assert_true(beetle.is_in_group("enemy_instances"), "Un scarabée doit exposer le groupe générique des ennemis gérés.")
+	assert_true(bee.is_in_group("replicated_persistent_objects"), "Une abeille doit être visible comme objet persistant répliqué.")
+	assert_true(beetle.is_in_group("replicated_persistent_objects"), "Un scarabée doit être visible comme objet persistant répliqué.")
 	assert_true(bee.has_method("set_director_active"), "Une abeille doit exposer set_director_active.")
 	assert_true(beetle.has_method("set_director_active"), "Un scarabée doit exposer set_director_active.")
 	assert_true(bee.has_method("apply_director_config"), "Une abeille doit exposer apply_director_config.")
@@ -25,6 +27,14 @@ func test_enemy_instances_expose_common_director_contract() -> void:
 	assert_true(beetle.has_method("get_current_target_peer_id"), "Un scarabée doit exposer get_current_target_peer_id.")
 	assert_true(bee.has_method("get_assigned_target_peer_id"), "Une abeille doit exposer get_assigned_target_peer_id.")
 	assert_true(beetle.has_method("get_assigned_target_peer_id"), "Un scarabée doit exposer get_assigned_target_peer_id.")
+	assert_true(bee.has_method("request_current_state_from_server"), "Une abeille doit exposer request_current_state_from_server.")
+	assert_true(beetle.has_method("request_current_state_from_server"), "Un scarabée doit exposer request_current_state_from_server.")
+	assert_true(bee.has_method("push_current_state_to_peer"), "Une abeille doit exposer push_current_state_to_peer.")
+	assert_true(beetle.has_method("push_current_state_to_peer"), "Un scarabée doit exposer push_current_state_to_peer.")
+	assert_true(bee.has_method("get_state_revision"), "Une abeille doit exposer get_state_revision.")
+	assert_true(beetle.has_method("get_state_revision"), "Un scarabée doit exposer get_state_revision.")
+	assert_true(bee.has_method("get_debug_sync_summary"), "Une abeille doit exposer get_debug_sync_summary.")
+	assert_true(beetle.has_method("get_debug_sync_summary"), "Un scarabée doit exposer get_debug_sync_summary.")
 
 
 func test_enemy_directors_expose_common_groups() -> void:
@@ -38,5 +48,15 @@ func test_enemy_directors_expose_common_groups() -> void:
 
 	assert_true(bee_director.is_in_group("enemy_directors"), "Le directeur d'abeilles doit exposer le groupe générique enemy_directors.")
 	assert_true(beetle_director.is_in_group("enemy_directors"), "Le directeur de scarabées doit exposer le groupe générique enemy_directors.")
+	assert_true(bee_director.is_in_group("replicated_persistent_objects"), "Le directeur d'abeilles doit être visible comme objet persistant répliqué.")
+	assert_true(beetle_director.is_in_group("replicated_persistent_objects"), "Le directeur de scarabées doit être visible comme objet persistant répliqué.")
 	assert_true(bee_director.is_in_group("bee_directors"), "Le directeur d'abeilles doit exposer son groupe spécifique.")
 	assert_true(beetle_director.is_in_group("beetle_directors"), "Le directeur de scarabées doit exposer son groupe spécifique.")
+	assert_true(bee_director.has_method("request_current_state_from_server"), "Le directeur d'abeilles doit exposer request_current_state_from_server.")
+	assert_true(beetle_director.has_method("request_current_state_from_server"), "Le directeur de scarabées doit exposer request_current_state_from_server.")
+	assert_true(bee_director.has_method("push_current_state_to_peer"), "Le directeur d'abeilles doit exposer push_current_state_to_peer.")
+	assert_true(beetle_director.has_method("push_current_state_to_peer"), "Le directeur de scarabées doit exposer push_current_state_to_peer.")
+	assert_true(bee_director.has_method("get_state_revision"), "Le directeur d'abeilles doit exposer get_state_revision.")
+	assert_true(beetle_director.has_method("get_state_revision"), "Le directeur de scarabées doit exposer get_state_revision.")
+	assert_true(bee_director.has_method("get_debug_sync_summary"), "Le directeur d'abeilles doit exposer get_debug_sync_summary.")
+	assert_true(beetle_director.has_method("get_debug_sync_summary"), "Le directeur de scarabées doit exposer get_debug_sync_summary.")

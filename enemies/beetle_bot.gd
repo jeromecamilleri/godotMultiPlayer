@@ -1,4 +1,4 @@
-extends RigidBody3D
+extends "res://enemies/enemy_instance_base.gd"
 
 const COIN_SCENE := preload("res://player/coin/coin.tscn")
 const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
@@ -46,7 +46,6 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 @onready var _home_position: Vector3 = global_position
 @onready var _guard_center: Vector3 = global_position
 @onready var _is_network_proxy: bool = false
-var _assigned_target_peer_id := -1
 var _last_attack_time_sec := -100.0
 var _charge_until_sec := -100.0
 var _last_charge_time_sec := -100.0
@@ -54,9 +53,7 @@ var _visual_state := "Idle"
 
 
 func _ready() -> void:
-	add_to_group("enemy_instances")
-	add_to_group("ground_enemies")
-	add_to_group("beetles")
+	_register_enemy_groups(PackedStringArray(["ground_enemies", "beetles"]))
 	can_sleep = false
 	_detection_area.body_entered.connect(_on_body_entered)
 	_detection_area.body_exited.connect(_on_body_exited)
@@ -353,6 +350,7 @@ func _spawn_puff_remote(world_position: Vector3) -> void:
 func _finalize_death() -> void:
 	if _removed:
 		return
+	_bump_state_revision()
 	_removed = true
 	visible = false
 	set_process(false)
@@ -368,6 +366,7 @@ func _finalize_death() -> void:
 
 
 func set_director_active(active: bool) -> void:
+	_bump_state_revision()
 	if _removed:
 		visible = false
 		return
@@ -397,6 +396,7 @@ func set_director_active(active: bool) -> void:
 
 
 func set_assigned_target_peer_id(peer_id: int) -> void:
+	_bump_state_revision()
 	_assigned_target_peer_id = peer_id
 	if peer_id <= 0:
 		_target = null
@@ -409,6 +409,7 @@ func set_guard_center(world_position: Vector3) -> void:
 
 
 func apply_director_config(config: Dictionary) -> void:
+	_bump_state_revision()
 	if config.has("move_speed"):
 		move_speed = float(config["move_speed"])
 	if config.has("charge_speed_multiplier"):
@@ -433,6 +434,28 @@ func get_current_target_peer_id() -> int:
 	if _target == null or not is_instance_valid(_target):
 		return -1
 	return _target.get_multiplayer_authority()
+
+
+func _request_current_state_from_server_impl() -> void:
+	_request_alive_state_when_connected()
+
+
+func _push_current_state_to_peer_impl(peer_id: int) -> void:
+	if peer_id <= 0 or not is_multiplayer_authority():
+		return
+	_sync_alive_state.rpc_id(peer_id, _alive, _removed)
+	_sync_visual_state.rpc_id(peer_id, _visual_state)
+	_sync_beetle_transform.rpc_id(peer_id, global_transform)
+
+
+func _get_debug_sync_summary_impl() -> String:
+	return "scarabee=%s alive=%s cible_assignee=J%s cible=J%s rev=%d" % [
+		String(name),
+		str(_alive and not _removed),
+		"-" if _assigned_target_peer_id <= 0 else str(_assigned_target_peer_id),
+		"-" if get_current_target_peer_id() <= 0 else str(get_current_target_peer_id()),
+		_state_revision,
+	]
 
 
 func _refresh_assigned_target() -> void:

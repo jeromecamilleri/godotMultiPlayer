@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://enemies/bee_director.gd" id="1_beedir"]
+[ext_resource type="PackedScene" path="res://enemies/bee_bot.tscn" id="2_bee"]
+[ext_resource type="PackedScene" path="res://main/mission_cube_beetle_director.tscn" id="3_beetle"]
+
+[node name="Enemies" type="Node3D"]
+script = ExtResource("1_beedir")
+managed_seed_bee_paths = Array[NodePath]([NodePath("bee_bot"), NodePath("bee_bot2")])
+
+[node name="bee_bot" parent="." instance=ExtResource("2_bee")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.7566595, 5.3034263, 5.0660505)
+patrol_circle = true
+
+[node name="bee_bot2" parent="." instance=ExtResource("2_bee")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.442793, 5.3034263, 4.753208)
+patrol_circle = true
+
+[node name="BeetleDirector" parent="." instance=ExtResource("3_beetle")]

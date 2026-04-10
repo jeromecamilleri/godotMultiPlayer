@@ -23,10 +23,12 @@ var _last_state_server_ms := -1
 var _last_state_replication_delay_ms := -1
 var _default_collision_layer := 0
 var _default_collision_mask := 0
+var _state_revision := 0
 
 
 func _ready() -> void:
 	add_to_group("revive_coins")
+	add_to_group("replicated_persistent_objects")
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
 	if is_instance_valid(_player_detection_area) and not _player_detection_area.body_entered.is_connected(_on_body_entered):
@@ -145,9 +147,12 @@ func _push_current_state_to_peer(peer_id: int) -> void:
 
 func _apply_coin_state(consumed: bool, target_peer_id: int, coin_position: Vector3, server_event_ms: int, play_feedback: bool) -> void:
 	var was_consumed := _consumed
+	var previous_target_peer_id := _target_peer_id
 	_consume_follow_tween()
 	_consumed = consumed
 	_target_peer_id = target_peer_id
+	if was_consumed != consumed or previous_target_peer_id != target_peer_id:
+		_state_revision += 1
 	_last_state_server_ms = server_event_ms
 	if server_event_ms >= 0 and not _is_server_instance():
 		_last_state_replication_delay_ms = maxi(0, Time.get_ticks_msec() - server_event_ms)
@@ -175,8 +180,7 @@ func _apply_unavailable_state(play_feedback: bool) -> void:
 	_target = null
 	_target_peer_id = NO_TARGET_PEER_ID
 	visible = false
-	_player_detection_area.monitoring = false
-	_player_detection_area.monitorable = false
+	_set_detection_area_state(false, false)
 	set_collision_layer(0)
 	set_collision_mask(0)
 	sleeping = true
@@ -190,7 +194,7 @@ func _apply_unavailable_state(play_feedback: bool) -> void:
 
 func _apply_server_state() -> void:
 	visible = true
-	_player_detection_area.monitorable = true
+	_set_detection_area_state(false, true)
 	set_collision_layer(_default_collision_layer)
 	set_collision_mask(_default_collision_mask)
 	if _target_peer_id > 0:
@@ -198,15 +202,14 @@ func _apply_server_state() -> void:
 		freeze = true
 		_restart_follow_tween()
 		return
-	_player_detection_area.monitoring = true
+	_set_detection_area_state(true, true)
 	sleeping = false
 	freeze = false
 
 
 func _apply_proxy_state() -> void:
 	visible = true
-	_player_detection_area.monitoring = false
-	_player_detection_area.monitorable = false
+	_set_detection_area_state(false, false)
 	set_collision_layer(0)
 	set_collision_mask(0)
 	sleeping = true
@@ -218,10 +221,16 @@ func _apply_proxy_state() -> void:
 
 
 func _apply_proxy_idle_state() -> void:
-	_player_detection_area.monitoring = false
-	_player_detection_area.monitorable = false
+	_set_detection_area_state(false, false)
 	sleeping = true
 	freeze = true
+
+
+func _set_detection_area_state(next_monitoring: bool, next_monitorable: bool) -> void:
+	if not is_instance_valid(_player_detection_area):
+		return
+	_player_detection_area.set_deferred("monitoring", next_monitoring)
+	_player_detection_area.set_deferred("monitorable", next_monitorable)
 
 
 func _restart_follow_tween() -> void:
@@ -314,6 +323,22 @@ func get_debug_sync_summary() -> String:
 		target_text,
 		"-" if _last_state_replication_delay_ms < 0 else "%d ms" % _last_state_replication_delay_ms,
 	]
+
+
+func request_current_state_from_server() -> void:
+	if _is_server_instance():
+		return
+	if multiplayer.multiplayer_peer == null:
+		return
+	_request_current_state.rpc_id(1)
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	_push_current_state_to_peer(peer_id)
+
+
+func get_state_revision() -> int:
+	return _state_revision
 
 
 func _record_sync_event(source: String, detail: String) -> void:

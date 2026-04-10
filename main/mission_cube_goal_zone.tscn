@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" uid="uid://bdvht85heque" path="res://addons/kenney_platformer_kit/platform.glb" id="1_platform"]
+[ext_resource type="Script" uid="uid://cm7s4xumgm12v" path="res://main/cube_activator.gd" id="2_activator"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_actvt"]
+height = 2.4
+radius = 1.35
+
+[node name="Activator" instance=ExtResource("1_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7847384, 11.671597, 3.6642096, 15.255287)
+
+[node name="CubeActivator" type="Area3D" parent="." groups=["gameplay_objectives", "defense_zones", "mission_cube_goal_zones"]]
+script = ExtResource("2_activator")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CubeActivator"]
+transform = Transform3D(1.5, 0, 0, 0, 1, 0, 0, 0, 1.5, 0, 0.6, 0)
+shape = SubResource("CylinderShape3D_actvt")

@@ -28,6 +28,7 @@ var _last_rtt_ms := -1
 var _avg_rtt_ms := -1.0
 var _jitter_ms := 0.0
 var _recent_sync_events: Array[String] = []
+var _recent_sync_event_entries: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -330,7 +331,7 @@ func reset_network_metrics() -> void:
 	_emit_network_stats()
 
 
-func record_sync_event(source: String, detail: String) -> void:
+func record_sync_event(source: String, detail: String, metadata: Dictionary = {}) -> void:
 	var trimmed_source := source.strip_edges()
 	if trimmed_source.is_empty():
 		trimmed_source = "sync"
@@ -342,13 +343,32 @@ func record_sync_event(source: String, detail: String) -> void:
 	var seconds: int = (total_ms / 1000) % 60
 	var millis: int = total_ms % 1000
 	var entry := "[%02d:%02d.%03d] %s | %s" % [minutes, seconds, millis, trimmed_source, trimmed_detail]
+	var entry_data: Dictionary = {
+		"timestamp_ms": total_ms,
+		"source": trimmed_source,
+		"detail": trimmed_detail,
+		"text": entry,
+		"metadata": metadata.duplicate(true),
+	}
 	_recent_sync_events.append(entry)
+	_recent_sync_event_entries.append(entry_data)
 	if _recent_sync_events.size() > MAX_RECENT_SYNC_EVENTS:
 		_recent_sync_events.remove_at(0)
+	if _recent_sync_event_entries.size() > MAX_RECENT_SYNC_EVENTS:
+		_recent_sync_event_entries.remove_at(0)
 
 
 func get_recent_sync_events() -> Array[String]:
 	return _recent_sync_events.duplicate()
+
+
+func get_recent_sync_event_entries() -> Array[Dictionary]:
+	return _recent_sync_event_entries.duplicate(true)
+
+
+func clear_recent_sync_events() -> void:
+	_recent_sync_events.clear()
+	_recent_sync_event_entries.clear()
 
 
 func _start_latency_probe() -> void:

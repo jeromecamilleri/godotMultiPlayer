@@ -40,6 +40,7 @@ var _mesh_instance: MeshInstance3D
 var _runtime_material: StandardMaterial3D
 var _auto_move_active := false
 var _goal_direction := Vector3.ZERO
+var _state_revision := 0
 
 func _on_player_count_changed(_id: int) -> void:
 	_update_mass_for_player_count()
@@ -55,6 +56,7 @@ func _ready() -> void:
 	freeze = not is_multiplayer_authority()
 	sleeping = not is_multiplayer_authority()
 	add_to_group("pullable_cubes")
+	add_to_group("replicated_persistent_objects")
 	_mesh_instance = get_node_or_null("MeshInstance3D")
 	_setup_runtime_material()
 	_resolve_reactor_node()
@@ -195,6 +197,7 @@ func is_goal_reached() -> bool:
 func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 	if _goal_reached:
 		return
+	_state_revision += 1
 	_goal_reached = true
 	if goal_position != Vector3.INF:
 		global_position = goal_position
@@ -278,6 +281,8 @@ func _apply_current_state(
 	pull_state: int,
 	auto_move_active: bool
 ) -> void:
+	if _goal_reached != goal_reached or _pull_state_sync != pull_state:
+		_state_revision += 1
 	_goal_reached = goal_reached
 	global_transform = synced_transform
 	linear_velocity = synced_linear_velocity
@@ -292,6 +297,27 @@ func _apply_current_state(
 		freeze = true
 		sleeping = true
 	_apply_visual_state()
+
+
+func request_current_state_from_server() -> void:
+	_request_current_state_when_connected()
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	_push_current_state_to_peer(peer_id)
+
+
+func get_state_revision() -> int:
+	return _state_revision
+
+
+func get_debug_sync_summary() -> String:
+	return "cube goal=%s pull_state=%d rev=%d auto=%s" % [
+		str(_goal_reached),
+		_pull_state_sync,
+		_state_revision,
+		str(_auto_move_active),
+	]
 
 
 func _get_goal_direction() -> Vector3:

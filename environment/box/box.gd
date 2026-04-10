@@ -10,9 +10,11 @@ const COINS_COUNT := 5
 @onready var _crate_visual: Node3D = $CrateVisual
 
 var _destroyed: bool = false
+var _state_revision := 0
 
 
 func _ready() -> void:
+	add_to_group("replicated_persistent_objects")
 	if is_multiplayer_authority():
 		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
@@ -63,21 +65,31 @@ func _sync_destroy_event() -> void:
 func _request_initial_state() -> void:
 	if not is_inside_tree() or is_multiplayer_authority():
 		return
+	if multiplayer.multiplayer_peer == null:
+		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_state):
+			multiplayer.connected_to_server.connect(_on_connected_to_server_request_state, CONNECT_ONE_SHOT)
+		return
 	var authority: int = get_multiplayer_authority()
 	if authority <= 0 or authority == multiplayer.get_unique_id():
 		return
 	_request_current_state.rpc_id(authority)
 
 
+func _on_connected_to_server_request_state() -> void:
+	_request_initial_state()
+
+
 func _on_peer_connected(peer_id: int) -> void:
 	if not _destroyed:
 		return
+	_record_sync_event("caisse", "etat detruit -> J%d" % peer_id)
 	_sync_destroy_snapshot.rpc_id(peer_id, true)
 
 
 func _apply_damage() -> void:
 	if _destroyed:
 		return
+	_record_sync_event("caisse", "%s detruite" % String(name))
 	_apply_destroy_state(true, true)
 	_sync_destroy_event.rpc()
 
@@ -85,6 +97,7 @@ func _apply_damage() -> void:
 func _apply_destroy_state(spawn_effects: bool, spawn_coins: bool) -> void:
 	if _destroyed:
 		return
+	_state_revision += 1
 	_destroyed = true
 	sleeping = true
 	freeze = true
@@ -122,3 +135,31 @@ func _spawn_destroy_effects(spawn_coins: bool) -> void:
 	if is_instance_valid(_destroy_sound):
 		_destroy_sound.pitch_scale = randfn(1.0, 0.1)
 		_destroy_sound.play()
+
+
+func request_current_state_from_server() -> void:
+	_request_initial_state()
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	if peer_id <= 0 or not is_multiplayer_authority():
+		return
+	_sync_destroy_snapshot.rpc_id(peer_id, _destroyed)
+
+
+func get_state_revision() -> int:
+	return _state_revision
+
+
+func get_debug_sync_summary() -> String:
+	return "caisse=%s etat=%s rev=%d" % [
+		String(name),
+		"detruite" if _destroyed else "intacte",
+		_state_revision,
+	]
+
+
+func _record_sync_event(source: String, detail: String) -> void:
+	var connection := get_tree().get_first_node_in_group("connection_service")
+	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
+		connection.call("record_sync_event", source, detail)

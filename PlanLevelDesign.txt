@@ -1,0 +1,280 @@
+• Plan de map
+
+   hub central + 4 zones, où les téléporteurs servent à la fois de progression, de logistique et de raccourcis.
+
+  1. Hub central : Avant-poste
+  Rôle :
+
+  - spawn joueurs
+  - coffre principal
+  - coin de revive
+  - écran d’état de mission
+  - 4 téléporteurs visibles mais pas tous actifs au départ
+
+  Contenu :
+
+  - Téléporteur A vers zone ressources bois
+  - Téléporteur B vers zone ressources pommes
+  - Téléporteur C vers zone bombes / brèche
+  - Téléporteur D vers zone finale réacteur
+
+  Idée :
+
+  - le hub est sûr
+  - tout revient toujours au hub
+  - le coffre du hub est le cœur de la progression
+
+  2. Zone A : Scierie effondrée
+  Rôle :
+
+  - produire du bois
+  - introduire les caisses destructibles
+  - premiers scarabées lents
+
+  Gameplay :
+
+  - bois au sol
+  - caisses qui bloquent certains chemins
+  - scarabées qui défendent des petits dépôts
+  - téléporteur retour rapide vers le hub
+
+  Objectif :
+
+  - déposer bois dans le coffre du hub pour alimenter le chantier ou les téléporteurs
+
+  3. Zone B : Verger suspendu
+  Rôle :
+
+  - produire pommes et petits soins/logistique
+  - pression abeilles
+
+  Gameplay :
+
+  - pommes visibles, faciles à ramasser
+  - plateformes un peu plus aériennes
+  - abeilles qui rendent la collecte moins triviale
+  - petits allers-retours via téléporteur
+
+  Objectif :
+
+  - déposer pommes dans le coffre du hub pour débloquer la phase suivante
+
+  4. Zone C : Brèche fortifiée
+  Rôle :
+
+  - donner une vraie utilité aux bombes
+  - faire monter la tension coop
+
+  Gameplay :
+
+  - plusieurs BombDoor
+  - scarabées qui défendent la zone
+  - caisses à casser pour faire de la place
+  - téléporteur retour vers hub une fois la brèche ouverte
+
+  Objectif :
+
+  - ouvrir la route vers la zone réacteur
+  - activer Téléporteur D
+
+  5. Zone D : Bassin du réacteur
+  Rôle :
+
+  - mission finale
+  - pousser le gros cube jusqu’à l’Activator
+
+  Gameplay :
+
+  - gros cube vert
+  - Activator
+  - scarabées de défense de zone
+  - quelques abeilles si plusieurs joueurs
+  - espace assez large pour pousser à plusieurs
+
+  Objectif :
+
+  - amener le cube sur l’Activator
+  - défendre la zone pendant l’activation finale
+  - victoire
+
+  Boucle de progression
+
+  1. Les joueurs arrivent au hub.
+  2. Téléporteur A et B sont actifs.
+  3. Ils ramènent bois et pommes au coffre central.
+  4. Quand le coffre atteint un quota, Téléporteur C s’active.
+  5. Dans la brèche, ils utilisent des bombes pour ouvrir l’accès.
+  6. L’ouverture active Téléporteur D.
+  7. Ils vont au réacteur.
+  8. Ils cassent les caisses, défendent la zone, poussent le cube.
+  9. Une fois le cube posé, la mission passe en WON.
+
+  Pourquoi les téléporteurs servent vraiment
+
+  - ils relient des zones spécialisées
+  - ils évitent de longues marches inutiles
+  - ils créent une logistique coop :
+      - certains récoltent
+      - d’autres défendent
+      - d’autres escortent le cube
+  - ils servent aussi de points de retour au hub pour déposer vite
+
+  Règles concrètes des téléporteurs
+
+  - A et B : actifs dès le début
+  - C : s’active quand le coffre contient assez de ressources
+  - D : s’active quand la brèche est ouverte
+  - retour hub : toujours possible depuis chaque zone
+  - option intéressante :
+      - activation temporaire de 20 s pour forcer la coordination
+
+  Scalabilité joueurs
+  Quotas simples :
+
+  - bois : 4 + 2 x (joueurs - 1)
+  - pommes : 2 + 1 x (joueurs - 1)
+
+  Ennemis :
+
+  - abeilles : joueurs + 1
+  - scarabées : max(1, joueurs - 1) ou joueurs selon la zone
+
+  Mission finale :
+
+  - plus il y a de joueurs, plus la défense du réacteur est forte
+  - pas besoin de changer les règles
+
+  Ce que je coderais en premier
+
+  1. Hub central avec coffre qui débloque Téléporteur C
+  2. Zone Scierie et zone Verger
+  3. Activation de Téléporteur D par ouverture de la brèche
+  4. Zone finale réacteur
+  5. Tests UI E2E :
+
+  - collecte + dépôt au coffre
+  - ouverture de téléporteur
+  - brèche à la bombe
+  - mission cube finale
+une seule grande scène de jeu, avec des zones éloignées reliées par les portails existants. C’est le plus simple avec ton code actuel, car levels/portal/
+  portal.gd téléporte déjà localement entre deux NodePath.
+
+  Schéma cible :
+
+  Main
+  ├── HubLevel
+  │   ├── Ground
+  │   ├── Env
+  │   │   ├── Enemies
+  │   │   ├── Interactives
+  │   │   └── PhysicsObjects
+  │   ├── Portals
+  │   │   ├── Portal_Hub_To_Scierie
+  │   │   ├── Portal_Scierie_To_Hub
+  │   │   ├── Portal_Hub_To_Verger
+  │   │   ├── Portal_Verger_To_Hub
+  │   │   ├── Portal_Hub_To_Breche
+  │   │   ├── Portal_Breche_To_Hub
+  │   │   ├── Portal_Hub_To_Reactor
+  │   │   └── Portal_Reactor_To_Hub
+  │   └── SpawnPoints
+  ├── ZoneScierie
+  ├── ZoneVerger
+  ├── ZoneBreche
+  └── ZoneReactor
+
+  Rôle des zones :
+
+  - HubLevel : spawn, coffre principal, coin revive, UI mission, distribution.
+  - ZoneScierie : bois + caisses + scarabées légers.
+  - ZoneVerger : pommes + abeilles.
+  - ZoneBreche : bombes + BombDoor + pression ennemie.
+  - ZoneReactor : gros cube + CubeActivator + défense finale.
+
+  Scènes à créer
+  - levels/zones/zone_scierie.tscn
+  - levels/zones/zone_verger.tscn
+  - levels/zones/zone_breche.tscn
+  - levels/zones/zone_reactor.tscn
+  - main/mission_hub_interactives.tscn
+  - main/mission_zone_scierie_interactives.tscn
+  - main/mission_zone_verger_interactives.tscn
+  - main/mission_zone_breche_interactives.tscn
+
+  Tu peux réutiliser l’existant :
+
+  - main/mission_cube_goal_zone.tscn pour ZoneReactor
+  - main/mission_cube_physics_objects.tscn
+  - main/mission_cube_beetle_director.tscn
+
+  Nœuds exacts à créer
+  Dans chaque zone, garde une structure stable :
+
+  ZoneScierie
+  ├── Ground
+  ├── Env
+  ├── Interactives
+  ├── Enemies
+  ├── Portals
+  └── MissionMarkers
+
+  Même structure pour ZoneVerger, ZoneBreche, ZoneReactor.
+
+  Nœuds clés par zone :
+
+  - ZoneScierie/Interactives/Chest_ScierieBuffer optionnel
+  - ZoneScierie/Interactives/WoodPickup_*
+  - ZoneScierie/Interactives/Crate_*
+  - ZoneScierie/Enemies/BeetleDirector_Scierie
+  - ZoneVerger/Interactives/ApplePickup_*
+  - ZoneVerger/Enemies/BeeDirector_Verger
+  - ZoneBreche/Interactives/BombDoor_*
+  - ZoneBreche/Interactives/BombPickup_* si tu veux en placer
+  - ZoneBreche/Enemies/BeetleDirector_Breche
+  - ZoneReactor/Interactives/MissionCube
+  - ZoneReactor/Interactives/CubeActivator
+  - ZoneReactor/Enemies/BeetleDirector_Reactor
+
+  Pour les portails, nomme-les explicitement :
+
+  - Portal_Hub_To_Scierie
+  - Portal_Scierie_To_Hub
+  - Portal_Hub_To_Verger
+  - Portal_Verger_To_Hub
+  - Portal_Hub_To_Breche
+  - Portal_Breche_To_Hub
+  - Portal_Hub_To_Reactor
+  - Portal_Reactor_To_Hub
+
+  Groupes à poser
+  Pour rester robuste avec tes tests et la logique gameplay :
+
+  - mission_hub_chests
+  - mission_zone_scierie
+  - mission_zone_verger
+  - mission_zone_breche
+  - mission_zone_reactor
+  - mission_cube_goal_zones
+  - mission_cube_bomb_doors
+  - cube_mission_crates
+  - defense_zones
+  - gameplay_objectives
+
+  Ordre d’implémentation
+
+  1. Créer les 4 scènes de zone, vides mais avec la structure Ground / Env / Interactives / Enemies / Portals / MissionMarkers.
+  2. Instancier ces 4 scènes dans main/main.tscn, loin du hub sur l’axe X/Z.
+  3. Dupliquer les portails existants de levels/hub_level.tscn et renommer proprement les 8 portails.
+  4. Câbler tous les linked_portal_path par paire.
+  5. Déplacer le contenu actuel :
+      - coffre principal dans le hub
+      - cube + activator dans ZoneReactor
+      - bomb doors dans ZoneBreche
+      - pommes dans ZoneVerger
+      - bois + caisses dans ZoneScierie
+  6. Ajouter les directeurs ennemis par zone.
+  7. Brancher la progression :
+      - hub -> Scierie et Verger ouverts
+      - Breche ouverte après quota coffre
+      - Reactor ouvert après brèche
+  8. Mettre à jour les tests UI/E2E pour cibler les groupes de zone et non des chemins trop figés.

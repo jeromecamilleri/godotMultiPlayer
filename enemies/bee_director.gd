@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://enemies/enemy_director_base.gd"
 class_name BeeDirector
 
 const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
@@ -22,8 +22,7 @@ var _client_resync_timer: Timer
 
 
 func _ready() -> void:
-	add_to_group("enemy_directors")
-	add_to_group("bee_directors")
+	_register_director_groups("bee_directors")
 	_capture_spawn_anchors_from_scene()
 	if multiplayer.is_server():
 		if multiplayer.has_multiplayer_peer() and not multiplayer.peer_connected.is_connected(_on_peer_connected):
@@ -73,6 +72,8 @@ func _refresh_bee_population() -> void:
 	var desired_count := _get_desired_bee_count()
 	var next_managed_names: Array[String] = []
 	var config: Dictionary = _build_bee_config(desired_count)
+	_bump_state_revision()
+	_record_sync_event("abeilles", "refresh count=%d rev=%d" % [desired_count, _state_revision])
 	for bee_index in range(desired_count):
 		var bee_name := _bee_name_for_index(bee_index)
 		var bee_transform := _transform_for_bee_index(bee_index)
@@ -172,6 +173,7 @@ func _on_peer_connected(peer_id: int) -> void:
 func _push_current_bees_to_peer(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return
+	_record_sync_event("abeilles", "push etat -> J%d rev=%d" % [peer_id, _state_revision])
 	var config := _build_bee_config(_spawned_bee_names.size())
 	for seed_index in range(_seed_bee_names.size()):
 		_rpc_set_bee_active.rpc_id(peer_id, _seed_bee_names[seed_index], seed_index < _spawned_bee_names.size())
@@ -298,9 +300,13 @@ func _resolve_seed_bee(seed_path: NodePath) -> Node3D:
 	return null
 
 
-func _get_scene_root() -> Node:
-	if get_tree() == null:
-		return null
-	if get_tree().current_scene != null:
-		return get_tree().current_scene
-	return get_tree().root
+func _request_current_state_from_server_impl() -> void:
+	_request_current_bees_when_connected()
+
+
+func _push_current_state_to_peer_impl(peer_id: int) -> void:
+	_push_current_bees_to_peer(peer_id)
+
+
+func _get_debug_sync_summary_impl() -> String:
+	return "abeilles actifs=%d graines=%d rev=%d" % [_spawned_bee_names.size(), _seed_bee_names.size(), _state_revision]

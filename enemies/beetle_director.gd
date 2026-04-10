@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://enemies/enemy_director_base.gd"
 class_name BeetleDirector
 
 const BEETLE_SCENE := preload("res://enemies/beetle_bot.tscn")
@@ -26,8 +26,7 @@ var _target_rebalance_timer: Timer
 
 
 func _ready() -> void:
-	add_to_group("enemy_directors")
-	add_to_group("beetle_directors")
+	_register_director_groups("beetle_directors")
 	_capture_spawn_anchors()
 	if multiplayer.is_server():
 		if multiplayer.has_multiplayer_peer() and not multiplayer.peer_connected.is_connected(_on_peer_connected):
@@ -79,6 +78,8 @@ func _refresh_beetle_population() -> void:
 		return
 	var desired_total: int = _get_desired_beetle_count()
 	var config: Dictionary = _build_beetle_config(desired_total)
+	_bump_state_revision()
+	_record_sync_event("scarabees", "refresh count=%d rev=%d" % [desired_total, _state_revision])
 	_active_seed_count = mini(_seed_beetle_paths.size(), desired_total)
 	for seed_index in range(_seed_beetle_paths.size()):
 		var seed_path: NodePath = _seed_beetle_paths[seed_index]
@@ -316,6 +317,7 @@ func _on_peer_connected(peer_id: int) -> void:
 func _push_state_to_peer(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return
+	_record_sync_event("scarabees", "push etat -> J%d rev=%d" % [peer_id, _state_revision])
 	var desired_total: int = _get_desired_beetle_count()
 	var config: Dictionary = _build_beetle_config(desired_total)
 	for seed_index in range(_seed_beetle_paths.size()):
@@ -404,14 +406,6 @@ func _resolve_guard_center() -> Vector3:
 	return global_position
 
 
-func _get_scene_root() -> Node:
-	if get_tree() == null:
-		return null
-	if get_tree().current_scene != null:
-		return get_tree().current_scene
-	return get_tree().root
-
-
 func _resolve_seed_node(seed_path: NodePath) -> Node:
 	var scene_root: Node = _get_scene_root()
 	if scene_root != null:
@@ -421,3 +415,15 @@ func _resolve_seed_node(seed_path: NodePath) -> Node:
 	if get_tree() != null and get_tree().root != null:
 		return get_tree().root.get_node_or_null(seed_path)
 	return null
+
+
+func _request_current_state_from_server_impl() -> void:
+	_request_current_beetles_when_connected()
+
+
+func _push_current_state_to_peer_impl(peer_id: int) -> void:
+	_push_state_to_peer(peer_id)
+
+
+func _get_debug_sync_summary_impl() -> String:
+	return "scarabees actifs=%d graines=%d rev=%d" % [_active_seed_count + _spawned_dynamic_names.size(), _seed_beetle_paths.size(), _state_revision]

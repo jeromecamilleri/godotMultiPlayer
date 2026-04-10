@@ -16,7 +16,6 @@
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
 [ext_resource type="PackedScene" uid="uid://rn45gytkk6tv" path="res://enemies/bee_bot.tscn" id="14_73k8k"]
-[ext_resource type="PackedScene" uid="uid://bdvht85heque" path="res://addons/kenney_platformer_kit/platform.glb" id="14_q0sk7"]
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
 [ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="18_4hmqs"]
 [ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
@@ -24,19 +23,17 @@
 [ext_resource type="PackedScene" path="res://inventory/inventory_container.tscn" id="21_invct"]
 [ext_resource type="Resource" path="res://inventory/items/apple.tres" id="22_itema"]
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
-[ext_resource type="Script" uid="uid://cm7s4xumgm12v" path="res://main/cube_activator.gd" id="24_actvt"]
 [ext_resource type="Script" uid="uid://dhaimx368gaeq" path="res://enemies/bee_director.gd" id="25_beedir"]
 [ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="26_betdir"]
 [ext_resource type="PackedScene" uid="uid://oxyn25v5khuk" path="res://enemies/beetle_bot.tscn" id="27_d8vpj"]
 [ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="28_box"]
 [ext_resource type="PackedScene" path="res://main/mission_cube_beetle_director.tscn" id="29_betpkg"]
 [ext_resource type="PackedScene" path="res://main/mission_cube_interactives.tscn" id="30_intpkg"]
+[ext_resource type="PackedScene" path="res://main/mission_cube_goal_zone.tscn" id="31_goalpkg"]
+[ext_resource type="PackedScene" path="res://main/mission_hub_enemies.tscn" id="32_enmpkg"]
+[ext_resource type="PackedScene" path="res://main/mission_cube_physics_objects.tscn" id="33_physpkg"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
-
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_actvt"]
-height = 2.4
-radius = 1.35
 
 [sub_resource type="BoxMesh" id="BoxMesh_bd01"]
 size = Vector3(4, 4, 1)
@@ -140,15 +137,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.006908, 4, 10)
 [node name="blockSlope3" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="30" unique_id=1674956779 instance=ExtResource("12_s758e")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -17.988014, 7.96714, 10)
 
-[node name="Activator" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=547915941 instance=ExtResource("14_q0sk7")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7847384, 11.671597, 3.6642096, 15.255287)
-
-[node name="CubeActivator" type="Area3D" parent="HubLevel/Ground/Activator" unique_id=1286740292 groups=["gameplay_objectives", "defense_zones", "mission_cube_goal_zones"]]
-script = ExtResource("24_actvt")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Ground/Activator/CubeActivator" unique_id=779171009]
-transform = Transform3D(1.5, 0, 0, 0, 1, 0, 0, 0, 1.5, 0, 0.6, 0)
-shape = SubResource("CylinderShape3D_actvt")
+[node name="Activator" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=547915941 instance=ExtResource("31_goalpkg")]
 
 [node name="fenceCorner3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="2" unique_id=1229230674]
 transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, 11.99863, 4.007114, 15.995415)
@@ -162,19 +151,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6542916, 4, 14)
 [node name="plant7" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="19" unique_id=59418837]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.173691, 4.0735116, 16.568993)
 
-[node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001]
-script = ExtResource("25_beedir")
-managed_seed_bee_paths = Array[NodePath]([NodePath("bee_bot"), NodePath("bee_bot2")])
-
-[node name="bee_bot" parent="HubLevel/Env/Enemies" unique_id=1866323019 instance=ExtResource("14_73k8k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.7566595, 5.3034263, 5.0660505)
-patrol_circle = true
-
-[node name="bee_bot2" parent="HubLevel/Env/Enemies" unique_id=775955518 instance=ExtResource("14_73k8k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.442793, 5.3034263, 4.753208)
-patrol_circle = true
-
-[node name="BeetleDirector" parent="HubLevel/Env/Enemies" unique_id=427815088 instance=ExtResource("29_betpkg")]
+[node name="Enemies" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001 instance=ExtResource("32_enmpkg")]
 
 [node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
@@ -196,71 +173,7 @@ transparency = 0.87
 mesh = SubResource("PlaneMesh_n3o0a")
 surface_material_override/0 = ExtResource("15_wat01")
 
-[node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003]
-
-[node name="RigidCube3D" type="RigidBody3D" parent="HubLevel/Env/PhysicsObjects" unique_id=1479604479 groups=["mission_cube_primary"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.895, 4.565)
-physics_material_override = SubResource("PhysicsMaterial_fwcvl")
-script = ExtResource("12_fwcvl")
-base_mass = 1.5
-mass_per_player = 1.5
-pull_force_per_player = 28.0
-reactor_goal_radius = 4.3
-auto_move_speed = 6.2
-auto_move_force = 52.0
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=1019711160]
-transform = Transform3D(1.79, 0, 0, 0, 1.79, 0, 0, 0, 1.79, 0, 0, 0)
-mesh = SubResource("BoxMesh_na0o7")
-surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=1916469910]
-transform = Transform3D(1.79, 0, 0, 0, 1.79, 0, 0, 0, 1.79, 0, 0, 0)
-shape = SubResource("BoxShape3D_bsumw")
-
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/PhysicsObjects/RigidCube3D" unique_id=243062562]
-replication_interval = 0.033
-delta_interval = 0.033
-replication_config = SubResource("SceneReplicationConfig_fwcvl")
-visibility_update_mode = 1
-
-[node name="RigidCube3D2" type="RigidBody3D" parent="HubLevel/Env/PhysicsObjects" unique_id=2114380815]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4616814, 1.3951561)
-physics_material_override = SubResource("PhysicsMaterial_fwcvl")
-script = ExtResource("12_fwcvl")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D2" unique_id=813408721]
-transform = Transform3D(1, 0, 0, 0, 1.5, 0, 0, 0, 1, 0, 0.28831863, 0)
-mesh = SubResource("BoxMesh_na0o7")
-surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D2" unique_id=2034329681]
-shape = SubResource("BoxShape3D_bsumw")
-
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/PhysicsObjects/RigidCube3D2" unique_id=948708029]
-replication_interval = 0.033
-delta_interval = 0.033
-replication_config = SubResource("SceneReplicationConfig_fwcvl")
-visibility_update_mode = 1
-
-[node name="RigidCube3D3" type="RigidBody3D" parent="HubLevel/Env/PhysicsObjects" unique_id=801372959]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4616814, 0)
-physics_material_override = SubResource("PhysicsMaterial_fwcvl")
-script = ExtResource("12_fwcvl")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D3" unique_id=390983070]
-transform = Transform3D(1, 0, 0, 0, 1.5, 0, 0, 0, 1, 0, 0.28831863, 0)
-mesh = SubResource("BoxMesh_na0o7")
-surface_material_override/0 = SubResource("StandardMaterial3D_73k8k")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/PhysicsObjects/RigidCube3D3" unique_id=392662815]
-shape = SubResource("BoxShape3D_bsumw")
-
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="HubLevel/Env/PhysicsObjects/RigidCube3D3" unique_id=600010692]
-replication_interval = 0.033
-delta_interval = 0.033
-replication_config = SubResource("SceneReplicationConfig_fwcvl")
-visibility_update_mode = 1
+[node name="PhysicsObjects" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003 instance=ExtResource("33_physpkg")]
 
 [node name="Portal" parent="HubLevel/Portals" parent_id_path=PackedInt32Array(1150027112, 515313060) index="0" unique_id=878852613]
 transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.04313103, -23.057299, 12, 10.07815)

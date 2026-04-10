@@ -663,9 +663,13 @@ func _update_cube_mission_scenario(player) -> void:
 	var director := _find_match_director(player)
 	if director == null:
 		return
+	var cube_elapsed_ms: int = Time.get_ticks_msec() - int(_cube_mission["started_ms"])
+	if not _cube_mission_session_is_ready(player) and cube_elapsed_ms < 12000:
+		_write_cube_mission_progress(player, cube, activator, director, "waiting_session_ready")
+		return
 	match String(_cube_mission["state"]):
 		"monitor_win":
-			if _director_state_name(director) == "LOBBY" and director.has_method("start_match") and Time.get_ticks_msec() - int(_cube_mission["started_ms"]) > 800:
+			if _director_state_name(director) == "LOBBY" and director.has_method("start_match") and cube_elapsed_ms > 800:
 				director.call("start_match")
 			if _director_state_name(director) == "WON":
 				var cube_on_goal_visual := cube.global_position.distance_to(activator.global_position) <= 3.0
@@ -958,6 +962,12 @@ func _first_closed_cube_mission_door(bomb_doors: Array[Node3D]) -> Node3D:
 
 func _find_cube_activator(player) -> Node3D:
 	return _find_first_node3d_in_group(player, GROUP_MISSION_CUBE_GOAL_ZONES)
+
+
+func _cube_mission_session_is_ready(player) -> bool:
+	if _instance_role == "server":
+		return player.multiplayer.get_peers().size() >= 2
+	return Connection.is_peer_connected and _find_active_players(player).size() >= 2
 
 
 func _find_primary_pull_cube(player) -> Node3D:

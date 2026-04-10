@@ -522,43 +522,74 @@ func _build_debug_enemy_section() -> String:
 
 func _build_debug_sync_section() -> String:
 	var lines: Array[String] = ["SYNCS"]
+	var sync_nodes: Array[Node] = _collect_replicated_debug_nodes()
 	var sync_items: Array[String] = []
-	var bomb_door: Node = get_tree().get_first_node_in_group("bomb_reactives")
-	if is_instance_valid(bomb_door) and bomb_door.has_method("get_last_open_replication_delay_ms"):
-		var door_delay := int(bomb_door.call("get_last_open_replication_delay_ms"))
-		sync_items.append("porte=%s" % ("-" if door_delay < 0 else "%d ms" % door_delay))
-	var world_items: Array[Node] = get_tree().get_nodes_in_group("world_items")
-	for item in world_items:
-		if is_instance_valid(item) and item.has_method("get_last_collected_replication_delay_ms"):
-			var pickup_delay := int(item.call("get_last_collected_replication_delay_ms"))
-			if pickup_delay >= 0:
-				sync_items.append("pickup=%d ms" % pickup_delay)
-				break
-	var chest: Node = _find_first_inventory_container()
-	if is_instance_valid(chest):
-		if chest.has_method("get_snapshot_revision"):
-			sync_items.append("coffre_rev=%s" % str(chest.call("get_snapshot_revision")))
-		if chest.has_method("get_last_sync_mode"):
-			sync_items.append("coffre_mode=%s" % String(chest.call("get_last_sync_mode")))
-		if chest.has_method("get_last_snapshot_replication_delay_ms"):
-			var chest_delay := int(chest.call("get_last_snapshot_replication_delay_ms"))
-			sync_items.append("coffre=%s" % ("-" if chest_delay < 0 else "%d ms" % chest_delay))
-	var coin := _find_first_revive_coin()
-	if is_instance_valid(coin):
-		if coin.has_method("get_debug_sync_summary"):
-			sync_items.append(String(coin.call("get_debug_sync_summary")))
+	for sync_node in sync_nodes:
+		if not sync_node.has_method("get_debug_sync_summary"):
+			continue
+		sync_items.append(String(sync_node.call("get_debug_sync_summary")))
 	if sync_items.is_empty():
 		lines.append("aucune mesure")
 	else:
-		lines.append(" | ".join(sync_items))
-	var recent_events: Array[String] = _connection.get_recent_sync_events()
+		lines.append("objets suivis=%d" % sync_nodes.size())
+		for item_summary in sync_items:
+			lines.append("- " + item_summary)
+	var recent_events: Array[Dictionary] = []
+	if _connection.has_method("get_recent_sync_event_entries"):
+		recent_events = _connection.get_recent_sync_event_entries()
 	if recent_events.is_empty():
-		lines.append("events: aucun")
+		var fallback_events: Array[String] = _connection.get_recent_sync_events()
+		for event_text in fallback_events:
+			recent_events.append({
+				"text": event_text,
+			})
+	if recent_events.is_empty():
+		lines.append("events (0)")
 	else:
-		lines.append("events:")
-		for event_line in recent_events:
-			lines.append("- " + event_line)
+		lines.append("events (%d)" % recent_events.size())
+		for event_entry in recent_events:
+			lines.append("- " + String(event_entry.get("text", "")))
 	return "\n".join(lines)
+
+
+func _collect_replicated_debug_nodes() -> Array[Node]:
+	var nodes: Array[Node] = []
+	for node in get_tree().get_nodes_in_group("replicated_persistent_objects"):
+		if not is_instance_valid(node):
+			continue
+		if not node.has_method("get_debug_sync_summary"):
+			continue
+		if node.is_in_group("match_director"):
+			continue
+		if node.is_in_group("enemy_instances"):
+			continue
+		nodes.append(node)
+	nodes.sort_custom(func(a: Node, b: Node) -> bool:
+		var priority_a := _persistent_debug_priority(a)
+		var priority_b := _persistent_debug_priority(b)
+		if priority_a == priority_b:
+			return String(a.name) < String(b.name)
+		return priority_a < priority_b
+	)
+	if nodes.size() > 6:
+		nodes.resize(6)
+	return nodes
+
+
+func _persistent_debug_priority(node: Node) -> int:
+	if node.is_in_group("bomb_reactives"):
+		return 10
+	if node.is_in_group("inventory_containers"):
+		return 20
+	if node.is_in_group("revive_coins"):
+		return 30
+	if node.is_in_group("world_items"):
+		return 40
+	if node.is_in_group("mission_cube_primary"):
+		return 50
+	if node.is_in_group("enemy_directors"):
+		return 60
+	return 100
 
 
 func _collect_beetle_debug_lines() -> Array[String]:

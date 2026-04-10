@@ -26,18 +26,20 @@ var _closed_position := Vector3.ZERO
 var _closed_scale := Vector3.ONE
 var _last_open_server_ms := -1
 var _last_open_replication_delay_ms := -1
+var _state_revision := 0
 
 
 func _ready() -> void:
 	# Bomb reactives listen to utility explosions through a shared group.
 	add_to_group("bomb_reactives")
+	add_to_group("replicated_persistent_objects")
 	_closed_position = global_position
 	_closed_scale = _mesh_instance.scale
 	if multiplayer.is_server():
 		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
 	else:
-		_request_current_state.rpc_id(1)
+		_request_current_state_when_connected()
 
 
 func on_bomb_exploded(world_pos: Vector3, explosion_radius: float, _owner_peer_id: int) -> void:
@@ -88,6 +90,26 @@ func _on_peer_connected(peer_id: int) -> void:
 	call_deferred("_push_current_state_to_peer", peer_id)
 
 
+func _request_current_state_when_connected() -> void:
+	if multiplayer.is_server():
+		return
+	if multiplayer.multiplayer_peer == null:
+		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_state):
+			multiplayer.connected_to_server.connect(_on_connected_to_server_request_state, CONNECT_ONE_SHOT)
+		return
+	call_deferred("_request_current_state_from_authority")
+
+
+func _on_connected_to_server_request_state() -> void:
+	_request_current_state_from_authority()
+
+
+func _request_current_state_from_authority() -> void:
+	if multiplayer.is_server() or multiplayer.multiplayer_peer == null:
+		return
+	_request_current_state.rpc_id(1)
+
+
 func _push_current_state_to_peer(peer_id: int) -> void:
 	if peer_id <= 0:
 		return
@@ -99,6 +121,7 @@ func _push_current_state_to_peer(peer_id: int) -> void:
 func _apply_open_state(open: bool) -> void:
 	if _is_open == open:
 		return
+	_state_revision += 1
 	_is_open = open
 	_collision_shape.disabled = open
 	if open:
@@ -137,6 +160,31 @@ func is_open() -> bool:
 
 func get_last_open_replication_delay_ms() -> int:
 	return _last_open_replication_delay_ms
+
+
+func request_current_state_from_server() -> void:
+	if multiplayer.is_server():
+		return
+	if multiplayer.multiplayer_peer == null:
+		return
+	_request_current_state.rpc_id(1)
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	_push_current_state_to_peer(peer_id)
+
+
+func get_state_revision() -> int:
+	return _state_revision
+
+
+func get_debug_sync_summary() -> String:
+	return "porte=%s etat=%s rev=%d rep=%s" % [
+		String(name),
+		"ouverte" if _is_open else "fermee",
+		_state_revision,
+		"-" if _last_open_replication_delay_ms < 0 else "%d ms" % _last_open_replication_delay_ms,
+	]
 
 
 func _record_sync_event(source: String, detail: String) -> void:

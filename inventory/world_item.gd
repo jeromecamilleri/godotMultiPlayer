@@ -15,16 +15,18 @@ var _is_collected := false
 var _runtime_payload: Dictionary = {}
 var _last_collected_server_ms := -1
 var _last_collected_replication_delay_ms := -1
+var _state_revision := 0
 
 
 func _ready() -> void:
 	add_to_group("world_items")
+	add_to_group("replicated_persistent_objects")
 	_refresh_visuals()
 	if _is_server_instance():
 		if multiplayer.multiplayer_peer != null and not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
 	else:
-		_request_current_state.rpc_id(1)
+		_request_current_state_when_connected()
 
 
 func can_be_picked_up() -> bool:
@@ -91,6 +93,26 @@ func _on_peer_connected(peer_id: int) -> void:
 	call_deferred("_push_current_state_to_peer", peer_id)
 
 
+func _request_current_state_when_connected() -> void:
+	if _is_server_instance():
+		return
+	if multiplayer.multiplayer_peer == null:
+		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_state):
+			multiplayer.connected_to_server.connect(_on_connected_to_server_request_state, CONNECT_ONE_SHOT)
+		return
+	call_deferred("_request_current_state_from_authority")
+
+
+func _on_connected_to_server_request_state() -> void:
+	_request_current_state_from_authority()
+
+
+func _request_current_state_from_authority() -> void:
+	if _is_server_instance() or multiplayer.multiplayer_peer == null:
+		return
+	_request_current_state.rpc_id(1)
+
+
 func _push_current_state_to_peer(peer_id: int) -> void:
 	if peer_id <= 0:
 		return
@@ -100,6 +122,8 @@ func _push_current_state_to_peer(peer_id: int) -> void:
 
 
 func _apply_collected_state(collected: bool) -> void:
+	if _is_collected != collected:
+		_state_revision += 1
 	_is_collected = collected
 	visible = not collected
 	monitorable = not collected
@@ -132,6 +156,27 @@ func mark_collected_on_server() -> void:
 
 func get_last_collected_replication_delay_ms() -> int:
 	return _last_collected_replication_delay_ms
+
+
+func request_current_state_from_server() -> void:
+	_request_current_state_when_connected()
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	_push_current_state_to_peer(peer_id)
+
+
+func get_state_revision() -> int:
+	return _state_revision
+
+
+func get_debug_sync_summary() -> String:
+	return "pickup=%s etat=%s rev=%d rep=%s" % [
+		get_display_name(),
+		"collecte" if _is_collected else "actif",
+		_state_revision,
+		"-" if _last_collected_replication_delay_ms < 0 else "%d ms" % _last_collected_replication_delay_ms,
+	]
 
 
 func _record_sync_event(source: String, detail: String) -> void:

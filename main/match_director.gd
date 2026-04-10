@@ -34,15 +34,17 @@ var _team_progress: Dictionary = { # Shared cooperative objectives/progress.
 }
 var _tick_timer: Timer
 var _remote_snapshot_text := ""
+var _snapshot_revision := 0
 
 
 func _ready() -> void:
 	# Expose a single lookup point for gameplay systems that report score/progress.
 	add_to_group("match_director")
+	add_to_group("replicated_persistent_objects")
 	if not _is_server_instance():
 		# Clients only consume snapshots pushed by the server.
 		snapshot_changed.emit(_remote_snapshot_text)
-		_request_current_snapshot.rpc_id(1)
+		_request_current_snapshot_when_connected()
 		return
 
 	if multiplayer.has_multiplayer_peer():
@@ -59,6 +61,26 @@ func _ready() -> void:
 	add_child(_tick_timer)
 
 	_emit_snapshot()
+
+
+func _request_current_snapshot_when_connected() -> void:
+	if _is_server_instance():
+		return
+	if multiplayer.multiplayer_peer == null:
+		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_snapshot):
+			multiplayer.connected_to_server.connect(_on_connected_to_server_request_snapshot, CONNECT_ONE_SHOT)
+		return
+	call_deferred("_request_current_snapshot_from_authority")
+
+
+func _on_connected_to_server_request_snapshot() -> void:
+	_request_current_snapshot_from_authority()
+
+
+func _request_current_snapshot_from_authority() -> void:
+	if _is_server_instance() or multiplayer.multiplayer_peer == null:
+		return
+	_request_current_snapshot.rpc_id(1)
 
 
 func start_match() -> void:
@@ -302,6 +324,7 @@ func _on_tick() -> void:
 
 func _emit_snapshot() -> void:
 	var snapshot_text := get_snapshot_text()
+	_snapshot_revision += 1
 	snapshot_changed.emit(snapshot_text)
 	state_changed.emit(_state_to_string(_state))
 	if _is_server_instance():
@@ -360,6 +383,24 @@ func _count_alive_players() -> int:
 		if int(_lives_by_peer.get(peer_id, initial_lives_per_player)) > 0:
 			alive += 1
 	return alive
+
+
+func request_current_state_from_server() -> void:
+	if _is_server_instance():
+		return
+	_request_current_snapshot.rpc_id(1)
+
+
+func push_current_state_to_peer(peer_id: int) -> void:
+	_push_current_snapshot_to_peer(peer_id)
+
+
+func get_state_revision() -> int:
+	return _snapshot_revision
+
+
+func get_debug_sync_summary() -> String:
+	return "match etat=%s rev=%d joueurs=%d" % [_state_to_string(_state), _snapshot_revision, _connected_peers.size()]
 
 
 func _record_sync_event(source: String, detail: String) -> void:

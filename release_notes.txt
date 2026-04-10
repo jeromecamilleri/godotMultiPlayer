@@ -34,6 +34,15 @@
 - Bombes: le spawn de bombe utilise désormais explicitement la scène courante comme parent dans `player/components/player_interactions.gd`, ce qui évite un échec RPC dans les scénarios UI scarabées.
 
 2026-04-09
+- Refactor structurel: extraction de `main/mission_hub_enemies.tscn` pour sortir le runtime `Enemies` de `main/main.tscn` tout en gardant les mêmes chemins logiques.
+- Refactor structurel: extraction de `main/mission_cube_physics_objects.tscn` pour sortir `PhysicsObjects` de `main/main.tscn` sans casser `HubLevel/Env/PhysicsObjects/...`.
+- Ennemis: ajout de `enemies/enemy_instance_base.gd` pour homogénéiser la révision d'état, le contrat de resync/debug et les groupes runtime des instances ennemies.
+- Ennemis: `BeeBot` et `BeetleBot` héritent maintenant d'une base commune légère, comme `BeeDirector` / `BeetleDirector` héritaient déjà de `EnemyDirectorBase`.
+- Objets persistants: ajout du groupe générique `replicated_persistent_objects` sur les objets gameplay durables majeurs pour rendre le debug et les tests moins fragiles.
+- Debug réseau/gameplay: `Connection` conserve maintenant aussi un historique structuré des événements de sync (`get_recent_sync_event_entries`, `clear_recent_sync_events`).
+- UI debug: le mode `F3` agrège maintenant les résumés via le groupe `replicated_persistent_objects` au lieu de reposer sur une liste d'objets codée en dur.
+- Tests: ajout de `test/test_connection_debug_events.gd`, `test/test_main_scene_structure.gd` et `test/integration/test_persistent_late_join_sync.gd`.
+- Tests: `test/test_replicated_persistent_contract.gd` verrouille désormais aussi le groupe `replicated_persistent_objects`.
 - Scène principale: formalisation de groupes gameplay stables dans `main/main.tscn` (`mission_cube_goal_zones`, `mission_cube_bomb_doors`, `mission_cube_blockers`, `mission_cube_primary`, `mission_hub_chests`, `enemy_directors`, etc.) pour découpler les scénarios/tests des noms de nœuds fragiles.
 - Tests UI: `player/components/player_ui_test_driver.gd` utilise désormais ces groupes stables pour retrouver coffre, portes, Activator, cube principal et directeur scarabées.
 - Ennemis: unification légère du contrat `director/enemy` pour abeilles et scarabées avec groupes runtime communs (`enemy_directors`, `enemy_instances`) et méthodes homogènes (`apply_director_config`, `set_director_active`, getters de cible).
@@ -48,3 +57,12 @@
 - Observabilité: `BombDoor`, `WorldItem`, `InventoryContainer3D`, `MatchDirector` et `Coin` enregistrent désormais des événements de sync utiles au debug multi.
 - Tests: `test/integration/test_coin_revive.gd` couvre maintenant la persistance du coin consommé, la réapplication d'état late join et la mémorisation de la cible de revive.
 - Tests UI: `test/test_ui_escape.gd` vérifie aussi que l'overlay `F3` expose bien les sections debug et les événements récents de synchronisation.
+- Architecture: formalisation dans `ARCHITECTURE_PROJET.md` d'une convention publique commune pour les objets persistants répliqués (`request_current_state_from_server`, `push_current_state_to_peer`, `get_state_revision`, `get_debug_sync_summary`).
+- Objets persistants: alignement de `BombDoor`, `WorldItem`, `InventoryContainer3D`, `Coin`, `Box`, `PullableCube` et `MatchDirector` sur cette convention, avec révisions d'état et résumés debug homogènes.
+- Ennemis: `BeeBot` et `BeetleBot` exposent désormais la même API publique de resync/debug que les autres objets persistants.
+- Directeurs ennemis: extraction d'une base légère commune `enemies/enemy_director_base.gd` pour mutualiser groupes, révision d'état, debug et helpers de scène.
+- Directeurs ennemis: `BeeDirector` et `BeetleDirector` héritent maintenant de cette base et exposent eux aussi la convention publique de resynchronisation/debug.
+- UI debug: l'overlay `F3` consomme maintenant prioritairement `get_debug_sync_summary()` quand un objet persistant l'expose.
+- Modularisation: extraction de `main/mission_cube_goal_zone.tscn` pour sortir `Activator/CubeActivator` de `main/main.tscn` tout en gardant le même chemin de scène logique.
+- Tests: ajout de `test/test_replicated_persistent_contract.gd` pour verrouiller le contrat commun et la progression des révisions sur les objets persistants majeurs.
+- Tests: `test/test_enemy_director_conventions.gd` couvre maintenant aussi l'API publique de resync/debug des directeurs et des ennemis.

@@ -155,6 +155,7 @@ func test_f3_toggle_affiche_et_masque_le_debug_overlay() -> void:
 	assert_string_contains(debug_label.text, "MATCH")
 	assert_string_contains(debug_label.text, "RESEAU")
 	assert_string_contains(debug_label.text, "SYNCS")
+	assert_string_contains(debug_label.text, "events (1)")
 	assert_string_contains(debug_label.text, "coin | consomme")
 
 	ui._unhandled_input(_f3_event())
