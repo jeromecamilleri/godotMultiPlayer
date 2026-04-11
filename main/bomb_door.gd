@@ -17,8 +17,8 @@ const PUFF_SCENE := preload("res://enemies/smoke_puff/smoke_puff.tscn")
 @export var disintegrate_scale := 0.05
 @export var objective_id := ""
 
-@onready var _collision_shape: CollisionShape3D = $CollisionShape3D
-@onready var _mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var _collision_shape: CollisionShape3D = _resolve_collision_shape()
+@onready var _mesh_instance: MeshInstance3D = _resolve_mesh_instance()
 
 var _bomb_hits := 0
 var _is_open := false
@@ -34,7 +34,10 @@ func _ready() -> void:
 	add_to_group("bomb_reactives")
 	add_to_group("replicated_persistent_objects")
 	_closed_position = global_position
-	_closed_scale = _mesh_instance.scale
+	if is_instance_valid(_mesh_instance):
+		_closed_scale = _mesh_instance.scale
+	else:
+		push_warning("BombDoor '%s' has no MeshInstance3D child; visual open/close effects are disabled." % String(name))
 	if multiplayer.is_server():
 		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
@@ -123,7 +126,8 @@ func _apply_open_state(open: bool) -> void:
 		return
 	_state_revision += 1
 	_is_open = open
-	_collision_shape.disabled = open
+	if is_instance_valid(_collision_shape):
+		_collision_shape.disabled = open
 	if open:
 		if open_behavior == OpenBehavior.DISINTEGRATE:
 			_play_disintegrate_open_effect()
@@ -134,13 +138,16 @@ func _apply_open_state(open: bool) -> void:
 		return
 
 	# Reset path (currently only useful for editor/manual testing).
-	_mesh_instance.visible = true
-	_mesh_instance.scale = _closed_scale
-	_mesh_instance.transparency = 0.0
+	if is_instance_valid(_mesh_instance):
+		_mesh_instance.visible = true
+		_mesh_instance.scale = _closed_scale
+		_mesh_instance.transparency = 0.0
 	global_position = _closed_position
 
 
 func _play_disintegrate_open_effect() -> void:
+	if not is_instance_valid(_mesh_instance):
+		return
 	_spawn_puff()
 	var tween := create_tween()
 	tween.parallel().tween_property(_mesh_instance, "scale", _closed_scale * disintegrate_scale, disintegrate_duration)
@@ -187,3 +194,27 @@ func _record_sync_event(source: String, detail: String) -> void:
 	var connection := get_tree().get_first_node_in_group("connection_service")
 	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
 		connection.call("record_sync_event", source, detail)
+
+
+func _resolve_collision_shape() -> CollisionShape3D:
+	var direct := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if is_instance_valid(direct):
+		return direct
+	var discovered := find_children("*", "CollisionShape3D", true, false)
+	for candidate in discovered:
+		var shape := candidate as CollisionShape3D
+		if is_instance_valid(shape):
+			return shape
+	return null
+
+
+func _resolve_mesh_instance() -> MeshInstance3D:
+	var direct := get_node_or_null("MeshInstance3D") as MeshInstance3D
+	if is_instance_valid(direct):
+		return direct
+	var discovered := find_children("*", "MeshInstance3D", true, false)
+	for candidate in discovered:
+		var mesh := candidate as MeshInstance3D
+		if is_instance_valid(mesh):
+			return mesh
+	return null

@@ -88,6 +88,16 @@
 - Tests UI: le scénario `portal_unlock` a été réaligné sur les groupes `mission_wood_pickups` et `mission_apple_pickups`, ce qui le rend compatible avec la nouvelle map multi-zone.
 - Validation: la base est maintenant verte avec `67/67` tests GUT passés, plus les wrappers UI `inventory_chest`, `portal_unlock`, `portal_logistics`, `cube_mission` et `beetle_targeting`.
 2026-04-11
+- Tests UI: ajout de `test/UI/run_ui_suite.sh` avec profils `smoke`/`full` et sélection par fichiers modifiés (`--changed`) pour réduire le coût des validations locales.
+- Tests UI: `test_portal_progression_ui.py` est maintenant découpé en modes `--phase breche|reactor|full`.
+- Tests UI: ajout des wrappers `test_portal_progression_breche_ui.sh` et `test_portal_progression_reactor_ui.sh`.
+- Tests GUT E2E: `test/test_ui_e2e.gd` supporte désormais `UI_E2E_PROFILE=smoke|full` (smoke ciblé par défaut de profil côté logique du test).
+- Intégration: `test/integration/test_portal_progression.gd` découpe les préconditions serveur en tests séparés (phase brèche et phase réacteur).
+- Documentation: ajout d'une matrice initiale "fichiers modifiés -> tests UI recommandés" dans `ARCHITECTURE_PROJET.md`.
+- BombDoor: durcissement de `main/bomb_door.gd` pour ne plus planter si la hiérarchie visuelle est modifiée en éditeur (résolution dynamique de `MeshInstance3D` / `CollisionShape3D`, gardes nulles avant accès à `.scale`/`.visible`).
+- Main scene: conversion explicite des sous-nœuds de `ZoneBreche/Interactives/BombDoor4` et `BombDoor7` en nœuds typés dans `main/main.tscn` pour supprimer les overrides instables "modified from inside an instance... vanished".
+- Tests: assouplissement de `test/test_beetle_director.gd` pour accepter `>= 3` portes de mission, afin de rester compatible avec l'ajout de portes dans la brèche.
+- Validation: `96/96` GUT passés et `test/UI/test_portal_progression_ui.sh` vert après correction.
 - Portails: ajout d'un libellé de destination dans `levels/portal/portal.tscn` et `levels/portal/portal.gd`, avec état visuel explicite `BLOQUE` rouge / `OUVERT` vert.
 - Portails: ajout de pylônes guides colorés autour de chaque portail pour renforcer la lisibilité à distance sans changer la logique de progression.
 - Zones: ajout de marqueurs visuels dédiés dans `zone_scierie.tscn`, `zone_verger.tscn`, `zone_breche.tscn` et `zone_reactor.tscn` pour donner une identité immédiate à chaque biome.
@@ -98,3 +108,7 @@
 - Tests UI: `player/components/player_ui_test_driver.gd` ne téléporte plus directement les clients pour `portal_unlock`; il se contente désormais de piloter les états gameplay après préparation serveur.
 - Validation: `test/UI/test_portal_unlock_ui.sh` repasse vert avec `portal_breche_active = true` sur serveur et clients.
 - Validation: batch UI complet repassé vert (`inventory_chest`, `inventory_player_proximity`, `inventory_transfer_multiplayer`, `late_join_bomb_wood`, `portal_unlock`, `portal_logistics`, `portal_progression`, `cube_mission`, `cube_mission_lock`, `beetle_targeting`, `beetle_door_charge`).
+- Tests UI: stabilisation du scénario `late_join_bomb_wood` en ciblant un pickup bois déterministe (même objet côté client A/B) et en forçant un spawn de bombe au contact de la porte.
+- Tests UI: `test_portal_unlock_ui.sh` est maintenant un wrapper de compatibilité qui délègue à `test_portal_progression_ui.py --phase breche` (même objectif métier, scénario moins fragile).
+- Tests UI: ajout d'un runner `smoke/full` opérationnel (`test/UI/run_ui_suite.sh`) validé avec `--profile smoke`, `--profile full` et `--changed`.
+- Validation: `99/99` GUT passés, `test/UI/run_ui_suite.sh --profile smoke` vert, `test/UI/run_ui_suite.sh --profile full` vert.

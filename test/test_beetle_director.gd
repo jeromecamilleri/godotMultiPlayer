@@ -162,5 +162,7 @@ func test_main_scene_exposes_stable_mission_groups() -> void:
 	assert_true(breche_director != null and breche_director.is_in_group("mission_breche_beetle_directors"), "Le BeetleDirector de la brèche doit exposer un groupe stable dédié.")
 	assert_true(chest != null and chest.is_in_group("mission_hub_chests"), "Le coffre du hub doit exposer un groupe stable.")
 	assert_true(primary_cube != null and primary_cube.is_in_group("mission_cube_primary"), "Le cube principal doit exposer un groupe stable.")
-	assert_eq(3, bomb_doors.size(), "La mission cube doit exposer exactement 3 portes via un groupe stable.")
+	assert_true(bomb_doors.size() >= 3, "La mission cube doit exposer au moins 3 portes via un groupe stable.")
+	for door in bomb_doors:
+		assert_true(door is BombDoor, "Chaque porte de mission groupee doit rester un BombDoor.")
 	assert_eq(3, blockers.size(), "La mission cube doit exposer exactement 3 caisses bloqueuses via un groupe stable.")

@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
+[ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
 [ext_resource type="PackedScene" path="res://main/mission_hub_interactives.tscn" id="30_intpkg"]
 [ext_resource type="PackedScene" path="res://levels/zones/zone_scierie.tscn" id="34_zone_scierie"]
 [ext_resource type="PackedScene" path="res://levels/zones/zone_verger.tscn" id="35_zone_verger"]
@@ -27,6 +28,15 @@
 [sub_resource type="PlaneMesh" id="PlaneMesh_n3o0a"]
 subdivide_width = 120
 subdivide_depth = 120
+
+[sub_resource type="BoxMesh" id="BoxMesh_bd01"]
+size = Vector3(4, 4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bd01"]
+albedo_color = Color(1, 0.439216, 0.117647, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bd01"]
+size = Vector3(3.7902527, 4.055664, 0.7084961)
 
 [node name="Main" type="Node" unique_id=2042604208]
 
@@ -141,6 +151,73 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -120)
 
 [node name="ZoneBreche" parent="." unique_id=1900001003 instance=ExtResource("36_zone_breche")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.88777, 0.050182343, 17.821526)
+
+[node name="BombDoor4" type="StaticBody3D" parent="ZoneBreche/Interactives" index="6" unique_id=1207353856 groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(-0.02047126, 0, 0.99979043, 0, 1, 0, -0.99979043, 0, -0.02047126, 2.41127, 5.8110237, 13.733791)
+script = ExtResource("19_bd01")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor4" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, -0.2206491)
+mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor3")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor4" index="1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
+shape = SubResource("BoxShape3D_bd01")
+
+[node name="BombDoor5" type="StaticBody3D" parent="ZoneBreche/Interactives" index="7" unique_id=1415896437 groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(-0.02047126, 0, 0.99979043, 0, 1, 0, -0.99979043, 0, -0.02047126, 2.2810595, 5.8110237, 17.703714)
+script = ExtResource("19_bd01")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor5" unique_id=2021340324]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, -0.2206491)
+mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor3")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor5" unique_id=1726167708]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
+shape = SubResource("BoxShape3D_bd01")
+
+[node name="BombDoor6" type="StaticBody3D" parent="ZoneBreche/Interactives" index="8" unique_id=808413018 groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(-0.02047126, 0, 0.99979043, 0, 1, 0, -0.99979043, 0, -0.02047126, 2.3154876, 5.8110237, 21.679943)
+script = ExtResource("19_bd01")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor6" unique_id=2103263150]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, -0.2206491)
+mesh = SubResource("BoxMesh_bd01")
+skeleton = NodePath("../../BombDoor3")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor6" unique_id=647243558]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
+shape = SubResource("BoxShape3D_bd01")
+
+[node name="BombDoor7" type="StaticBody3D" parent="ZoneBreche/Interactives" index="9" unique_id=2067669338 groups=["mission_cube_bomb_doors"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.989768, 6, 9.972226)
+script = ExtResource("19_bd01")
+trigger_radius = 3.5
+open_height = 4.0
+objective_id = "bomb_door_opened"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor7" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5623875, 0, 0)
+mesh = SubResource("BoxMesh_bd01")
+surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor7" index="1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5490217, 0, -0.009033203)
+shape = SubResource("BoxShape3D_bd01")
 
 [node name="ZoneReactor" parent="." unique_id=1900001004 instance=ExtResource("37_zone_reactor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120, 0, 28)

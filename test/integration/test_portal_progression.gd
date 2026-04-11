@@ -7,7 +7,7 @@ const WOOD_ITEM := preload("res://inventory/items/wood.tres")
 const APPLE_ITEM := preload("res://inventory/items/apple.tres")
 
 
-func test_match_director_unlocks_breche_then_reactor_portals() -> void:
+func _setup_portal_progression_world() -> Dictionary:
 	var world := Node3D.new()
 	add_child_autofree(world)
 
@@ -34,24 +34,59 @@ func test_match_director_unlocks_breche_then_reactor_portals() -> void:
 	var breche_interactives := BRECHE_INTERACTIVES_SCENE.instantiate()
 	world.add_child(breche_interactives)
 
+	return {
+		"world": world,
+		"director": director,
+		"chest": hub_interactives.get_node("Chest"),
+		"breche_portal": breche_portal,
+		"reactor_portal": reactor_portal,
+	}
+
+
+func _fill_hub_chest_with_unlock_quota(chest: Node) -> void:
+	var chest_inventory: Variant = chest.call("get_inventory_component")
+	assert_not_null(chest_inventory)
+	chest_inventory.call("add_payload", WOOD_ITEM.call("to_inventory_payload", 4))
+	chest_inventory.call("add_payload", APPLE_ITEM.call("to_inventory_payload", 2))
+
+
+func test_match_director_unlocks_breche_portal_from_chest_quota() -> void:
+	var setup := _setup_portal_progression_world()
 	await wait_process_frames(3)
 
-	var chest := hub_interactives.get_node("Chest")
+	var chest := setup["chest"] as Node
+	var director := setup["director"] as MatchDirector
+	var breche_portal := setup["breche_portal"] as Node
+	var reactor_portal := setup["reactor_portal"] as Node
 	assert_not_null(chest)
 
 	assert_false(bool(breche_portal.call("is_portal_active")), "Le portail Breche doit commencer inactif.")
 	assert_false(bool(reactor_portal.call("is_portal_active")), "Le portail Reactor doit commencer inactif.")
 
-	var chest_inventory: Variant = chest.call("get_inventory_component")
-	assert_not_null(chest_inventory)
-	chest_inventory.call("add_payload", WOOD_ITEM.call("to_inventory_payload", 4))
-	chest_inventory.call("add_payload", APPLE_ITEM.call("to_inventory_payload", 2))
+	_fill_hub_chest_with_unlock_quota(chest)
 	director.call("_update_zone_progression")
 
 	assert_true(bool(breche_portal.call("is_portal_active")), "Le portail Breche doit s'activer après dépôt du quota bois/pommes.")
 	assert_false(bool(reactor_portal.call("is_portal_active")), "Le portail Reactor doit rester fermé tant que les portes ne sont pas ouvertes.")
 	assert_string_contains(director.get_snapshot_text(), "portal_breche_unlocked: 1")
 	assert_string_contains(director.get_snapshot_text(), "portal_reactor_unlocked: 0")
+
+
+func test_match_director_unlocks_reactor_portal_after_bomb_doors_open() -> void:
+	var setup := _setup_portal_progression_world()
+	await wait_process_frames(3)
+
+	var world := setup["world"] as Node3D
+	var chest := setup["chest"] as Node
+	var director := setup["director"] as MatchDirector
+	var breche_portal := setup["breche_portal"] as Node
+	var reactor_portal := setup["reactor_portal"] as Node
+	assert_not_null(chest)
+
+	_fill_hub_chest_with_unlock_quota(chest)
+	director.call("_update_zone_progression")
+	assert_true(bool(breche_portal.call("is_portal_active")), "La phase breche doit être ouverte avant le test reactor.")
+	assert_false(bool(reactor_portal.call("is_portal_active")), "Le portail Reactor doit rester fermé avant ouverture des BombDoor.")
 
 	for door in world.get_tree().get_nodes_in_group("mission_cube_bomb_doors"):
 		door.call("_apply_open_state", true)

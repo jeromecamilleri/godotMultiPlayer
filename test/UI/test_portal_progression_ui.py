@@ -12,7 +12,33 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-OUT_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/portal-progression-ui")
+PHASE_MODE = "full"
+OUT_DIR = Path("/tmp/portal-progression-ui")
+
+
+def parse_args() -> None:
+    global OUT_DIR, PHASE_MODE
+    args = list(sys.argv[1:])
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if arg == "--phase":
+            if idx + 1 >= len(args):
+                raise ValueError("--phase attend une valeur: breche|reactor|full")
+            PHASE_MODE = args[idx + 1].strip().lower()
+            idx += 2
+            continue
+        if arg.startswith("--phase="):
+            PHASE_MODE = arg.split("=", 1)[1].strip().lower()
+            idx += 1
+            continue
+        OUT_DIR = Path(arg)
+        idx += 1
+    if PHASE_MODE not in {"breche", "reactor", "full"}:
+        raise ValueError(f"phase inconnue: {PHASE_MODE}")
+
+
+parse_args()
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 SUMMARY_PATH = OUT_DIR / "summary.txt"
 
@@ -283,27 +309,39 @@ def main() -> int:
     phase("Capture initiale", "01_before_portal_progression.png")
     import_root(OUT_DIR / "01_before_portal_progression.png")
 
-    phase("Progression multi-zone", "attente des phases Breche puis Reactor")
+    if PHASE_MODE == "breche":
+        phase("Progression multi-zone", "attente phase Breche uniquement")
+    elif PHASE_MODE == "reactor":
+        phase("Progression multi-zone", "attente phase Reactor (et phase Breche préalable)")
+    else:
+        phase("Progression multi-zone", "attente des phases Breche puis Reactor")
+
     breche_phase = wait_for_json(OUT_DIR / "portal_progression_phase_breche.json", timeout_sec=50.0)
     import_root(OUT_DIR / "02_after_breche_unlock.png")
-    reactor_phase = wait_for_json(OUT_DIR / "portal_progression_phase_reactor.json", timeout_sec=60.0)
-    import_root(OUT_DIR / "03_after_reactor_unlock.png")
+    reactor_phase: dict | None = None
+    if PHASE_MODE in {"reactor", "full"}:
+        reactor_phase = wait_for_json(OUT_DIR / "portal_progression_phase_reactor.json", timeout_sec=60.0)
+        import_root(OUT_DIR / "03_after_reactor_unlock.png")
 
-    client_a_state = wait_for_json(OUT_DIR / "portal_progression_client_a.json", timeout_sec=75.0)
-    client_b_state = wait_for_json(OUT_DIR / "portal_progression_client_b.json", timeout_sec=75.0)
-    server_state = try_wait_for_json(OUT_DIR / "portal_progression_server.json", timeout_sec=6.0)
-    if server_state is None:
-        server_state = {
-            "fallback_source": "client_snapshots",
-            "initial_scierie_active": True,
-            "initial_verger_active": True,
-            "initial_breche_active": False,
-            "initial_reactor_active": False,
-            "breche_unlocked": bool(client_a_state.get("breche_unlocked_observed", False)) or bool(client_b_state.get("breche_unlocked_observed", False)),
-            "reactor_unlocked": bool(client_a_state.get("reactor_unlocked_observed", False)) or bool(client_b_state.get("reactor_unlocked_observed", False)),
-            "chest_wood": max(int(client_a_state.get("chest_wood", 0)), int(client_b_state.get("chest_wood", 0))),
-            "chest_apple": max(int(client_a_state.get("chest_apple", 0)), int(client_b_state.get("chest_apple", 0))),
-        }
+    client_a_state: dict | None = None
+    client_b_state: dict | None = None
+    server_state: dict | None = None
+    if PHASE_MODE == "full":
+        client_a_state = wait_for_json(OUT_DIR / "portal_progression_client_a.json", timeout_sec=75.0)
+        client_b_state = wait_for_json(OUT_DIR / "portal_progression_client_b.json", timeout_sec=75.0)
+        server_state = try_wait_for_json(OUT_DIR / "portal_progression_server.json", timeout_sec=6.0)
+        if server_state is None:
+            server_state = {
+                "fallback_source": "client_snapshots",
+                "initial_scierie_active": True,
+                "initial_verger_active": True,
+                "initial_breche_active": False,
+                "initial_reactor_active": False,
+                "breche_unlocked": bool(client_a_state.get("breche_unlocked_observed", False)) or bool(client_b_state.get("breche_unlocked_observed", False)),
+                "reactor_unlocked": bool(client_a_state.get("reactor_unlocked_observed", False)) or bool(client_b_state.get("reactor_unlocked_observed", False)),
+                "chest_wood": max(int(client_a_state.get("chest_wood", 0)), int(client_b_state.get("chest_wood", 0))),
+                "chest_apple": max(int(client_a_state.get("chest_apple", 0)), int(client_b_state.get("chest_apple", 0))),
+            }
 
     time.sleep(0.8)
     import_window(server_window_id, OUT_DIR / "04_server_portal_progression.png")
@@ -311,31 +349,51 @@ def main() -> int:
     import_window(client_b_window_id, OUT_DIR / "06_client_b_portal_progression.png")
     import_root(OUT_DIR / "07_after_portal_progression.png")
 
-    if not bool(server_state.get("initial_scierie_active", False)) or not bool(server_state.get("initial_verger_active", False)):
-        raise AssertionError(f"Les portails Scierie et Verger devaient être actifs dès le début: {server_state}")
-    if bool(server_state.get("initial_breche_active", True)) or bool(server_state.get("initial_reactor_active", True)):
-        raise AssertionError(f"Les portails Breche et Reactor devaient être inactifs au début: {server_state}")
-    if not bool(server_state.get("breche_unlocked", False)):
-        raise AssertionError(f"Le portail Breche devait être déverrouillé en cours de progression: {server_state}")
-    if not bool(server_state.get("reactor_unlocked", False)):
-        raise AssertionError(f"Le portail Reactor devait être déverrouillé après la brèche: {server_state}")
-    if not bool(client_a_state.get("breche_unlocked_observed", False)) or not bool(client_a_state.get("breche_entered", False)):
-        raise AssertionError(f"Le client A devait observer puis traverser la brèche: {client_a_state}")
-    if not bool(client_a_state.get("doors_opened", False)):
-        raise AssertionError(f"Le client A devait réellement ouvrir les BombDoor: {client_a_state}")
-    if not bool(client_a_state.get("reactor_entered", False)):
-        raise AssertionError(f"Le client A devait atteindre la zone Reactor: {client_a_state}")
-    if not bool(client_b_state.get("breche_unlocked_observed", False)) or not bool(client_b_state.get("reactor_unlocked_observed", False)):
-        raise AssertionError(f"Le client B devait observer la progression des portails: {client_b_state}")
-    if not bool(client_b_state.get("reactor_entered", False)):
-        raise AssertionError(f"Le client B devait atteindre la zone Reactor: {client_b_state}")
+    if not bool(breche_phase.get("breche_active", False)):
+        raise AssertionError(f"La phase Breche devait activer le portail Breche: {breche_phase}")
+    if bool(breche_phase.get("reactor_active", True)):
+        raise AssertionError(f"La phase Breche ne devait pas activer Reactor: {breche_phase}")
 
-    phase("Assertions", "progression complète validée du hub jusqu'au réacteur avec états de portails cohérents")
+    if PHASE_MODE in {"reactor", "full"}:
+        assert reactor_phase is not None
+        if not bool(reactor_phase.get("reactor_active", False)):
+            raise AssertionError(f"La phase Reactor devait activer le portail Reactor: {reactor_phase}")
+
+    if PHASE_MODE == "full":
+        assert server_state is not None and client_a_state is not None and client_b_state is not None
+        if not bool(server_state.get("initial_scierie_active", False)) or not bool(server_state.get("initial_verger_active", False)):
+            raise AssertionError(f"Les portails Scierie et Verger devaient être actifs dès le début: {server_state}")
+        if bool(server_state.get("initial_breche_active", True)) or bool(server_state.get("initial_reactor_active", True)):
+            raise AssertionError(f"Les portails Breche et Reactor devaient être inactifs au début: {server_state}")
+        if not bool(server_state.get("breche_unlocked", False)):
+            raise AssertionError(f"Le portail Breche devait être déverrouillé en cours de progression: {server_state}")
+        if not bool(server_state.get("reactor_unlocked", False)):
+            raise AssertionError(f"Le portail Reactor devait être déverrouillé après la brèche: {server_state}")
+        if not bool(client_a_state.get("breche_unlocked_observed", False)) or not bool(client_a_state.get("breche_entered", False)):
+            raise AssertionError(f"Le client A devait observer puis traverser la brèche: {client_a_state}")
+        if not bool(client_a_state.get("doors_opened", False)):
+            raise AssertionError(f"Le client A devait réellement ouvrir les BombDoor: {client_a_state}")
+        if not bool(client_a_state.get("reactor_entered", False)):
+            raise AssertionError(f"Le client A devait atteindre la zone Reactor: {client_a_state}")
+        if not bool(client_b_state.get("breche_unlocked_observed", False)) or not bool(client_b_state.get("reactor_unlocked_observed", False)):
+            raise AssertionError(f"Le client B devait observer la progression des portails: {client_b_state}")
+        if not bool(client_b_state.get("reactor_entered", False)):
+            raise AssertionError(f"Le client B devait atteindre la zone Reactor: {client_b_state}")
+        phase("Assertions", "progression complète validée du hub jusqu'au réacteur avec états de portails cohérents")
+    elif PHASE_MODE == "reactor":
+        phase("Assertions", "phase reactor validée (portail Breche puis Reactor actifs)")
+    else:
+        phase("Assertions", "phase breche validée (Breche actif, Reactor encore bloqué)")
+
     log(f"breche_phase={breche_phase}")
-    log(f"reactor_phase={reactor_phase}")
-    log(f"server_state={server_state}")
-    log(f"client_a_state={client_a_state}")
-    log(f"client_b_state={client_b_state}")
+    if reactor_phase is not None:
+        log(f"reactor_phase={reactor_phase}")
+    if server_state is not None:
+        log(f"server_state={server_state}")
+    if client_a_state is not None:
+        log(f"client_a_state={client_a_state}")
+    if client_b_state is not None:
+        log(f"client_b_state={client_b_state}")
     phase("Fin du scénario", f"captures={OUT_DIR}")
     write_summary()
     return 0

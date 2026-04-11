@@ -39,6 +39,13 @@ Pour les tests, il faut privilégier ces identifiants et des assertions toléran
 ## Exécution en ligne de commande
 
 ```bash
+# Suite UI rapide/complète
+./test/UI/run_ui_suite.sh --profile smoke
+./test/UI/run_ui_suite.sh --profile full
+
+# Suite UI pilotée par fichiers modifiés (matrice initiale)
+./test/UI/run_ui_suite.sh --changed main/match_director.gd levels/portal/portal.gd
+
 # Coffre (1 instance)
 ./test/UI/test_inventory_chest_ui.sh [OUT_DIR]
 
@@ -62,12 +69,18 @@ Pour les tests, il faut privilégier ces identifiants et des assertions toléran
 
 # Déverrouillage du portail Breche via coffre (serveur + client_a + client_b)
 ./test/UI/test_portal_unlock_ui.sh [OUT_DIR]
+: wrapper de compatibilité. Ce script délègue maintenant à `test_portal_progression_ui.py --phase breche`
+: pour garder un scénario de déverrouillage Breche stable et rapide.
 
 # Logistique multi-zone via portails (serveur + client_a + client_b)
 ./test/UI/test_portal_logistics_ui.sh [OUT_DIR]
 
 # Progression complète hub -> ressources -> brèche -> réacteur
 ./test/UI/test_portal_progression_ui.sh [OUT_DIR]
+
+# Progression portal en phases (plus rapides)
+./test/UI/test_portal_progression_breche_ui.sh [OUT_DIR]
+./test/UI/test_portal_progression_reactor_ui.sh [OUT_DIR]
 
 # Campagne de charge réplication (par défaut 10 joueurs, ou liste "2,4,6,8,10")
 ./test/UI/test_replication_stress_ui.sh [OUT_DIR] [PLAYER_COUNTS]
@@ -80,10 +93,8 @@ Prérequis : Linux, Xvfb, xdotool, ImageMagick (`import`), python3, PIL.
 Les tests E2E sont appelés depuis GUT via le script **`test/test_ui_e2e.gd`** :
 
 - **Sans variable d’environnement** : les deux tests (coffre, transfert multijoueur) sont ignorés (retour immédiat, succès).
-- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_late_join_bomb_wood_ui.sh`, `test_cube_mission_ui.sh`, `test_cube_mission_lock_ui.sh`, `test_beetle_targeting_ui.sh` et `test_beetle_door_charge_ui.sh` et vérifie que le code de sortie est 0.
-- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute aussi `test_portal_unlock_ui.sh` pour vérifier le déverrouillage du portail Breche par dépôt au coffre.
-- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute aussi `test_portal_logistics_ui.sh` pour vérifier que les portails servent réellement à la collecte multi-zone et au retour vers le hub.
-- **Avec `RUN_UI_E2E=1`** (et Linux) : GUT exécute aussi `test_portal_progression_ui.sh` pour vérifier la progression complète de la vraie map jusqu'au réacteur.
+- **Avec `RUN_UI_E2E=1` + `UI_E2E_PROFILE=full`** (et Linux) : GUT exécute toute la batterie UI.
+- **Avec `RUN_UI_E2E=1` + `UI_E2E_PROFILE=smoke`** (et Linux) : GUT exécute uniquement une base rapide (`inventory_chest`, `portal_unlock`, `portal_progression_breche`, `cube_mission`).
 
 Le test de charge `test_replication_stress_ui.sh` n’est pas branché dans `RUN_UI_E2E=1` par défaut, car il est volontairement plus lourd.
 

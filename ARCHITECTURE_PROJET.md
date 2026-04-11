@@ -266,6 +266,40 @@ Remarques d'audit :
 - `set_player_lives()`: point d'entrée unique pour modifier les vies
 - `get_snapshot_text()`: fabrique le texte utilisé par l'UI
 
+### Matrice initiale de lancement des tests
+
+Pour réduire le coût de validation locale, utiliser prioritairement :
+
+- suite UI rapide : `test/UI/run_ui_suite.sh --profile smoke`
+- suite UI complète : `test/UI/run_ui_suite.sh --profile full`
+- suite UI ciblée par fichiers : `test/UI/run_ui_suite.sh --changed <fichiers>`
+
+Recommandation initiale par zone de code modifiée :
+
+- `inventory/*`, `ui/inventory_*`, `ui/*inventory*`
+: lancer `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_inventory_player_proximity_ui.sh`
+
+- `levels/portal/*`, `main/match_director.gd`, `main/ui_test_scenario_server_pilot.gd`, `levels/zones/*`, `main/mission_zone_*`
+: lancer `test_portal_unlock_ui.sh`, `test_portal_progression_breche_ui.sh`, `test_portal_progression_reactor_ui.sh`
+: `test_portal_unlock_ui.sh` est conservé pour compatibilité et exécute la phase `breche` de `portal_progression`.
+
+- `main/rigid_body_3d.gd`, `main/cube_activator.gd`, `player/components/player_interactions.gd`, `main/mission_cube_*`
+: lancer `test_cube_mission_ui.sh`, `test_cube_mission_lock_ui.sh`
+
+- `enemies/beetle_*`, `enemies/bee_*`, `enemies/enemy_*`, `main/mission_*enemies*`
+: lancer `test_beetle_targeting_ui.sh`, `test_beetle_door_charge_ui.sh`
+
+- `main/bomb_door.gd`, `environment/box/*`
+: lancer `test_portal_progression_reactor_ui.sh`, `test_cube_mission_ui.sh`
+
+- `player/*`, `main/player_spawner.gd`, `main/connection.gd`, `ui/ui.gd`, `ui/ui.tscn`
+: lancer au minimum `test/UI/run_ui_suite.sh --profile smoke`
+
+Note opérationnelle :
+
+- en CI, garder `UI_E2E_PROFILE=full` pour la non-régression complète
+- en local, privilégier `UI_E2E_PROFILE=smoke` pendant l'itération puis un passage `full` avant merge
+
 ### Conventions directeurs / ennemis
 
 Contrat minimal désormais attendu pour les ennemis gérés par un directeur :

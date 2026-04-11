@@ -34,6 +34,9 @@ var _late_join := {
 	"started_ms": 0,
 	"phase_started_ms": 0,
 	"written": false,
+	"retry_count": 0,
+	"initial_wood_count": -1,
+	"wood_path": "",
 }
 var _cube_mission := {
 	"state": "",
@@ -101,6 +104,7 @@ var _portal_unlock := {
 	"written": false,
 	"wood_stage": 0,
 	"apple_done": false,
+	"initial_apple_count": -1,
 }
 var _portal_logistics := {
 	"state": "",
@@ -561,6 +565,7 @@ func _setup_portal_unlock_scenario(player) -> void:
 			if apple == null:
 				return
 			_portal_unlock["state"] = "pickup_apple"
+			_portal_unlock["initial_apple_count"] = player.inventory.count_item("apple")
 		"server":
 			player.global_position = chest.global_position + Vector3(-0.8, 0.0, 2.2)
 			_look_at_node(player, chest)
@@ -841,12 +846,14 @@ func _update_cube_mission_scenario(player) -> void:
 func _setup_late_join_bomb_wood_scenario(player) -> void:
 	if _setup_done or not player.is_multiplayer_authority():
 		return
-	var resolved := await _await_bomb_door_and_item(player, "WoodPickup")
-	var bomb_door: Node3D = resolved.get("bomb_door")
-	var wood: Node3D = resolved.get("item")
+	var bomb_door := _find_bomb_door(player)
+	var wood := _find_first_pickup_in_group_near_position(player, GROUP_MISSION_WOOD_PICKUPS, bomb_door.global_position) if bomb_door != null else null
+	if wood == null:
+		wood = _find_first_available_pickup_in_group(player, GROUP_MISSION_WOOD_PICKUPS)
 	if bomb_door == null or wood == null:
 		return
 	_setup_done = true
+	_late_join["wood_path"] = String(wood.get_path())
 	player.velocity = Vector3.ZERO
 	match _instance_role:
 		"client_a":
@@ -854,6 +861,10 @@ func _setup_late_join_bomb_wood_scenario(player) -> void:
 			_look_at_node(player, bomb_door)
 			_late_join["state"] = "open_door"
 			_late_join["started_ms"] = Time.get_ticks_msec()
+			_late_join["phase_started_ms"] = Time.get_ticks_msec()
+			_late_join["retry_count"] = 0
+			_late_join["initial_wood_count"] = player.inventory.count_item("wood")
+			_late_join["wood_path"] = String(wood.get_path())
 		"client_b":
 			player.global_position = bomb_door.global_position + Vector3(-2.4, 0.0, 1.0)
 			_look_at_node(player, bomb_door)
@@ -864,8 +875,21 @@ func _setup_late_join_bomb_wood_scenario(player) -> void:
 
 
 func _update_late_join_bomb_wood_scenario(player) -> void:
+	if not _setup_done:
+		_setup_late_join_bomb_wood_scenario(player)
+		if not _setup_done:
+			return
 	var bomb_door := _find_bomb_door(player)
-	var wood := _find_world_item(player, "WoodPickup")
+	var wood_path := String(_late_join.get("wood_path", "")).strip_edges()
+	var wood: Node3D = null
+	if not wood_path.is_empty():
+		wood = player.get_node_or_null(wood_path) as Node3D
+	if wood == null:
+		wood = _find_first_pickup_in_group_near_position(player, GROUP_MISSION_WOOD_PICKUPS, bomb_door.global_position) if bomb_door != null else null
+	if wood == null:
+		wood = _find_first_available_pickup_in_group(player, GROUP_MISSION_WOOD_PICKUPS)
+	if wood != null and wood_path.is_empty():
+		_late_join["wood_path"] = String(wood.get_path())
 	if bomb_door == null:
 		return
 	match _instance_role:
@@ -876,15 +900,17 @@ func _update_late_join_bomb_wood_scenario(player) -> void:
 
 
 func _update_late_join_client_a(player, bomb_door: Node3D, wood: Node3D) -> void:
+	var door_open := bomb_door.has_method("is_open") and bool(bomb_door.call("is_open"))
+	var wood_pickable := wood != null and wood.has_method("can_be_picked_up") and bool(wood.call("can_be_picked_up"))
 	match String(_late_join["state"]):
 		"open_door":
 			if Time.get_ticks_msec() - int(_late_join["started_ms"]) < 500:
 				return
-			player.place_bomb()
+			_spawn_bomb_at_target_door(player, bomb_door)
 			_late_join["state"] = "wait_door_open"
 			_late_join["phase_started_ms"] = Time.get_ticks_msec()
 		"wait_door_open":
-			if bomb_door.has_method("is_open") and bool(bomb_door.call("is_open")):
+			if door_open:
 				if wood != null:
 					player.global_position = wood.global_position + Vector3(0.2, 0.0, 2.0)
 					player.velocity = Vector3.ZERO
@@ -892,16 +918,52 @@ func _update_late_join_client_a(player, bomb_door: Node3D, wood: Node3D) -> void
 					player.request_pickup_world_item(wood.get_path())
 				_late_join["state"] = "wait_wood_pickup"
 				_late_join["phase_started_ms"] = Time.get_ticks_msec()
-		"wait_wood_pickup":
-			var wood_pickable := wood != null and wood.has_method("can_be_picked_up") and bool(wood.call("can_be_picked_up"))
-			if player.inventory.count_item("wood") > 0 or not wood_pickable:
+				return
+			var wait_elapsed_ms := Time.get_ticks_msec() - int(_late_join["phase_started_ms"])
+			if wait_elapsed_ms > 2200 and int(_late_join.get("retry_count", 0)) < 2:
+				_spawn_bomb_at_target_door(player, bomb_door)
+				_late_join["retry_count"] = int(_late_join.get("retry_count", 0)) + 1
+				_late_join["phase_started_ms"] = Time.get_ticks_msec()
+				return
+			if wait_elapsed_ms > 9000:
 				_write_sync_result(
 					"late_join_client_a.json",
 					{
-						"door_open": bomb_door.has_method("is_open") and bool(bomb_door.call("is_open")),
+						"door_open": door_open,
 						"wood_pickable": wood_pickable,
 						"wood_visible": wood != null and wood.visible,
 						"player_wood_count": player.inventory.count_item("wood"),
+						"error": "timeout_wait_door_open",
+						"retry_count": int(_late_join.get("retry_count", 0)),
+					}
+				)
+				_late_join["state"] = "done"
+		"wait_wood_pickup":
+			var initial_wood_count := int(_late_join.get("initial_wood_count", -1))
+			var current_wood_count: int = int(player.inventory.count_item("wood"))
+			var wood_count_increased: bool = initial_wood_count >= 0 and current_wood_count > initial_wood_count
+			if wood_count_increased or not wood_pickable:
+				_write_sync_result(
+					"late_join_client_a.json",
+					{
+						"door_open": door_open,
+						"wood_pickable": wood_pickable,
+						"wood_visible": wood != null and wood.visible,
+						"player_wood_count": current_wood_count,
+						"initial_wood_count": initial_wood_count,
+					}
+				)
+				_late_join["state"] = "done"
+				return
+			if Time.get_ticks_msec() - int(_late_join["phase_started_ms"]) > 9000:
+				_write_sync_result(
+					"late_join_client_a.json",
+					{
+						"door_open": door_open,
+						"wood_pickable": wood_pickable,
+						"wood_visible": wood != null and wood.visible,
+						"player_wood_count": player.inventory.count_item("wood"),
+						"error": "timeout_wait_wood_pickup",
 					}
 				)
 				_late_join["state"] = "done"
@@ -978,7 +1040,11 @@ func _get_sync_dir() -> String:
 
 
 func _move_player_to_chest(player, chest: Node3D, offset: Vector3) -> void:
-	player.global_position = chest.global_position + offset
+	var safe_offset := offset
+	safe_offset.y = 0.0
+	if safe_offset.length() > 1.6:
+		safe_offset = safe_offset.normalized() * 1.4
+	player.global_position = chest.global_position + safe_offset
 	player.velocity = Vector3.ZERO
 	_look_at_node(player, chest)
 	player.set_focused_inventory_target(chest)
@@ -1814,17 +1880,23 @@ func _update_portal_unlock_wood_player(player, chest: Node3D) -> void:
 				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
 		"give_wood":
 			if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 900:
-				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("wood")))
+				_request_transfer_item_to_chest(player, chest, "wood", maxi(1, player.inventory.count_item("wood")))
 				_portal_unlock["state"] = "wait_wood_transfer"
 				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
 		"wait_wood_transfer":
+			var chest_inventory: Variant = chest.get_inventory_component()
+			var chest_wood: int = int(chest_inventory.call("count_item", "wood"))
+			if chest_wood >= 10:
+				_portal_unlock["state"] = "done"
+				return
 			if player.inventory.count_item("wood") == 0:
-				if current_stage >= 1:
-					_portal_unlock["state"] = "done"
-				else:
-					_portal_unlock["wood_stage"] = current_stage + 1
-					_portal_unlock["state"] = "pickup_wood"
-					_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+				_portal_unlock["wood_stage"] = current_stage + 1
+				_portal_unlock["state"] = "pickup_wood"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+				return
+			if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 700:
+				_request_transfer_item_to_chest(player, chest, "wood", 1)
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
 
 
 func _update_portal_unlock_apple_player(player, chest: Node3D) -> void:
@@ -1843,7 +1915,10 @@ func _update_portal_unlock_apple_player(player, chest: Node3D) -> void:
 					_portal_unlock["state"] = "wait_apple_pickup"
 					_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
 		"wait_apple_pickup":
-			if player.inventory.count_item("apple") > 0:
+			var initial_apple_count := int(_portal_unlock.get("initial_apple_count", -1))
+			var current_apple_count: int = int(player.inventory.count_item("apple"))
+			var apple_pickable := apple != null and apple.has_method("can_be_picked_up") and bool(apple.call("can_be_picked_up"))
+			if (initial_apple_count >= 0 and current_apple_count > initial_apple_count) or not apple_pickable:
 				_move_player_to_chest(player, chest, Vector3(-0.8, 0.0, 2.2))
 				_portal_unlock["state"] = "give_apple"
 				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
@@ -1853,15 +1928,22 @@ func _update_portal_unlock_apple_player(player, chest: Node3D) -> void:
 		"give_apple":
 			_move_player_to_chest(player, chest, Vector3(-0.8, 0.0, 2.2))
 			if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 900:
-				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("apple")))
+				_request_transfer_item_to_chest(player, chest, "apple", maxi(1, player.inventory.count_item("apple")))
 				_portal_unlock["state"] = "wait_apple_transfer"
 				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
 		"wait_apple_transfer":
-			if player.inventory.count_item("apple") == 0:
+			var chest_inventory: Variant = chest.get_inventory_component()
+			var chest_apple: int = int(chest_inventory.call("count_item", "apple"))
+			if chest_apple >= 4:
 				_portal_unlock["apple_done"] = true
 				_portal_unlock["state"] = "wait_breche_unlock"
-			elif Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 1800:
-				_portal_unlock["state"] = "give_apple"
+				return
+			if player.inventory.count_item("apple") == 0:
+				_portal_unlock["state"] = "pickup_apple"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+				return
+			if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 700:
+				_request_transfer_item_to_chest(player, chest, "apple", 1)
 				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
 		"wait_breche_unlock":
 			var breche_portal := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_BRECHE)
@@ -2144,6 +2226,35 @@ func _find_world_item_in_subtree(root: Node, node_name: String) -> Node3D:
 	return null
 
 
+func _find_inventory_slot_index_for_item(player, item_id: String) -> int:
+	if player == null or not is_instance_valid(player.inventory):
+		return -1
+	var contents: Array[Dictionary] = player.inventory.get_contents()
+	for index in range(contents.size()):
+		var entry: Dictionary = contents[index]
+		if String(entry.get("id", "")) != item_id:
+			continue
+		if int(entry.get("quantity", 0)) <= 0:
+			continue
+		return index
+	return -1
+
+
+func _request_transfer_item_to_chest(player, chest: Node3D, item_id: String, quantity: int) -> bool:
+	if player == null or chest == null:
+		return false
+	var slot_index := _find_inventory_slot_index_for_item(player, item_id)
+	if slot_index < 0:
+		return false
+	var transfer_qty := maxi(1, quantity)
+	var target_path := chest.get_path()
+	if player.multiplayer.is_server():
+		player._server_transfer_inventory_to_target(target_path, slot_index, transfer_qty)
+	else:
+		player._server_transfer_inventory_to_target.rpc_id(1, target_path, slot_index, transfer_qty)
+	return true
+
+
 func _find_first_available_pickup_in_group(player, group_name: String) -> Node3D:
 	var best_pickup: Node3D = null
 	var best_distance: float = INF
@@ -2165,6 +2276,19 @@ func _find_first_available_pickup_in_group_near_position(player, group_name: Str
 			if distance < best_distance:
 				best_pickup = candidate
 				best_distance = distance
+	return best_pickup
+
+
+func _find_first_pickup_in_group_near_position(player, group_name: String, center: Vector3) -> Node3D:
+	var best_pickup: Node3D = null
+	var best_distance: float = INF
+	for candidate in _find_nodes3d_in_group(player, group_name):
+		if not candidate.has_method("can_be_picked_up"):
+			continue
+		var distance: float = center.distance_to(candidate.global_position)
+		if distance < best_distance:
+			best_pickup = candidate
+			best_distance = distance
 	return best_pickup
 
 
