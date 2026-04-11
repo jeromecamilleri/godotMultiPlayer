@@ -1,0 +1,84 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
+[ext_resource type="PackedScene" path="res://main/mission_zone_verger_interactives.tscn" id="2_interactives"]
+[ext_resource type="PackedScene" path="res://main/mission_zone_verger_enemies.tscn" id="3_enemies"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(36, 8, 28)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(36, 8, 28)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.25098, 0.815686, 0.333333, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_marker"]
+top_radius = 0.75
+bottom_radius = 0.95
+height = 4.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_marker"]
+size = Vector3(3, 0.5, 3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
+albedo_color = Color(0.34902, 0.909804, 0.439216, 1)
+emission_enabled = true
+emission = Color(0.34902, 0.909804, 0.439216, 1)
+emission_energy_multiplier = 1.8
+
+[node name="ZoneVerger" type="Node3D" groups=["mission_zone_verger"]]
+
+[node name="Ground" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="Ground"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground/Floor"]
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Env" type="Node3D" parent="."]
+
+[node name="Interactives" parent="." instance=ExtResource("2_interactives")]
+
+[node name="Enemies" parent="." instance=ExtResource("3_enemies")]
+activation_center_path = NodePath("../MissionMarkers/ResourceMarker")
+activation_radius = 16.0
+activation_portal_group = "mission_portal_hub_verger"
+activation_requires_player_presence = true
+
+[node name="Portals" type="Node3D" parent="."]
+
+[node name="Portal_Verger_To_Hub" parent="Portals" groups=["mission_zone_verger", "mission_portal_verger_hub"] instance=ExtResource("1_portal")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 4, 12)
+linked_portal_path = NodePath("../../../HubLevel/Portals/Portal_Hub_To_Verger")
+exit_distance = -2.0
+portal_title = "HUB"
+
+[node name="MissionMarkers" type="Node3D" parent="."]
+
+[node name="ResourceMarker" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -6)
+
+[node name="ZoneLandmark" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4, 8)
+
+[node name="Pedestal" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("BoxMesh_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_marker")
+
+[node name="Pillar" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 0)
+mesh = SubResource("CylinderMesh_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_marker")
+
+[node name="Label3D" type="Label3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 6.1, 0)
+billboard = 1
+text = "VERGER"
+font_size = 48
+outline_size = 14

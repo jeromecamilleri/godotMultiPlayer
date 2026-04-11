@@ -20,6 +20,12 @@ enum MatchState {
 @export var initial_lives_per_player: int = 5
 @export var player_spawner: Node
 @export var force_server_mode := false
+@export var portal_unlock_base_wood := 4
+@export var portal_unlock_wood_step_per_extra_player := 2
+@export var portal_unlock_base_apples := 2
+@export var portal_unlock_apples_step_per_extra_player := 1
+@export var hub_chest_seed_wood := 6
+@export var hub_chest_seed_apples := 2
 
 var _state: int = MatchState.LOBBY
 var _time_left_sec: float = 0.0
@@ -35,6 +41,8 @@ var _team_progress: Dictionary = { # Shared cooperative objectives/progress.
 var _tick_timer: Timer
 var _remote_snapshot_text := ""
 var _snapshot_revision := 0
+var _portal_breche_unlocked := false
+var _portal_reactor_unlocked := false
 
 
 func _ready() -> void:
@@ -66,9 +74,7 @@ func _ready() -> void:
 func _request_current_snapshot_when_connected() -> void:
 	if _is_server_instance():
 		return
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_snapshot):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_snapshot, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_snapshot")):
 		return
 	call_deferred("_request_current_snapshot_from_authority")
 
@@ -78,7 +84,9 @@ func _on_connected_to_server_request_snapshot() -> void:
 
 
 func _request_current_snapshot_from_authority() -> void:
-	if _is_server_instance() or multiplayer.multiplayer_peer == null:
+	if _is_server_instance():
+		return
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_snapshot")):
 		return
 	_request_current_snapshot.rpc_id(1)
 
@@ -108,6 +116,12 @@ func reset_to_lobby() -> void:
 	_team_progress["relays_activated"] = 0
 	_team_progress["bees_killed"] = 0
 	_team_progress["players_alive"] = _connected_peers.size()
+	_team_progress["chest_wood_delivered"] = 0
+	_team_progress["chest_apples_delivered"] = 0
+	_team_progress["portal_breche_unlocked"] = 0
+	_team_progress["portal_reactor_unlocked"] = 0
+	_portal_breche_unlocked = false
+	_portal_reactor_unlocked = false
 	_emit_snapshot()
 
 
@@ -319,6 +333,7 @@ func _on_tick() -> void:
 		# Minimal cooperative objective for now: survive until timer reaches zero.
 		report_team_won("timer_completed")
 		return
+	_update_zone_progression()
 	_emit_snapshot()
 
 
@@ -385,10 +400,64 @@ func _count_alive_players() -> int:
 	return alive
 
 
+func _update_zone_progression() -> void:
+	if not _is_server_instance():
+		return
+	var chest_inventory: Variant = _find_hub_chest_inventory()
+	var delivered_wood: int = 0
+	var delivered_apples: int = 0
+	if chest_inventory != null:
+		delivered_wood = maxi(0, int(chest_inventory.call("count_item", "wood")) - hub_chest_seed_wood)
+		delivered_apples = maxi(0, int(chest_inventory.call("count_item", "apple")) - hub_chest_seed_apples)
+	var participant_count: int = maxi(1, _connected_peers.size())
+	var required_wood: int = portal_unlock_base_wood + (portal_unlock_wood_step_per_extra_player * maxi(0, participant_count - 1))
+	var required_apples: int = portal_unlock_base_apples + (portal_unlock_apples_step_per_extra_player * maxi(0, participant_count - 1))
+	_team_progress["required_wood"] = required_wood
+	_team_progress["required_apples"] = required_apples
+	_team_progress["chest_wood_delivered"] = delivered_wood
+	_team_progress["chest_apples_delivered"] = delivered_apples
+	var should_unlock_breche: bool = delivered_wood >= required_wood and delivered_apples >= required_apples
+	var should_unlock_reactor: bool = should_unlock_breche and _are_all_cube_bomb_doors_open()
+	if should_unlock_breche != _portal_breche_unlocked:
+		_portal_breche_unlocked = should_unlock_breche
+		_record_sync_event("match", "portal breche=%s" % ("on" if should_unlock_breche else "off"))
+	_set_portal_group_active("mission_portal_hub_breche", should_unlock_breche)
+	_team_progress["portal_breche_unlocked"] = 1 if _portal_breche_unlocked else 0
+	if should_unlock_reactor != _portal_reactor_unlocked:
+		_portal_reactor_unlocked = should_unlock_reactor
+		_record_sync_event("match", "portal reactor=%s" % ("on" if should_unlock_reactor else "off"))
+	_set_portal_group_active("mission_portal_hub_reactor", should_unlock_reactor)
+	_team_progress["portal_reactor_unlocked"] = 1 if _portal_reactor_unlocked else 0
+
+
+func _find_hub_chest_inventory():
+	var chest := get_tree().get_first_node_in_group("mission_hub_chests")
+	if not is_instance_valid(chest) or not chest.has_method("get_inventory_component"):
+		return null
+	return chest.call("get_inventory_component")
+
+
+func _are_all_cube_bomb_doors_open() -> bool:
+	var doors := get_tree().get_nodes_in_group("mission_cube_bomb_doors")
+	if doors.is_empty():
+		return false
+	for door in doors:
+		if not is_instance_valid(door) or not door.has_method("is_open") or not bool(door.call("is_open")):
+			return false
+	return true
+
+
+func _set_portal_group_active(group_name: String, active: bool) -> void:
+	for portal in get_tree().get_nodes_in_group(group_name):
+		if not is_instance_valid(portal) or not portal.has_method("set_portal_active"):
+			continue
+		portal.call("set_portal_active", active)
+
+
 func request_current_state_from_server() -> void:
 	if _is_server_instance():
 		return
-	_request_current_snapshot.rpc_id(1)
+	_request_current_snapshot_when_connected()
 
 
 func push_current_state_to_peer(peer_id: int) -> void:

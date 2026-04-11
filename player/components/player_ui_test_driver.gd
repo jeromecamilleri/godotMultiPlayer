@@ -2,11 +2,24 @@ extends RefCounted
 class_name PlayerUiTestDriver
 
 const GROUP_MISSION_HUB_CHESTS := "mission_hub_chests"
+const GROUP_MISSION_ZONE_SCIERIE := "mission_zone_scierie"
+const GROUP_MISSION_ZONE_VERGER := "mission_zone_verger"
 const GROUP_MISSION_CUBE_BOMB_DOORS := "mission_cube_bomb_doors"
 const GROUP_MISSION_CUBE_GOAL_ZONES := "mission_cube_goal_zones"
 const GROUP_MISSION_CUBE_PRIMARY := "mission_cube_primary"
 const GROUP_MISSION_CUBE_BEETLE_DIRECTORS := "mission_cube_beetle_directors"
 const GROUP_MISSION_CUBE_BLOCKERS := "mission_cube_blockers"
+const GROUP_PORTAL_HUB_BRECHE := "mission_portal_hub_breche"
+const GROUP_PORTAL_HUB_REACTOR := "mission_portal_hub_reactor"
+const GROUP_PORTAL_HUB_SCIERIE := "mission_portal_hub_scierie"
+const GROUP_PORTAL_HUB_VERGER := "mission_portal_hub_verger"
+const GROUP_PORTAL_SCIERIE_HUB := "mission_portal_scierie_hub"
+const GROUP_PORTAL_VERGER_HUB := "mission_portal_verger_hub"
+const GROUP_PORTAL_BRECHE_HUB := "mission_portal_breche_hub"
+const GROUP_PORTAL_REACTOR_HUB := "mission_portal_reactor_hub"
+const GROUP_MISSION_WOOD_PICKUPS := "mission_wood_pickups"
+const GROUP_MISSION_APPLE_PICKUPS := "mission_apple_pickups"
+const BEETLE_DOOR_CHARGE_OBSERVER_OFFSET := Vector3(-6.0, 0.0, -5.0)
 
 var _scenario_name := ""
 var _instance_role := ""
@@ -81,6 +94,36 @@ var _beetle_door_charge := {
 	"tracked_beetle_name": "",
 	"target_peer_id": -1,
 }
+var _portal_unlock := {
+	"state": "",
+	"started_ms": 0,
+	"phase_started_ms": 0,
+	"written": false,
+	"wood_stage": 0,
+	"apple_done": false,
+}
+var _portal_logistics := {
+	"state": "",
+	"started_ms": 0,
+	"phase_started_ms": 0,
+	"written": false,
+}
+var _portal_progression := {
+	"state": "",
+	"started_ms": 0,
+	"phase_started_ms": 0,
+	"written": false,
+	"wood_stage": 0,
+	"bomb_requested": false,
+	"initial_scierie_active": false,
+	"initial_verger_active": false,
+	"initial_breche_active": false,
+	"initial_reactor_active": false,
+	"breche_unlocked_observed": false,
+	"reactor_unlocked_observed": false,
+	"breche_phase_written": false,
+	"reactor_phase_written": false,
+}
 
 
 func setup() -> void:
@@ -112,6 +155,12 @@ func begin(player) -> void:
 			_setup_beetle_targeting_scenario(player)
 		"beetle_door_charge":
 			_setup_beetle_door_charge_scenario(player)
+		"portal_unlock":
+			_setup_portal_unlock_scenario(player)
+		"portal_logistics":
+			_setup_portal_logistics_scenario(player)
+		"portal_progression":
+			_setup_portal_progression_scenario(player)
 
 
 func process(player) -> void:
@@ -132,6 +181,12 @@ func process(player) -> void:
 			_update_beetle_targeting_scenario(player)
 		"beetle_door_charge":
 			_update_beetle_door_charge_scenario(player)
+		"portal_unlock":
+			_update_portal_unlock_scenario(player)
+		"portal_logistics":
+			_update_portal_logistics_scenario(player)
+		"portal_progression":
+			_update_portal_progression_scenario(player)
 
 
 func _read_scenario_name() -> String:
@@ -447,28 +502,9 @@ func _setup_beetle_targeting_scenario(player) -> void:
 		return
 	var beetle_director := _find_beetle_director(player)
 	var activator := _find_cube_activator(player)
-	var chest := _find_chest(player)
-	var apple := _find_world_item(player, "ApplePickup")
-	var wood := _find_world_item(player, "WoodPickup")
-	if beetle_director == null or activator == null or chest == null or apple == null or wood == null:
+	if beetle_director == null or activator == null:
 		return
 	player.velocity = Vector3.ZERO
-	match _instance_role:
-		"server":
-			player.global_position = chest.global_position + Vector3(-0.8, 0.0, 2.1)
-			_look_at_node(player, chest)
-		"client_1":
-			player.global_position = apple.global_position + Vector3(0.8, 0.0, 2.0)
-			_look_at_node(player, apple)
-		"client_2":
-			player.global_position = wood.global_position + Vector3(-0.6, 0.0, 2.2)
-			_look_at_node(player, wood)
-		"client_3":
-			player.global_position = activator.global_position + Vector3(0.0, 0.0, -2.2)
-			_look_at_node(player, activator)
-		_:
-			player.global_position = chest.global_position + Vector3(0.8, 0.0, 2.0)
-			_look_at_node(player, chest)
 	_beetle_targeting["state"] = "observe"
 	_beetle_targeting["started_ms"] = Time.get_ticks_msec()
 	_beetle_targeting["written"] = false
@@ -479,23 +515,15 @@ func _setup_beetle_door_charge_scenario(player) -> void:
 		return
 	var beetle_director := _find_beetle_director(player)
 	var bomb_doors: Array[Node3D] = _find_cube_mission_bomb_doors(player)
-	var activator := _find_cube_activator(player)
-	if beetle_director == null or bomb_doors.is_empty() or activator == null:
+	if beetle_director == null or bomb_doors.is_empty():
 		return
-	var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
-	var observation_position := activator.global_position + Vector3(0.0, 0.0, 3.2)
 	player.velocity = Vector3.ZERO
 	match _instance_role:
 		"server":
-			player.global_position = door_anchor + Vector3(-6.0, 0.0, -4.0)
-			_look_at_position(player, door_anchor)
 			_beetle_door_charge["state"] = "monitor"
 		"client_1":
-			_move_player_for_single_bomb_door(player, bomb_doors[0])
 			_beetle_door_charge["state"] = "open_door"
 		"client_2":
-			player.global_position = observation_position
-			_look_at_position(player, activator.global_position)
 			_beetle_door_charge["target_peer_id"] = player.get_multiplayer_authority()
 			_beetle_door_charge["state"] = "wait_door_open"
 		_:
@@ -511,19 +539,130 @@ func _setup_beetle_door_charge_scenario(player) -> void:
 	_beetle_door_charge["tracked_beetle_name"] = ""
 
 
+func _setup_portal_unlock_scenario(player) -> void:
+	if String(_portal_unlock["state"]) != "" or not player.is_multiplayer_authority():
+		return
+	var chest := _find_chest(player)
+	var breche_portal := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_BRECHE)
+	var reactor_portal := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_REACTOR)
+	var scierie_zone := _find_first_node3d_in_group(player, GROUP_MISSION_ZONE_SCIERIE)
+	var verger_zone := _find_first_node3d_in_group(player, GROUP_MISSION_ZONE_VERGER)
+	if chest == null or breche_portal == null or reactor_portal == null or scierie_zone == null or verger_zone == null:
+		return
+	player.velocity = Vector3.ZERO
+	match _instance_role:
+		"client_a":
+			var wood := _find_first_available_pickup_in_group_near_position(player, GROUP_MISSION_WOOD_PICKUPS, scierie_zone.global_position)
+			if wood == null:
+				return
+			_portal_unlock["state"] = "pickup_wood"
+		"client_b":
+			var apple := _find_first_available_pickup_in_group_near_position(player, GROUP_MISSION_APPLE_PICKUPS, verger_zone.global_position)
+			if apple == null:
+				return
+			_portal_unlock["state"] = "pickup_apple"
+		"server":
+			player.global_position = chest.global_position + Vector3(-0.8, 0.0, 2.2)
+			_look_at_node(player, chest)
+			_portal_unlock["state"] = "monitor"
+		_:
+			_portal_unlock["state"] = "idle"
+	_portal_unlock["started_ms"] = Time.get_ticks_msec()
+	_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+	_portal_unlock["written"] = false
+	_portal_unlock["wood_stage"] = 0
+	_portal_unlock["apple_done"] = false
+
+
+func _setup_portal_logistics_scenario(player) -> void:
+	if String(_portal_logistics["state"]) != "" or not player.is_multiplayer_authority():
+		return
+	var chest := _find_chest(player)
+	var hub_scierie := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_SCIERIE)
+	var hub_verger := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_VERGER)
+	var scierie_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_SCIERIE_HUB)
+	var verger_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_VERGER_HUB)
+	if chest == null or hub_scierie == null or hub_verger == null or scierie_hub == null or verger_hub == null:
+		return
+	player.velocity = Vector3.ZERO
+	match _instance_role:
+		"server":
+			player.global_position = chest.global_position + Vector3(-0.8, 0.0, 2.2)
+			_look_at_node(player, chest)
+			_portal_logistics["state"] = "monitor"
+		"client_a":
+			player.global_position = hub_scierie.global_position + Vector3(-1.4, 0.0, 0.0)
+			_look_at_node(player, hub_scierie)
+			_portal_logistics["state"] = "travel_to_scierie"
+		"client_b":
+			player.global_position = hub_verger.global_position + Vector3(-1.4, 0.0, 0.0)
+			_look_at_node(player, hub_verger)
+			_portal_logistics["state"] = "travel_to_verger"
+		_:
+			_portal_logistics["state"] = "idle"
+	_portal_logistics["started_ms"] = Time.get_ticks_msec()
+	_portal_logistics["phase_started_ms"] = Time.get_ticks_msec()
+	_portal_logistics["written"] = false
+
+
+func _setup_portal_progression_scenario(player) -> void:
+	if String(_portal_progression["state"]) != "" or not player.is_multiplayer_authority():
+		return
+	var chest := _find_chest(player)
+	var hub_scierie := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_SCIERIE)
+	var hub_verger := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_VERGER)
+	var hub_breche := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_BRECHE)
+	var hub_reactor := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_REACTOR)
+	var scierie_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_SCIERIE_HUB)
+	var verger_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_VERGER_HUB)
+	var breche_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_BRECHE_HUB)
+	var reactor_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_REACTOR_HUB)
+	if chest == null or hub_scierie == null or hub_verger == null or hub_breche == null or hub_reactor == null or scierie_hub == null or verger_hub == null or breche_hub == null or reactor_hub == null:
+		return
+	_portal_progression["initial_scierie_active"] = _portal_is_active(hub_scierie)
+	_portal_progression["initial_verger_active"] = _portal_is_active(hub_verger)
+	_portal_progression["initial_breche_active"] = _portal_is_active(hub_breche)
+	_portal_progression["initial_reactor_active"] = _portal_is_active(hub_reactor)
+	_portal_progression["breche_unlocked_observed"] = bool(_portal_progression["initial_breche_active"])
+	_portal_progression["reactor_unlocked_observed"] = bool(_portal_progression["initial_reactor_active"])
+	_portal_progression["breche_phase_written"] = false
+	_portal_progression["reactor_phase_written"] = false
+	_portal_progression["wood_stage"] = 0
+	_portal_progression["bomb_requested"] = false
+	_portal_progression["written"] = false
+	player.velocity = Vector3.ZERO
+	match _instance_role:
+		"server":
+			player.global_position = chest.global_position + Vector3(-0.8, 0.0, 2.2)
+			_look_at_node(player, chest)
+			_portal_progression["state"] = "monitor"
+		"client_a":
+			player.global_position = hub_scierie.global_position + Vector3(-1.4, 0.0, 0.0)
+			_look_at_node(player, hub_scierie)
+			_portal_progression["state"] = "travel_to_scierie"
+		"client_b":
+			player.global_position = hub_verger.global_position + Vector3(-1.4, 0.0, 0.0)
+			_look_at_node(player, hub_verger)
+			_portal_progression["state"] = "travel_to_verger"
+		_:
+			_portal_progression["state"] = "idle"
+	_portal_progression["started_ms"] = Time.get_ticks_msec()
+	_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+
+
 func _update_beetle_targeting_scenario(player) -> void:
 	if bool(_beetle_targeting["written"]):
 		return
 	var director := _find_match_director(player)
 	if director == null:
 		return
-	if _instance_role == "server" and _director_state_name(director) == "LOBBY" and director.has_method("start_match"):
-		if Time.get_ticks_msec() - int(_beetle_targeting["started_ms"]) > 800:
-			director.call("start_match")
 	var elapsed_ms: int = Time.get_ticks_msec() - int(_beetle_targeting["started_ms"])
 	if elapsed_ms < 2200:
 		return
-	var beetles: Array[Node3D] = _find_beetles(player)
+	var activator := _find_cube_activator(player)
+	if activator == null:
+		return
+	var beetles: Array[Node3D] = _find_beetles_near_position(player, activator.global_position, 18.0)
 	var players: Array[Node3D] = _find_active_players(player)
 	var participant_count: int = player.multiplayer.get_peers().size() + 1
 	if (participant_count < 4 or players.size() < 3 or beetles.size() < 3) and elapsed_ms < 9000:
@@ -572,7 +711,6 @@ func _update_beetle_targeting_scenario(player) -> void:
 	_beetle_targeting["written"] = true
 	_beetle_targeting["state"] = "done"
 
-
 func _update_beetle_door_charge_scenario(player) -> void:
 	if bool(_beetle_door_charge["written"]):
 		return
@@ -581,17 +719,6 @@ func _update_beetle_door_charge_scenario(player) -> void:
 	if director == null or bomb_doors.is_empty():
 		return
 	if _instance_role == "server":
-		if _director_state_name(director) == "LOBBY" and director.has_method("start_match") and Time.get_ticks_msec() - int(_beetle_door_charge["started_ms"]) > 800:
-			director.call("start_match")
-		if _are_cube_mission_doors_open(bomb_doors):
-			_write_sync_result("beetle_door_charge_server.json", {
-				"state": _director_state_name(director),
-				"door_open": true,
-				"beetle_count": _find_beetles(player).size(),
-				"participant_count": player.multiplayer.get_peers().size() + 1,
-			})
-			_beetle_door_charge["written"] = true
-			_beetle_door_charge["state"] = "done"
 		return
 	match String(_beetle_door_charge["state"]):
 		"open_door":
@@ -603,11 +730,6 @@ func _update_beetle_door_charge_scenario(player) -> void:
 				_beetle_door_charge["initial_distance"] = -1.0
 				_beetle_door_charge["closest_distance_seen"] = -1.0
 				_beetle_door_charge["tracked_beetle_name"] = ""
-			else:
-				var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
-				player.global_position = door_anchor + Vector3(0.0, 0.0, 6.0)
-				player.velocity = Vector3.ZERO
-				_look_at_position(player, door_anchor)
 		"observe_charge":
 			_perform_beetle_charge_observation(player, bomb_doors, director)
 
@@ -619,6 +741,7 @@ func _setup_cube_mission_scenario(player) -> void:
 	var cube: Node3D = resolved.get("cube")
 	var activator: Node3D = resolved.get("activator")
 	var bomb_door: Node3D = resolved.get("bomb_door")
+	var crates: Array[Node3D] = _find_cube_mission_crates(player)
 	if cube == null or activator == null or bomb_door == null:
 		_write_sync_result("cube_mission_debug_%s.json" % _instance_role, {
 			"event": "setup_missing_nodes",
@@ -637,11 +760,16 @@ func _setup_cube_mission_scenario(player) -> void:
 			_cube_mission["state"] = "destroy_crates"
 			_cube_mission["started_ms"] = Time.get_ticks_msec()
 			_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
+			if not crates.is_empty():
+				player.global_position = crates[0].global_position + Vector3(-1.8, 0.0, 1.8)
+				_look_at_node(player, crates[0])
 		"client_b":
 			_cube_mission["anchor_offset"] = Vector3(1.2, 0.0, 0.0)
 			_cube_mission["state"] = "wait_door_open"
 			_cube_mission["started_ms"] = Time.get_ticks_msec()
 			_cube_mission["phase_started_ms"] = Time.get_ticks_msec()
+			player.global_position = bomb_door.global_position + Vector3(-2.0, 0.0, 0.8)
+			_look_at_node(player, bomb_door)
 		_:
 			_cube_mission["state"] = "idle"
 	_write_sync_result("cube_mission_debug_%s.json" % _instance_role, {
@@ -864,10 +992,14 @@ func _look_at_node(player, node: Node3D) -> void:
 func _look_at_position(player, target: Vector3) -> void:
 	var look_target := target
 	look_target.y = player.global_position.y
+	if player.global_position.distance_to(look_target) <= 0.05:
+		return
 	player.look_at(look_target, Vector3.UP, true)
 	if is_instance_valid(player._camera_controller):
 		var camera_target := target
 		camera_target.y = player._camera_controller.global_position.y
+		if player._camera_controller.global_position.distance_to(camera_target) <= 0.05:
+			return
 		player._camera_controller.look_at(camera_target, Vector3.UP, true)
 
 
@@ -993,6 +1125,15 @@ func _find_beetles(player) -> Array[Node3D]:
 		return String(a.name) < String(b.name)
 	)
 	return beetles
+
+
+func _find_beetles_near_position(player, center: Vector3, radius: float) -> Array[Node3D]:
+	var filtered: Array[Node3D] = []
+	for beetle in _find_beetles(player):
+		if beetle.global_position.distance_to(center) > radius:
+			continue
+		filtered.append(beetle)
+	return filtered
 
 
 func _find_beetle_by_name(player, beetle_name: String) -> Node3D:
@@ -1211,7 +1352,8 @@ func _perform_beetle_charge_observation(player, bomb_doors: Array[Node3D], direc
 	var activator := _find_cube_activator(player)
 	if activator == null:
 		return
-	var observation_position := activator.global_position + Vector3(0.0, 0.0, 3.2)
+	var observation_position := activator.global_position + BEETLE_DOOR_CHARGE_OBSERVER_OFFSET
+	observation_position.y = player.global_position.y
 	player.global_position = observation_position
 	player.velocity = Vector3.ZERO
 	_look_at_position(player, activator.global_position)
@@ -1263,6 +1405,492 @@ func _perform_beetle_charge_observation(player, bomb_doors: Array[Node3D], direc
 	})
 	_beetle_door_charge["written"] = true
 	_beetle_door_charge["state"] = "done"
+
+
+func _update_portal_unlock_scenario(player) -> void:
+	if bool(_portal_unlock["written"]):
+		return
+	var chest := _find_chest(player)
+	var breche_portal := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_BRECHE)
+	var reactor_portal := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_REACTOR)
+	if chest == null or breche_portal == null or reactor_portal == null:
+		return
+	match _instance_role:
+		"client_a":
+			_update_portal_unlock_wood_player(player, chest)
+		"client_b":
+			_update_portal_unlock_apple_player(player, chest)
+		"server":
+			_update_portal_unlock_server(player, chest, breche_portal, reactor_portal)
+	if _instance_role != "server" and breche_portal.has_method("is_portal_active") and bool(breche_portal.call("is_portal_active")):
+		var chest_inventory: Variant = chest.get_inventory_component()
+		var chest_wood: int = int(chest_inventory.call("count_item", "wood"))
+		var chest_apple: int = int(chest_inventory.call("count_item", "apple"))
+		_write_sync_result("portal_unlock_%s.json" % _instance_role, {
+			"portal_breche_active": true,
+			"portal_reactor_active": bool(reactor_portal.call("is_portal_active")) if reactor_portal.has_method("is_portal_active") else false,
+			"chest_wood": chest_wood,
+			"chest_apple": chest_apple,
+		})
+		_portal_unlock["written"] = true
+		_portal_unlock["state"] = "done"
+
+
+func _update_portal_logistics_scenario(player) -> void:
+	if bool(_portal_logistics["written"]):
+		return
+	var chest := _find_chest(player)
+	var hub_scierie := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_SCIERIE)
+	var hub_verger := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_VERGER)
+	var scierie_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_SCIERIE_HUB)
+	var verger_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_VERGER_HUB)
+	if chest == null or hub_scierie == null or hub_verger == null or scierie_hub == null or verger_hub == null:
+		return
+	match _instance_role:
+		"server":
+			_update_portal_logistics_server(player, chest)
+		"client_a":
+			_update_portal_logistics_wood_player(player, chest, hub_scierie, scierie_hub)
+		"client_b":
+			_update_portal_logistics_apple_player(player, chest, hub_verger, verger_hub)
+
+
+func _update_portal_logistics_server(player, chest: Node3D) -> void:
+	var director := _find_match_director(player)
+	if director != null and _director_state_name(director) == "LOBBY" and director.has_method("start_match"):
+		director.call("start_match")
+	var inventory: Variant = chest.get_inventory_component()
+	var chest_wood: int = int(inventory.call("count_item", "wood"))
+	var chest_apple: int = int(inventory.call("count_item", "apple"))
+	if chest_wood <= 6 or chest_apple <= 2:
+		return
+	_write_sync_result("portal_logistics_server.json", {
+		"state": _director_state_name(director) if director != null else "",
+		"chest_wood": chest_wood,
+		"chest_apple": chest_apple,
+		"wood_delivered": maxi(0, chest_wood - 6),
+		"apple_delivered": maxi(0, chest_apple - 2),
+	})
+	_portal_logistics["written"] = true
+	_portal_logistics["state"] = "done"
+
+
+func _update_portal_logistics_wood_player(player, chest: Node3D, hub_portal: Node3D, return_portal: Node3D) -> void:
+	match String(_portal_logistics["state"]):
+		"travel_to_scierie":
+			_move_player_into_portal(player, hub_portal)
+			if player.global_position.distance_to(return_portal.global_position) <= 6.0:
+				_portal_logistics["state"] = "pickup_wood"
+				_portal_logistics["phase_started_ms"] = Time.get_ticks_msec()
+		"pickup_wood":
+			var wood := _find_first_available_pickup_in_group(player, GROUP_MISSION_WOOD_PICKUPS)
+			if wood == null:
+				return
+			player.global_position = wood.global_position + Vector3(0.6, 0.0, 2.0)
+			player.velocity = Vector3.ZERO
+			_look_at_node(player, wood)
+			player.request_pickup_world_item(wood.get_path())
+			_portal_logistics["state"] = "wait_wood_pickup"
+		"wait_wood_pickup":
+			if player.inventory.count_item("wood") > 0:
+				_portal_logistics["state"] = "return_hub"
+		"return_hub":
+			_move_player_into_portal(player, return_portal)
+			if player.global_position.distance_to(hub_portal.global_position) <= 8.0:
+				_portal_logistics["state"] = "deposit"
+				_portal_logistics["phase_started_ms"] = Time.get_ticks_msec()
+		"deposit":
+			_move_player_to_chest(player, chest, Vector3(0.8, 0.0, 2.2))
+			if Time.get_ticks_msec() - int(_portal_logistics["phase_started_ms"]) > 800:
+				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("wood")))
+				_portal_logistics["state"] = "wait_deposit"
+		"wait_deposit":
+			if player.inventory.count_item("wood") == 0:
+				var inventory: Variant = chest.get_inventory_component()
+				_write_sync_result("portal_logistics_client_a.json", {
+					"role": "client_a",
+					"entered_zone": true,
+					"returned_hub": true,
+					"picked_item": "wood",
+					"chest_wood": int(inventory.call("count_item", "wood")),
+					"chest_apple": int(inventory.call("count_item", "apple")),
+				})
+				_portal_logistics["written"] = true
+				_portal_logistics["state"] = "done"
+
+
+func _update_portal_logistics_apple_player(player, chest: Node3D, hub_portal: Node3D, return_portal: Node3D) -> void:
+	match String(_portal_logistics["state"]):
+		"travel_to_verger":
+			_move_player_into_portal(player, hub_portal)
+			if player.global_position.distance_to(return_portal.global_position) <= 6.0:
+				_portal_logistics["state"] = "pickup_apple"
+				_portal_logistics["phase_started_ms"] = Time.get_ticks_msec()
+		"pickup_apple":
+			var apple := _find_first_available_pickup_in_group(player, GROUP_MISSION_APPLE_PICKUPS)
+			if apple == null:
+				return
+			player.global_position = apple.global_position + Vector3(0.6, 0.0, 2.0)
+			player.velocity = Vector3.ZERO
+			_look_at_node(player, apple)
+			player.request_pickup_world_item(apple.get_path())
+			_portal_logistics["state"] = "wait_apple_pickup"
+		"wait_apple_pickup":
+			if player.inventory.count_item("apple") > 0:
+				_portal_logistics["state"] = "return_hub"
+		"return_hub":
+			_move_player_into_portal(player, return_portal)
+			if player.global_position.distance_to(hub_portal.global_position) <= 8.0:
+				_portal_logistics["state"] = "deposit"
+				_portal_logistics["phase_started_ms"] = Time.get_ticks_msec()
+		"deposit":
+			_move_player_to_chest(player, chest, Vector3(-0.8, 0.0, 2.2))
+			if Time.get_ticks_msec() - int(_portal_logistics["phase_started_ms"]) > 800:
+				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("apple")))
+				_portal_logistics["state"] = "wait_deposit"
+		"wait_deposit":
+			if player.inventory.count_item("apple") == 0:
+				var inventory: Variant = chest.get_inventory_component()
+				_write_sync_result("portal_logistics_client_b.json", {
+					"role": "client_b",
+					"entered_zone": true,
+					"returned_hub": true,
+					"picked_item": "apple",
+					"chest_wood": int(inventory.call("count_item", "wood")),
+					"chest_apple": int(inventory.call("count_item", "apple")),
+				})
+				_portal_logistics["written"] = true
+				_portal_logistics["state"] = "done"
+
+
+func _update_portal_progression_scenario(player) -> void:
+	if bool(_portal_progression["written"]):
+		return
+	var chest := _find_chest(player)
+	var hub_scierie := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_SCIERIE)
+	var hub_verger := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_VERGER)
+	var hub_breche := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_BRECHE)
+	var hub_reactor := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_REACTOR)
+	var scierie_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_SCIERIE_HUB)
+	var verger_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_VERGER_HUB)
+	var breche_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_BRECHE_HUB)
+	var reactor_hub := _find_first_node3d_in_group(player, GROUP_PORTAL_REACTOR_HUB)
+	var bomb_doors: Array[Node3D] = _find_cube_mission_bomb_doors(player)
+	if chest == null or hub_scierie == null or hub_verger == null or hub_breche == null or hub_reactor == null or scierie_hub == null or verger_hub == null or breche_hub == null or reactor_hub == null or bomb_doors.is_empty():
+		return
+	if _portal_is_active(hub_breche):
+		_portal_progression["breche_unlocked_observed"] = true
+	if _portal_is_active(hub_reactor):
+		_portal_progression["reactor_unlocked_observed"] = true
+	match _instance_role:
+		"server":
+			_update_portal_progression_server(player, chest, hub_scierie, hub_verger, hub_breche, hub_reactor)
+		"client_a":
+			_update_portal_progression_client_a(player, chest, hub_scierie, scierie_hub, hub_breche, breche_hub, hub_reactor, reactor_hub, bomb_doors)
+		"client_b":
+			_update_portal_progression_client_b(player, chest, hub_verger, verger_hub, hub_reactor, reactor_hub)
+
+
+func _update_portal_progression_server(player, chest: Node3D, hub_scierie: Node3D, hub_verger: Node3D, hub_breche: Node3D, hub_reactor: Node3D) -> void:
+	var director: Node = _find_match_director(player)
+	if director != null and _director_state_name(director) == "LOBBY" and director.has_method("start_match"):
+		director.call("start_match")
+	if _portal_is_active(hub_breche) and not bool(_portal_progression["breche_phase_written"]):
+		_write_sync_result("portal_progression_phase_breche.json", _build_portal_progression_phase_result(player, chest, hub_breche, hub_reactor, "breche_unlocked"))
+		_portal_progression["breche_phase_written"] = true
+	if _portal_is_active(hub_reactor) and not bool(_portal_progression["reactor_phase_written"]):
+		_write_sync_result("portal_progression_phase_reactor.json", _build_portal_progression_phase_result(player, chest, hub_breche, hub_reactor, "reactor_unlocked"))
+		_portal_progression["reactor_phase_written"] = true
+	if not _portal_is_active(hub_breche) or not _portal_is_active(hub_reactor):
+		return
+	var inventory: Variant = chest.get_inventory_component()
+	_write_sync_result("portal_progression_server.json", {
+		"role": "server",
+		"initial_scierie_active": bool(_portal_progression["initial_scierie_active"]),
+		"initial_verger_active": bool(_portal_progression["initial_verger_active"]),
+		"initial_breche_active": bool(_portal_progression["initial_breche_active"]),
+		"initial_reactor_active": bool(_portal_progression["initial_reactor_active"]),
+		"breche_unlocked": _portal_is_active(hub_breche),
+		"reactor_unlocked": _portal_is_active(hub_reactor),
+		"chest_wood": int(inventory.call("count_item", "wood")),
+		"chest_apple": int(inventory.call("count_item", "apple")),
+		"state": _director_state_name(director) if director != null else "",
+	})
+	_portal_progression["written"] = true
+	_portal_progression["state"] = "done"
+
+
+func _update_portal_progression_client_a(player, chest: Node3D, hub_scierie: Node3D, scierie_hub: Node3D, hub_breche: Node3D, breche_hub: Node3D, hub_reactor: Node3D, reactor_hub: Node3D, bomb_doors: Array[Node3D]) -> void:
+	match String(_portal_progression["state"]):
+		"travel_to_scierie":
+			_move_player_into_portal(player, hub_scierie)
+			if player.global_position.distance_to(scierie_hub.global_position) <= 6.0:
+				_portal_progression["state"] = "pickup_wood"
+		"pickup_wood":
+			var wood := _find_first_available_pickup_in_group(player, GROUP_MISSION_WOOD_PICKUPS)
+			if wood == null:
+				return
+			player.global_position = wood.global_position + Vector3(0.6, 0.0, 2.0)
+			player.velocity = Vector3.ZERO
+			_look_at_node(player, wood)
+			player.request_pickup_world_item(wood.get_path())
+			_portal_progression["state"] = "wait_wood_pickup"
+		"wait_wood_pickup":
+			if player.inventory.count_item("wood") > 0:
+				_portal_progression["state"] = "return_hub_from_scierie"
+		"return_hub_from_scierie":
+			_move_player_into_portal(player, scierie_hub)
+			if player.global_position.distance_to(hub_scierie.global_position) <= 8.0:
+				_portal_progression["state"] = "deposit_wood"
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+		"deposit_wood":
+			_move_player_to_chest(player, chest, Vector3(0.8, 0.0, 2.2))
+			if Time.get_ticks_msec() - int(_portal_progression["phase_started_ms"]) > 800:
+				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("wood")))
+				_portal_progression["state"] = "wait_wood_deposit"
+		"wait_wood_deposit":
+			if player.inventory.count_item("wood") == 0:
+				var wood_stage: int = int(_portal_progression["wood_stage"])
+				if wood_stage < 1:
+					_portal_progression["wood_stage"] = wood_stage + 1
+					_portal_progression["state"] = "pickup_wood"
+					_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+				elif not _portal_is_active(hub_breche):
+					_portal_progression["state"] = "wait_breche_unlock"
+				else:
+					_portal_progression["state"] = "travel_to_breche"
+		"wait_breche_unlock":
+			if _portal_is_active(hub_breche):
+				_portal_progression["state"] = "travel_to_breche"
+		"travel_to_breche":
+			_move_player_into_portal(player, hub_breche)
+			if player.global_position.distance_to(breche_hub.global_position) <= 6.0:
+				_portal_progression["state"] = "open_breche"
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+				_portal_progression["bomb_requested"] = false
+		"open_breche":
+			if _are_cube_mission_doors_open(bomb_doors):
+				_portal_progression["state"] = "return_from_breche"
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+				_portal_progression["bomb_requested"] = false
+				return
+			var target_door: Node3D = _first_closed_cube_mission_door(bomb_doors)
+			if target_door == null:
+				return
+			if Time.get_ticks_msec() - int(_portal_progression["phase_started_ms"]) < 700:
+				_move_player_for_single_bomb_door(player, target_door)
+				return
+			if not bool(_portal_progression["bomb_requested"]):
+				_move_player_for_single_bomb_door(player, target_door)
+				_spawn_bomb_at_target_door(player, target_door)
+				_portal_progression["bomb_requested"] = true
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+				return
+			if target_door.has_method("is_open") and bool(target_door.call("is_open")):
+				_portal_progression["bomb_requested"] = false
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+				return
+			if Time.get_ticks_msec() - int(_portal_progression["phase_started_ms"]) > 6500:
+				_portal_progression["bomb_requested"] = false
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+			_move_player_for_single_bomb_door(player, target_door)
+		"return_from_breche":
+			_move_player_into_portal(player, breche_hub)
+			if player.global_position.distance_to(hub_breche.global_position) <= 8.0:
+				if _portal_is_active(hub_reactor):
+					_portal_progression["state"] = "travel_to_reactor"
+				else:
+					_portal_progression["state"] = "wait_reactor_unlock"
+		"wait_reactor_unlock":
+			if _portal_is_active(hub_reactor):
+				_portal_progression["state"] = "travel_to_reactor"
+		"travel_to_reactor":
+			_move_player_into_portal(player, hub_reactor)
+			if player.global_position.distance_to(reactor_hub.global_position) <= 6.0:
+				var inventory: Variant = chest.get_inventory_component()
+				_write_sync_result("portal_progression_client_a.json", {
+					"role": "client_a",
+					"initial_breche_active": bool(_portal_progression["initial_breche_active"]),
+					"initial_reactor_active": bool(_portal_progression["initial_reactor_active"]),
+					"breche_unlocked_observed": bool(_portal_progression["breche_unlocked_observed"]),
+					"reactor_unlocked_observed": bool(_portal_progression["reactor_unlocked_observed"]),
+					"breche_entered": true,
+					"reactor_entered": true,
+					"doors_opened": _are_cube_mission_doors_open(bomb_doors),
+					"chest_wood": int(inventory.call("count_item", "wood")),
+					"chest_apple": int(inventory.call("count_item", "apple")),
+				})
+				_portal_progression["written"] = true
+				_portal_progression["state"] = "done"
+
+
+func _update_portal_progression_client_b(player, chest: Node3D, hub_verger: Node3D, verger_hub: Node3D, hub_reactor: Node3D, reactor_hub: Node3D) -> void:
+	match String(_portal_progression["state"]):
+		"travel_to_verger":
+			_move_player_into_portal(player, hub_verger)
+			if player.global_position.distance_to(verger_hub.global_position) <= 6.0:
+				_portal_progression["state"] = "pickup_apple"
+		"pickup_apple":
+			var apple := _find_first_available_pickup_in_group(player, GROUP_MISSION_APPLE_PICKUPS)
+			if apple == null:
+				return
+			player.global_position = apple.global_position + Vector3(0.6, 0.0, 2.0)
+			player.velocity = Vector3.ZERO
+			_look_at_node(player, apple)
+			player.request_pickup_world_item(apple.get_path())
+			_portal_progression["state"] = "wait_apple_pickup"
+		"wait_apple_pickup":
+			if player.inventory.count_item("apple") > 0:
+				_portal_progression["state"] = "return_hub_from_verger"
+		"return_hub_from_verger":
+			_move_player_into_portal(player, verger_hub)
+			if player.global_position.distance_to(hub_verger.global_position) <= 8.0:
+				_portal_progression["state"] = "deposit_apple"
+				_portal_progression["phase_started_ms"] = Time.get_ticks_msec()
+		"deposit_apple":
+			_move_player_to_chest(player, chest, Vector3(-0.8, 0.0, 2.2))
+			if Time.get_ticks_msec() - int(_portal_progression["phase_started_ms"]) > 800:
+				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("apple")))
+				_portal_progression["state"] = "wait_apple_deposit"
+		"wait_apple_deposit":
+			if player.inventory.count_item("apple") == 0:
+				if _portal_is_active(hub_reactor):
+					_portal_progression["state"] = "travel_to_reactor"
+				else:
+					_portal_progression["state"] = "wait_reactor_unlock"
+		"wait_reactor_unlock":
+			if _portal_is_active(hub_reactor):
+				_portal_progression["state"] = "travel_to_reactor"
+		"travel_to_reactor":
+			_move_player_into_portal(player, hub_reactor)
+			if player.global_position.distance_to(reactor_hub.global_position) <= 6.0:
+				var inventory: Variant = chest.get_inventory_component()
+				_write_sync_result("portal_progression_client_b.json", {
+					"role": "client_b",
+					"initial_breche_active": bool(_portal_progression["initial_breche_active"]),
+					"initial_reactor_active": bool(_portal_progression["initial_reactor_active"]),
+					"breche_unlocked_observed": bool(_portal_progression["breche_unlocked_observed"]),
+					"reactor_unlocked_observed": bool(_portal_progression["reactor_unlocked_observed"]),
+					"reactor_entered": true,
+					"chest_wood": int(inventory.call("count_item", "wood")),
+					"chest_apple": int(inventory.call("count_item", "apple")),
+				})
+				_portal_progression["written"] = true
+				_portal_progression["state"] = "done"
+
+
+func _build_portal_progression_phase_result(player, chest: Node3D, hub_breche: Node3D, hub_reactor: Node3D, phase_name: String) -> Dictionary:
+	var inventory: Variant = chest.get_inventory_component()
+	return {
+		"role": _instance_role,
+		"phase": phase_name,
+		"breche_active": _portal_is_active(hub_breche),
+		"reactor_active": _portal_is_active(hub_reactor),
+		"chest_wood": int(inventory.call("count_item", "wood")),
+		"chest_apple": int(inventory.call("count_item", "apple")),
+		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
+	}
+
+
+func _update_portal_unlock_wood_player(player, chest: Node3D) -> void:
+	var current_stage: int = int(_portal_unlock["wood_stage"])
+	var scierie_zone := _find_first_node3d_in_group(player, GROUP_MISSION_ZONE_SCIERIE)
+	var current_target: Node3D = null
+	if scierie_zone != null:
+		current_target = _find_first_available_pickup_in_group_near_position(player, GROUP_MISSION_WOOD_PICKUPS, scierie_zone.global_position)
+	match String(_portal_unlock["state"]):
+		"pickup_wood":
+			if current_target != null and current_target.has_method("can_be_picked_up") and bool(current_target.call("can_be_picked_up")):
+				player.global_position = current_target.global_position + Vector3(0.6, 0.0, 2.0)
+				player.velocity = Vector3.ZERO
+				_look_at_node(player, current_target)
+				player.request_pickup_world_item(current_target.get_path())
+				_portal_unlock["state"] = "wait_wood_pickup"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"wait_wood_pickup":
+			if player.inventory.count_item("wood") > 0:
+				_move_player_to_chest(player, chest, Vector3(0.8, 0.0, 2.2))
+				_portal_unlock["state"] = "give_wood"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"give_wood":
+			if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 900:
+				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("wood")))
+				_portal_unlock["state"] = "wait_wood_transfer"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"wait_wood_transfer":
+			if player.inventory.count_item("wood") == 0:
+				if current_stage >= 1:
+					_portal_unlock["state"] = "done"
+				else:
+					_portal_unlock["wood_stage"] = current_stage + 1
+					_portal_unlock["state"] = "pickup_wood"
+					_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+
+
+func _update_portal_unlock_apple_player(player, chest: Node3D) -> void:
+	var verger_zone := _find_first_node3d_in_group(player, GROUP_MISSION_ZONE_VERGER)
+	var apple: Node3D = null
+	if verger_zone != null:
+		apple = _find_first_available_pickup_in_group_near_position(player, GROUP_MISSION_APPLE_PICKUPS, verger_zone.global_position)
+	match String(_portal_unlock["state"]):
+		"pickup_apple":
+			if apple != null and apple.has_method("can_be_picked_up") and bool(apple.call("can_be_picked_up")):
+				player.global_position = apple.global_position + Vector3(0.6, 0.0, 2.0)
+				player.velocity = Vector3.ZERO
+				_look_at_node(player, apple)
+				if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 500:
+					player.request_pickup_world_item(apple.get_path())
+					_portal_unlock["state"] = "wait_apple_pickup"
+					_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"wait_apple_pickup":
+			if player.inventory.count_item("apple") > 0:
+				_move_player_to_chest(player, chest, Vector3(-0.8, 0.0, 2.2))
+				_portal_unlock["state"] = "give_apple"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+			elif Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 1800:
+				_portal_unlock["state"] = "pickup_apple"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"give_apple":
+			_move_player_to_chest(player, chest, Vector3(-0.8, 0.0, 2.2))
+			if Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 900:
+				player.request_transfer_to_target(0, maxi(1, player.inventory.count_item("apple")))
+				_portal_unlock["state"] = "wait_apple_transfer"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"wait_apple_transfer":
+			if player.inventory.count_item("apple") == 0:
+				_portal_unlock["apple_done"] = true
+				_portal_unlock["state"] = "wait_breche_unlock"
+			elif Time.get_ticks_msec() - int(_portal_unlock["phase_started_ms"]) > 1800:
+				_portal_unlock["state"] = "give_apple"
+				_portal_unlock["phase_started_ms"] = Time.get_ticks_msec()
+		"wait_breche_unlock":
+			var breche_portal := _find_first_node3d_in_group(player, GROUP_PORTAL_HUB_BRECHE)
+			if _portal_is_active(breche_portal):
+				_portal_unlock["state"] = "done"
+
+
+func _update_portal_unlock_server(player, chest: Node3D, breche_portal: Node3D, reactor_portal: Node3D) -> void:
+	var director := _find_match_director(player)
+	if director != null and _director_state_name(director) == "LOBBY" and director.has_method("start_match"):
+		director.call("start_match")
+	if not breche_portal.has_method("is_portal_active"):
+		return
+	if not bool(breche_portal.call("is_portal_active")):
+		return
+	var chest_inventory: Variant = chest.get_inventory_component()
+	var chest_wood: int = int(chest_inventory.call("count_item", "wood"))
+	var chest_apple: int = int(chest_inventory.call("count_item", "apple"))
+	_write_sync_result("portal_unlock_server.json", {
+		"state": _director_state_name(director) if director != null else "",
+		"portal_breche_active": bool(breche_portal.call("is_portal_active")),
+		"portal_reactor_active": bool(reactor_portal.call("is_portal_active")) if reactor_portal.has_method("is_portal_active") else false,
+		"chest_wood": chest_wood,
+		"chest_apple": chest_apple,
+		"chest_wood_delivered": maxi(0, chest_wood - 6),
+		"chest_apple_delivered": maxi(0, chest_apple - 2),
+	})
+	_portal_unlock["written"] = true
+	_portal_unlock["state"] = "done"
 
 
 func _perform_cube_mission_open_door(player, bomb_doors: Array[Node3D], cube: Node3D, activator: Node3D, director: Node) -> void:
@@ -1318,15 +1946,23 @@ func _perform_cube_mission_destroy_crates(player, cube: Node3D, activator: Node3
 		return
 	var now := Time.get_ticks_msec()
 	if not bool(_cube_mission["crate_waiting"]):
+		player.global_position = crate.global_position + Vector3(-1.8, 0.0, 1.8)
+		player.velocity = Vector3.ZERO
+		_look_at_node(player, crate)
 		if crate.has_method("damage"):
 			crate.call("damage", Vector3.ZERO, Vector3.ZERO)
 		_cube_mission["crate_waiting"] = true
 		_cube_mission["crate_phase_started"] = now
 		_write_cube_mission_progress(player, cube, activator, director, "destroying_crate_%d" % index)
 		return
-	if now - int(_cube_mission["crate_phase_started"]) > 800:
+	if crate.has_method("is_destroyed") and bool(crate.call("is_destroyed")):
 		_cube_mission["crate_index"] = index + 1
 		_cube_mission["crate_waiting"] = false
+		_cube_mission["crate_phase_started"] = now
+		return
+	if now - int(_cube_mission["crate_phase_started"]) > 2500:
+		_cube_mission["crate_waiting"] = false
+		_cube_mission["crate_phase_started"] = now
 
 
 func _perform_cube_mission_wait_door(player, bomb_doors: Array[Node3D], cube: Node3D, activator: Node3D, director: Node) -> void:
@@ -1358,6 +1994,24 @@ func _move_player_for_single_bomb_door(player, bomb_door: Node3D) -> void:
 	_look_at_node(player, bomb_door)
 
 
+func _portal_is_active(portal: Node) -> bool:
+	return is_instance_valid(portal) and portal.has_method("is_portal_active") and bool(portal.call("is_portal_active"))
+
+
+func _move_player_into_portal(player, portal: Node3D) -> void:
+	var portal_forward := -portal.global_transform.basis.z
+	portal_forward.y = 0.0
+	if portal_forward.length_squared() < 0.001:
+		portal_forward = Vector3.FORWARD
+	else:
+		portal_forward = portal_forward.normalized()
+	player.global_position = portal.global_position + portal_forward * 0.2
+	player.velocity = Vector3.ZERO
+	_look_at_position(player, portal.global_position + portal_forward)
+	if portal.has_method("_on_portal_entered"):
+		portal.call("_on_portal_entered", player)
+
+
 func _spawn_bomb_at_target_door(player, bomb_door: Node3D) -> void:
 	var bomb_position := bomb_door.global_position + Vector3(0.0, 1.0, 0.0)
 	player.spawn_bomb.rpc(bomb_position, Vector3.ZERO)
@@ -1385,18 +2039,26 @@ func _move_player_near_cube(player, cube: Node3D, activator: Node3D, bomb_doors:
 
 func _get_cube_mission_navigation_target(cube: Node3D, activator: Node3D, bomb_doors: Array[Node3D]) -> Vector3:
 	var door_anchor: Vector3 = _get_cube_mission_door_anchor(bomb_doors)
-	var door_waypoint := door_anchor + Vector3(0.0, -2.0, 0.2)
-	var bridge_waypoint := Vector3(
-		door_anchor.x + 0.4,
+	var corridor_exit := Vector3(
+		door_anchor.x - 1.4,
 		cube.global_position.y,
-		door_anchor.z + 3.2
+		door_anchor.z + 4.4
 	)
-	var final_waypoint := activator.global_position + Vector3(-0.8, 0.0, -1.1)
-	if cube.global_position.distance_to(door_waypoint) > 2.8:
-		return door_waypoint
-	if cube.global_position.distance_to(bridge_waypoint) > 2.4:
+	var bridge_waypoint := Vector3(
+		activator.global_position.x - 5.0,
+		cube.global_position.y,
+		activator.global_position.z - 6.0
+	)
+	var final_waypoint := Vector3(
+		activator.global_position.x - 1.2,
+		cube.global_position.y,
+		activator.global_position.z - 1.5
+	)
+	if cube.global_position.z < corridor_exit.z - 0.8:
+		return corridor_exit
+	if cube.global_position.distance_to(bridge_waypoint) > 2.6:
 		return bridge_waypoint
-	if cube.global_position.distance_to(final_waypoint) > 2.0:
+	if cube.global_position.distance_to(final_waypoint) > 1.8:
 		return final_waypoint
 	return activator.global_position
 
@@ -1480,6 +2142,30 @@ func _find_world_item_in_subtree(root: Node, node_name: String) -> Node3D:
 		if found != null:
 			return found
 	return null
+
+
+func _find_first_available_pickup_in_group(player, group_name: String) -> Node3D:
+	var best_pickup: Node3D = null
+	var best_distance: float = INF
+	for candidate in _find_nodes3d_in_group(player, group_name):
+		if candidate.has_method("can_be_picked_up") and bool(candidate.call("can_be_picked_up")):
+			var distance: float = player.global_position.distance_to(candidate.global_position)
+			if distance < best_distance:
+				best_pickup = candidate
+				best_distance = distance
+	return best_pickup
+
+
+func _find_first_available_pickup_in_group_near_position(player, group_name: String, center: Vector3) -> Node3D:
+	var best_pickup: Node3D = null
+	var best_distance: float = INF
+	for candidate in _find_nodes3d_in_group(player, group_name):
+		if candidate.has_method("can_be_picked_up") and bool(candidate.call("can_be_picked_up")):
+			var distance: float = center.distance_to(candidate.global_position)
+			if distance < best_distance:
+				best_pickup = candidate
+				best_distance = distance
+	return best_pickup
 
 
 func _await_bomb_door_and_item(player, node_name: String) -> Dictionary:

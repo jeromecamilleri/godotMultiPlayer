@@ -4,6 +4,7 @@ const BEE_DIRECTOR_SCRIPT := preload("res://enemies/bee_director.gd")
 const BEETLE_DIRECTOR_SCRIPT := preload("res://enemies/beetle_director.gd")
 const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 const BEETLE_SCENE := preload("res://enemies/beetle_bot.tscn")
+const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
 
 
 func test_enemy_instances_expose_common_director_contract() -> void:
@@ -60,3 +61,42 @@ func test_enemy_directors_expose_common_groups() -> void:
 	assert_true(beetle_director.has_method("get_state_revision"), "Le directeur de scarabées doit exposer get_state_revision.")
 	assert_true(bee_director.has_method("get_debug_sync_summary"), "Le directeur d'abeilles doit exposer get_debug_sync_summary.")
 	assert_true(beetle_director.has_method("get_debug_sync_summary"), "Le directeur de scarabées doit exposer get_debug_sync_summary.")
+
+
+func test_bee_director_can_gate_population_by_portal_and_zone_presence() -> void:
+	var root := Node3D.new()
+	add_child_autofree(root)
+
+	var marker := Node3D.new()
+	marker.name = "ZoneMarker"
+	root.add_child(marker)
+
+	var portal := PORTAL_SCENE.instantiate()
+	portal.name = "PortalHubVerger"
+	root.add_child(portal)
+	portal.add_to_group("mission_portal_hub_verger")
+
+	var player := Node3D.new()
+	player.name = "Player2"
+	player.set_multiplayer_authority(2)
+	player.position = Vector3(1.0, 0.0, 0.0)
+	player.add_to_group("players")
+	root.add_child(player)
+
+	var bee_director := BEE_DIRECTOR_SCRIPT.new()
+	root.add_child(bee_director)
+	bee_director.activation_center_path = NodePath("../ZoneMarker")
+	bee_director.activation_radius = 4.0
+	bee_director.activation_portal_group = "mission_portal_hub_verger"
+	bee_director.activation_requires_player_presence = true
+
+	await get_tree().process_frame
+
+	portal.call("set_portal_active", false)
+	assert_eq(0, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles doit rester inactif si le portail de zone est fermé.")
+
+	portal.call("set_portal_active", true)
+	assert_eq(2, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles doit s'activer quand le portail est ouvert et qu'un joueur est dans la zone.")
+
+	player.position = Vector3(10.0, 0.0, 0.0)
+	assert_eq(0, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles doit retomber à zéro si personne n'est dans la zone.")

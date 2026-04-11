@@ -68,8 +68,6 @@ func _ready() -> void:
 	_set_visual_state("Idle")
 	if is_multiplayer_authority():
 		freeze = false
-		if not multiplayer.peer_connected.is_connected(_on_peer_connected):
-			multiplayer.peer_connected.connect(_on_peer_connected)
 	else:
 		_is_network_proxy = true
 		freeze = true
@@ -673,9 +671,7 @@ func _request_alive_state_when_connected() -> void:
 	var authority_id := get_multiplayer_authority()
 	if authority_id <= 0 or authority_id == multiplayer.get_unique_id():
 		return
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_alive_state):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_alive_state, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_alive_state")):
 		return
 	call_deferred("_request_alive_state_from_authority")
 
@@ -688,11 +684,6 @@ func _request_alive_state_from_authority() -> void:
 	var authority_id := get_multiplayer_authority()
 	if authority_id <= 0 or authority_id == multiplayer.get_unique_id():
 		return
-	_request_alive_state.rpc_id(authority_id)
-
-
-func _on_peer_connected(peer_id: int) -> void:
-	if not is_multiplayer_authority():
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_alive_state")):
 		return
-	_sync_alive_state.rpc_id(peer_id, _alive, _removed)
-	_sync_visual_state.rpc_id(peer_id, _visual_state)
+	_request_alive_state.rpc_id(authority_id)

@@ -1,0 +1,100 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
+[ext_resource type="PackedScene" path="res://main/mission_zone_scierie_interactives.tscn" id="2_interactives"]
+[ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="3_beetdir"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(40, 8, 28)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(40, 8, 28)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.654902, 0.517647, 0.290196, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_marker"]
+top_radius = 0.8
+bottom_radius = 1.0
+height = 5.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_marker"]
+size = Vector3(3.2, 0.6, 3.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
+albedo_color = Color(0.866667, 0.615686, 0.278431, 1)
+emission_enabled = true
+emission = Color(0.866667, 0.615686, 0.278431, 1)
+emission_energy_multiplier = 1.6
+
+[node name="ZoneScierie" type="Node3D" groups=["mission_zone_scierie"]]
+
+[node name="Ground" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="Ground"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground/Floor"]
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Env" type="Node3D" parent="."]
+
+[node name="Interactives" parent="." instance=ExtResource("2_interactives")]
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="BeetleDirector" type="Node3D" parent="Enemies" groups=["enemy_directors"]]
+script = ExtResource("3_beetdir")
+defense_zone_path = NodePath("../../MissionMarkers/ResourceMarker")
+managed_seed_beetle_paths = Array[NodePath]([])
+activation_center_path = NodePath("../../MissionMarkers/ResourceMarker")
+activation_radius = 16.0
+activation_portal_group = "mission_portal_hub_scierie"
+activation_requires_player_presence = true
+min_beetles = 1
+base_move_speed = 1.8
+move_speed_step_per_extra_player = 0.05
+guard_chase_radius = 7.5
+guard_return_radius = 9.0
+
+[node name="beetle_anchor_1" type="Node3D" parent="Enemies/BeetleDirector"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 4.1, -1.8)
+
+[node name="beetle_anchor_2" type="Node3D" parent="Enemies/BeetleDirector"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.5, 4.1, 1.8)
+
+[node name="Portals" type="Node3D" parent="."]
+
+[node name="Portal_Scierie_To_Hub" parent="Portals" groups=["mission_zone_scierie", "mission_portal_scierie_hub"] instance=ExtResource("1_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 4, 0)
+linked_portal_path = NodePath("../../../HubLevel/Portals/Portal_Hub_To_Scierie")
+exit_distance = -2.0
+portal_title = "HUB"
+
+[node name="MissionMarkers" type="Node3D" parent="."]
+
+[node name="ResourceMarker" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0)
+
+[node name="ZoneLandmark" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 4, -8)
+
+[node name="Pedestal" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_marker")
+
+[node name="Pillar" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 0)
+mesh = SubResource("CylinderMesh_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_marker")
+
+[node name="Label3D" type="Label3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 6.2, 0)
+billboard = 1
+text = "SCIERIE"
+font_size = 48
+outline_size = 14

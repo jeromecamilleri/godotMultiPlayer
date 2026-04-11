@@ -13,8 +13,6 @@ func _ready() -> void:
 	spawn_function = custom_spawn
 	multiplayer.peer_connected.connect(create_player)
 	multiplayer.peer_disconnected.connect(destroy_player)
-	spawned.connect(on_spawned)
-	despawned.connect(on_despawned)
 
 
 func create_player(id: int):
@@ -23,15 +21,18 @@ func create_player(id: int):
 	
 	var spawn_position = spawn_points.get_spawn_position()
 	spawn([id, spawn_position])
+	call_deferred("_emit_spawned_if_present", id)
 	DebugLog.gameplay("Player %d spawned at %s" % [id, str(spawn_position)])
 
 
 func destroy_player(id: int):
 	# Only server can despawn replicated player instances.
 	if not multiplayer.is_server(): return
-	get_node(spawn_path).get_node(str(id)).queue_free()
-	
+	var player := get_player_or_null(id)
+	if player == null:
+		return
 	player_despawned.emit(id)
+	player.queue_free()
 
 
 func respawn_player(id: int) -> void:
@@ -54,13 +55,18 @@ func custom_spawn(vars) -> Node:
 	p.set_multiplayer_authority(id)
 	p.call_deferred("set_position", pos)
 	p.name = str(id)
-	
-	player_spawned.emit(id, p)
 	return p
 
 
 func get_player_or_null(id: int) -> Player:
 	return get_node(spawn_path).get_node_or_null(str(id))
+
+
+func _emit_spawned_if_present(id: int) -> void:
+	var player := get_player_or_null(id)
+	if player == null:
+		return
+	player_spawned.emit(id, player)
 
 
 func on_spawned(node: Node) -> void:

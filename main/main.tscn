@@ -12,64 +12,21 @@
 [ext_resource type="Script" uid="uid://bxld3dpqvf1jf" path="res://main/fall_checker.gd" id="9_vk48u"]
 [ext_resource type="Script" uid="uid://cjhhwy4gshixw" path="res://main/match_director.gd" id="10_md001"]
 [ext_resource type="PackedScene" uid="uid://bilg3cgxxv2h5" path="res://addons/kenney_platformer_kit/block.glb" id="11_n3o0a"]
-[ext_resource type="Script" uid="uid://fi1th2ns0hx2" path="res://main/rigid_body_3d.gd" id="12_fwcvl"]
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
-[ext_resource type="PackedScene" uid="uid://rn45gytkk6tv" path="res://enemies/bee_bot.tscn" id="14_73k8k"]
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
-[ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="18_4hmqs"]
-[ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
-[ext_resource type="PackedScene" path="res://inventory/world_item.tscn" id="20_invwi"]
-[ext_resource type="PackedScene" path="res://inventory/inventory_container.tscn" id="21_invct"]
-[ext_resource type="Resource" path="res://inventory/items/apple.tres" id="22_itema"]
-[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="23_itemw"]
-[ext_resource type="Script" uid="uid://dhaimx368gaeq" path="res://enemies/bee_director.gd" id="25_beedir"]
-[ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="26_betdir"]
-[ext_resource type="PackedScene" uid="uid://oxyn25v5khuk" path="res://enemies/beetle_bot.tscn" id="27_d8vpj"]
-[ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="28_box"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_beetle_director.tscn" id="29_betpkg"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_interactives.tscn" id="30_intpkg"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_goal_zone.tscn" id="31_goalpkg"]
-[ext_resource type="PackedScene" path="res://main/mission_hub_enemies.tscn" id="32_enmpkg"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_physics_objects.tscn" id="33_physpkg"]
+[ext_resource type="PackedScene" path="res://main/mission_hub_interactives.tscn" id="30_intpkg"]
+[ext_resource type="PackedScene" path="res://levels/zones/zone_scierie.tscn" id="34_zone_scierie"]
+[ext_resource type="PackedScene" path="res://levels/zones/zone_verger.tscn" id="35_zone_verger"]
+[ext_resource type="PackedScene" path="res://levels/zones/zone_breche.tscn" id="36_zone_breche"]
+[ext_resource type="PackedScene" path="res://levels/zones/zone_reactor.tscn" id="37_zone_reactor"]
+[ext_resource type="Script" uid="uid://woki35yt1nry" path="res://main/ui_test_scenario_server_pilot.gd" id="38_uitestpilot"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_bd01"]
-size = Vector3(4, 4, 1)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bd01"]
-albedo_color = Color(1, 0.439216, 0.117647, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_bd01"]
-size = Vector3(3.7902527, 4.055664, 0.7084961)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_n3o0a"]
 subdivide_width = 120
 subdivide_depth = 120
-
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_fwcvl"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_na0o7"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_73k8k"]
-albedo_color = Color(0.2627451, 1, 0, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_bsumw"]
-
-[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_fwcvl"]
-properties/0/path = NodePath(".:global_transform")
-properties/0/spawn = true
-properties/0/replication_mode = 2
-properties/1/path = NodePath(".:linear_velocity")
-properties/1/spawn = true
-properties/1/replication_mode = 2
-properties/2/path = NodePath(".:angular_velocity")
-properties/2/spawn = true
-properties/2/replication_mode = 2
-properties/3/path = NodePath(".:_pull_state_sync")
-properties/3/spawn = true
-properties/3/replication_mode = 1
 
 [node name="Main" type="Node" unique_id=2042604208]
 
@@ -114,6 +71,9 @@ match_director = NodePath("../MatchDirector")
 script = ExtResource("10_md001")
 player_spawner = NodePath("../PlayerSpawner")
 
+[node name="UiTestScenarioServerPilot" type="Node" parent="." unique_id=655086801]
+script = ExtResource("38_uitestpilot")
+
 [node name="HubLevel" parent="." unique_id=1150027112 instance=ExtResource("3_0cpj8")]
 
 [node name="blockLarge25" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="11" unique_id=1410779600]
@@ -137,8 +97,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.006908, 4, 10)
 [node name="blockSlope3" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="30" unique_id=1674956779 instance=ExtResource("12_s758e")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -17.988014, 7.96714, 10)
 
-[node name="Activator" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=547915941 instance=ExtResource("31_goalpkg")]
-
 [node name="fenceCorner3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="2" unique_id=1229230674]
 transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, 11.99863, 4.007114, 15.995415)
 
@@ -151,7 +109,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6542916, 4, 14)
 [node name="plant7" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="19" unique_id=59418837]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.173691, 4.0735116, 16.568993)
 
-[node name="Enemies" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001 instance=ExtResource("32_enmpkg")]
+[node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001]
 
 [node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
@@ -173,22 +131,36 @@ transparency = 0.87
 mesh = SubResource("PlaneMesh_n3o0a")
 surface_material_override/0 = ExtResource("15_wat01")
 
-[node name="PhysicsObjects" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003 instance=ExtResource("33_physpkg")]
+[node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003]
 
-[node name="Portal" parent="HubLevel/Portals" parent_id_path=PackedInt32Array(1150027112, 515313060) index="0" unique_id=878852613]
-transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.04313103, -23.057299, 12, 10.07815)
+[node name="ZoneScierie" parent="." unique_id=1900001001 instance=ExtResource("34_zone_scierie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
 
-[node name="Box" parent="." unique_id=1135939642 groups=["cube_mission_crates"] instance=ExtResource("28_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.656343, 4.5842094, 14.815784)
+[node name="ZoneVerger" parent="." unique_id=1900001002 instance=ExtResource("35_zone_verger")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -120)
 
-[node name="Box2" parent="." unique_id=268105007 groups=["cube_mission_crates"] instance=ExtResource("28_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.547671, 4.5842094, 14.4864)
+[node name="ZoneBreche" parent="." unique_id=1900001003 instance=ExtResource("36_zone_breche")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.88777, 0.050182343, 17.821526)
 
-[node name="Box3" parent="." unique_id=1133351624 groups=["cube_mission_crates"] instance=ExtResource("28_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.0644455, 5.998046, 15.057129)
+[node name="ZoneReactor" parent="." unique_id=1900001004 instance=ExtResource("37_zone_reactor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120, 0, 28)
 
 [connection signal="disconnected" from="Connection" to="UI" method="show_ui"]
 [connection signal="connect_client" from="UI" to="Connection" method="start_client"]
 [connection signal="start_server" from="UI" to="Connection" method="start_server"]
 
 [editable path="HubLevel"]
+[editable path="HubLevel/Env/Interactives"]
+[editable path="ZoneScierie"]
+[editable path="ZoneScierie/Interactives"]
+[editable path="ZoneScierie/Enemies/BeetleDirector"]
+[editable path="ZoneVerger"]
+[editable path="ZoneVerger/Interactives"]
+[editable path="ZoneVerger/Enemies"]
+[editable path="ZoneBreche"]
+[editable path="ZoneBreche/Interactives"]
+[editable path="ZoneBreche/Enemies"]
+[editable path="ZoneReactor"]
+[editable path="ZoneReactor/Env/PhysicsObjects"]
+[editable path="ZoneReactor/Interactives/Activator"]
+[editable path="ZoneReactor/Enemies/BeetleDirector"]

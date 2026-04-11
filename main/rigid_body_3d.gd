@@ -10,6 +10,8 @@ class_name PullableCube
 @export var pull_force_per_player := 16.0
 ## Maximum horizontal distance where a player can stay attached.
 @export var max_attach_distance := 7.0
+## Debug anchors created with the L lock should stay valid longer once already attached.
+@export var locked_anchor_attach_distance_multiplier := 3.5
 ## Stop pull session if no intent update arrives in time.
 @export var pull_intent_timeout_ms := 900
 ## Cube-to-reactor distance required to mark this objective as complete.
@@ -133,7 +135,8 @@ func request_update_pull_intent(intent_dir: Vector3) -> void:
 		peer_id = multiplayer.get_unique_id()
 	if _goal_reached:
 		return
-	if not _is_peer_attachable(peer_id):
+	var allow_locked_anchor_extension := _attached_peers.has(peer_id)
+	if not _is_peer_attachable(peer_id, allow_locked_anchor_extension):
 		return
 	_set_peer_pull_data(peer_id, true, intent_dir)
 
@@ -220,12 +223,18 @@ func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 func _request_current_state_when_connected() -> void:
 	if is_multiplayer_authority():
 		return
-	if multiplayer.multiplayer_peer == null:
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
 		return
 	var authority_id: int = get_multiplayer_authority()
 	if authority_id <= 0:
 		authority_id = server_peer_id
 	_request_current_state.rpc_id(authority_id)
+
+
+func _on_connected_to_server_request_state() -> void:
+	_request_current_state_when_connected()
+
+
 
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -404,7 +413,7 @@ func _cleanup_invalid_attached_peers() -> void:
 	var now_ms := Time.get_ticks_msec()
 	for peer_id in _attached_peers.keys():
 		var id: int = int(peer_id)
-		if not _is_peer_attachable(id):
+		if not _is_peer_attachable(id, true):
 			to_remove.append(id)
 			continue
 		var data: Dictionary = _normalized_peer_pull_data(id)
@@ -415,14 +424,17 @@ func _cleanup_invalid_attached_peers() -> void:
 		_attached_peers.erase(id)
 
 
-func _is_peer_attachable(peer_id: int) -> bool:
+func _is_peer_attachable(peer_id: int, allow_locked_anchor_extension: bool = false) -> bool:
 	var player := _get_player_for_peer(peer_id)
 	if not is_instance_valid(player):
 		return false
 	if player.has_method("is_dead") and player.is_dead():
 		return false
 	var dist: float = player.global_position.distance_to(global_position)
-	return dist <= max_attach_distance
+	var max_distance := max_attach_distance
+	if allow_locked_anchor_extension and player.has_method("is_debug_position_locked") and bool(player.call("is_debug_position_locked")) and _attached_peers.has(peer_id):
+		max_distance *= locked_anchor_attach_distance_multiplier
+	return dist <= max_distance
 
 
 func _get_player_for_peer(peer_id: int) -> Node3D:

@@ -254,14 +254,34 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 8, -18)
 
 [node name="Portals" type="Node3D" parent="." unique_id=515313060]
 
-[node name="Portal" parent="Portals" unique_id=878852613 instance=ExtResource("25_yv8ub")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 8, -26)
-linked_portal_path = NodePath("../Portal2")
+[node name="Portal_Hub_To_Scierie" parent="Portals" unique_id=878852613 groups=["mission_portal_hub_scierie"] instance=ExtResource("25_yv8ub")]
+transform = Transform3D(0.04313103, 0, 0.9990695, 0, 1, 0, -0.9990695, 0, 0.04313103, -23.057299, 12, 10.07815)
+linked_portal_path = NodePath("../../../ZoneScierie/Portals/Portal_Scierie_To_Hub")
+url = "zone_scierie"
+portal_title = "SCIERIE"
+starts_active = true
 
-[node name="Portal2" parent="Portals" unique_id=351602746 instance=ExtResource("25_yv8ub")]
+[node name="Portal_Hub_To_Verger" parent="Portals" unique_id=351602746 groups=["mission_portal_hub_verger"] instance=ExtResource("25_yv8ub")]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 22.80854, 4, -3)
-linked_portal_path = NodePath("../Portal")
+linked_portal_path = NodePath("../../../ZoneVerger/Portals/Portal_Verger_To_Hub")
 exit_distance = -2.0
+url = "zone_verger"
+portal_title = "VERGER"
+starts_active = true
+
+[node name="Portal_Hub_To_Breche" parent="Portals" groups=["mission_portal_hub_breche"] instance=ExtResource("25_yv8ub")]
+transform = Transform3D(0.9945219, 0, -0.10452846, 0, 1, 0, 0.10452846, 0, 0.9945219, -21, 4, -10)
+linked_portal_path = NodePath("../../../ZoneBreche/Portals/Portal_Breche_To_Hub")
+url = "zone_breche"
+portal_title = "BRECHE"
+starts_active = false
+
+[node name="Portal_Hub_To_Reactor" parent="Portals" groups=["mission_portal_hub_reactor"] instance=ExtResource("25_yv8ub")]
+transform = Transform3D(0.9961947, 0, 0.08715574, 0, 1, 0, -0.08715574, 0, 0.9961947, 8, 4, 14)
+linked_portal_path = NodePath("../../../ZoneReactor/Portals/Portal_Reactor_To_Hub")
+url = "zone_reactor"
+portal_title = "REACTOR"
+starts_active = false
 
 [node name="FallRespawnZone" parent="." unique_id=909691664 instance=ExtResource("26_8w4m6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -30, 0)

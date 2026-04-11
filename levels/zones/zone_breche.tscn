@@ -1,0 +1,83 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
+[ext_resource type="PackedScene" path="res://main/mission_zone_breche_interactives.tscn" id="2_interactives"]
+[ext_resource type="PackedScene" path="res://main/mission_zone_breche_enemies.tscn" id="3_enemies"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(40, 8, 24)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(40, 8, 24)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.662745, 0.309804, 0.247059, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_marker"]
+top_radius = 0.85
+bottom_radius = 1.05
+height = 5.4
+
+[sub_resource type="BoxMesh" id="BoxMesh_marker"]
+size = Vector3(3.4, 0.65, 3.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
+albedo_color = Color(0.913725, 0.329412, 0.2, 1)
+emission_enabled = true
+emission = Color(0.913725, 0.329412, 0.2, 1)
+emission_energy_multiplier = 1.9
+
+[node name="ZoneBreche" type="Node3D" groups=["mission_zone_breche"]]
+
+[node name="Ground" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="Ground"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground/Floor"]
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Env" type="Node3D" parent="."]
+
+[node name="Interactives" parent="." instance=ExtResource("2_interactives")]
+
+[node name="Enemies" parent="." instance=ExtResource("3_enemies")]
+
+[node name="Portals" type="Node3D" parent="."]
+
+[node name="Portal_Breche_To_Hub" parent="Portals" groups=["mission_zone_breche", "mission_portal_breche_hub"] instance=ExtResource("1_portal")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 14, 4, 0)
+linked_portal_path = NodePath("../../../HubLevel/Portals/Portal_Hub_To_Breche")
+exit_distance = -2.0
+portal_title = "HUB"
+
+[node name="MissionMarkers" type="Node3D" parent="."]
+
+[node name="EntryMarker" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 4, 0)
+
+[node name="DefenseMarker" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 4, 9)
+
+[node name="ZoneLandmark" type="Node3D" parent="MissionMarkers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, 8)
+
+[node name="Pedestal" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.325, 0)
+mesh = SubResource("BoxMesh_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_marker")
+
+[node name="Pillar" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.95, 0)
+mesh = SubResource("CylinderMesh_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_marker")
+
+[node name="Label3D" type="Label3D" parent="MissionMarkers/ZoneLandmark"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 6.5, 0)
+billboard = 1
+text = "BRECHE"
+font_size = 48
+outline_size = 14

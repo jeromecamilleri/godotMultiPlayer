@@ -3,14 +3,16 @@ extends GutTest
 const BEETLE_DIRECTOR_SCRIPT := preload("res://enemies/beetle_director.gd")
 const BEETLE_SCRIPT := preload("res://enemies/beetle_bot.gd")
 const MAIN_SCENE := preload("res://main/main.tscn")
+const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
 
 
-func _spawn_fake_player(parent: Node3D, peer_id: int) -> Node3D:
+func _spawn_fake_player(parent: Node3D, peer_id: int, position: Vector3 = Vector3.ZERO) -> Node3D:
 	var player := Node3D.new()
 	player.name = "Player%s" % peer_id
 	player.set_multiplayer_authority(peer_id)
 	parent.add_child(player)
 	player.add_to_group("players")
+	player.position = position
 	return player
 
 
@@ -87,20 +89,69 @@ func test_main_scene_beetle_director_targets_activator_zone() -> void:
 	var main := MAIN_SCENE.instantiate()
 	add_child_autofree(main)
 
-	var director := main.get_node_or_null("HubLevel/Env/Enemies/BeetleDirector")
+	var director := main.get_node_or_null("ZoneReactor/Enemies/BeetleDirector")
 	assert_not_null(director, "La scene principale doit embarquer un BeetleDirector.")
-	assert_eq(NodePath("HubLevel/Ground/Activator/CubeActivator"), director.get("defense_zone_path"), "Le BeetleDirector doit defendre explicitement la zone Activator.")
+	assert_eq(NodePath("../../Interactives/Activator/CubeActivator"), director.get("defense_zone_path"), "Le BeetleDirector doit defendre explicitement la zone Activator du reactor.")
+	assert_eq(NodePath("../../Interactives/Activator/CubeActivator"), director.get("activation_center_path"), "Le BeetleDirector doit utiliser l'Activator comme centre d'activation runtime.")
+	assert_eq("", String(director.get("activation_portal_group")), "Le BeetleDirector du reactor doit se baser sur la présence joueur locale, pas sur un portail.")
+	assert_true(bool(director.get("activation_requires_player_presence")), "Le BeetleDirector du reactor doit attendre un joueur dans la zone avant de s'activer.")
 	assert_eq([], director.get("managed_seed_beetle_paths"), "La scene principale ne doit plus melanger scarabees seeds et dynamiques hors directeur.")
+
+
+func test_main_scene_breche_beetle_director_targets_defense_zone() -> void:
+	var main := MAIN_SCENE.instantiate()
+	add_child_autofree(main)
+
+	var director := main.get_node_or_null("ZoneBreche/Enemies/BeetleDirector")
+	assert_not_null(director, "La scene principale doit embarquer un BeetleDirector dans la brèche.")
+	assert_eq(NodePath("../../MissionMarkers/DefenseMarker"), director.get("defense_zone_path"), "Le BeetleDirector de la brèche doit défendre explicitement la zone centrale de la brèche.")
+	assert_eq(NodePath("../../MissionMarkers/DefenseMarker"), director.get("activation_center_path"), "Le BeetleDirector de la brèche doit utiliser la zone centrale comme centre d'activation.")
+	assert_eq("mission_portal_hub_breche", String(director.get("activation_portal_group")), "Le BeetleDirector de la brèche doit dépendre du portail de la brèche.")
+	assert_true(bool(director.get("activation_requires_player_presence")), "Le BeetleDirector de la brèche doit attendre un joueur dans la zone avant de s'activer.")
+
+
+func test_beetle_director_gates_population_by_portal_and_zone_presence() -> void:
+	var root := Node3D.new()
+	add_child_autofree(root)
+
+	var guard_zone := Node3D.new()
+	guard_zone.name = "GuardZone"
+	root.add_child(guard_zone)
+
+	var portal := PORTAL_SCENE.instantiate()
+	portal.name = "PortalHubScierie"
+	root.add_child(portal)
+	portal.add_to_group("mission_portal_hub_scierie")
+
+	var director := BEETLE_DIRECTOR_SCRIPT.new()
+	root.add_child(director)
+	director.activation_center_path = NodePath("../GuardZone")
+	director.activation_radius = 4.0
+	director.activation_portal_group = "mission_portal_hub_scierie"
+	director.activation_requires_player_presence = true
+
+	await wait_process_frames(2)
+
+	var player := _spawn_fake_player(root, 2, Vector3(1.0, 0.0, 0.0))
+	portal.call("set_portal_active", false)
+	assert_eq(0, int(director.call("_get_desired_beetle_count")), "Le directeur doit rester inactif si le portail de zone est fermé.")
+
+	portal.call("set_portal_active", true)
+	assert_eq(1, int(director.call("_get_desired_beetle_count")), "Le directeur doit s'activer quand le portail est ouvert et qu'un joueur est dans la zone.")
+
+	player.position = Vector3(12.0, 0.0, 0.0)
+	assert_eq(0, int(director.call("_get_desired_beetle_count")), "Le directeur doit retomber à zéro si aucun joueur n'est présent dans la zone.")
 
 
 func test_main_scene_exposes_stable_mission_groups() -> void:
 	var main := MAIN_SCENE.instantiate()
 	add_child_autofree(main)
 
-	var activator := main.get_node_or_null("HubLevel/Ground/Activator/CubeActivator")
-	var director := main.get_node_or_null("HubLevel/Env/Enemies/BeetleDirector")
+	var activator := main.get_node_or_null("ZoneReactor/Interactives/Activator/CubeActivator")
+	var director := main.get_node_or_null("ZoneReactor/Enemies/BeetleDirector")
+	var breche_director := main.get_node_or_null("ZoneBreche/Enemies/BeetleDirector")
 	var chest := main.get_node_or_null("HubLevel/Env/Interactives/Chest")
-	var primary_cube := main.get_node_or_null("HubLevel/Env/PhysicsObjects/RigidCube3D")
+	var primary_cube := main.get_node_or_null("ZoneReactor/Env/PhysicsObjects/RigidCube3D")
 	var bomb_doors: Array[Node] = main.get_tree().get_nodes_in_group("mission_cube_bomb_doors")
 	var blockers: Array[Node] = main.get_tree().get_nodes_in_group("mission_cube_blockers")
 
@@ -108,6 +159,7 @@ func test_main_scene_exposes_stable_mission_groups() -> void:
 	assert_true(activator != null and activator.is_in_group("defense_zones"), "La zone Activator doit aussi exposer un groupe stable de defense.")
 	assert_true(director != null and director.is_in_group("enemy_directors"), "Le BeetleDirector doit exposer un groupe stable de directeurs ennemis.")
 	assert_true(director != null and director.is_in_group("mission_cube_beetle_directors"), "Le BeetleDirector doit exposer un groupe stable de mission.")
+	assert_true(breche_director != null and breche_director.is_in_group("mission_breche_beetle_directors"), "Le BeetleDirector de la brèche doit exposer un groupe stable dédié.")
 	assert_true(chest != null and chest.is_in_group("mission_hub_chests"), "Le coffre du hub doit exposer un groupe stable.")
 	assert_true(primary_cube != null and primary_cube.is_in_group("mission_cube_primary"), "Le cube principal doit exposer un groupe stable.")
 	assert_eq(3, bomb_doors.size(), "La mission cube doit exposer exactement 3 portes via un groupe stable.")

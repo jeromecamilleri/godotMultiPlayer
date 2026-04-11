@@ -238,10 +238,7 @@ func _request_alive_state_when_connected() -> void:
 	var authority_id: int = get_multiplayer_authority()
 	if authority_id <= 0 or authority_id == multiplayer.get_unique_id():
 		return
-
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_alive_state):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_alive_state, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_alive_state")):
 		return
 
 	# Wait one frame so RPC routing is stable after connection setup.
@@ -255,6 +252,8 @@ func _on_connected_to_server_request_alive_state() -> void:
 func _request_alive_state_from_authority() -> void:
 	var authority_id: int = get_multiplayer_authority()
 	if authority_id <= 0 or authority_id == multiplayer.get_unique_id():
+		return
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_alive_state")):
 		return
 	_request_alive_state.rpc_id(authority_id)
 

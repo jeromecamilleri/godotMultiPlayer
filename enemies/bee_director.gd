@@ -19,6 +19,8 @@ var _seed_bee_names: Array[String] = []
 var _seed_bee_paths: Array[NodePath] = []
 var _client_resync_attempts_remaining := 5
 var _client_resync_timer: Timer
+var _activation_poll_timer: Timer
+var _last_desired_bee_count := -1
 
 
 func _ready() -> void:
@@ -33,6 +35,7 @@ func _ready() -> void:
 				spawner.player_spawned.connect(_on_player_count_changed)
 			if spawner.has_signal("player_despawned") and not spawner.player_despawned.is_connected(_on_player_count_changed):
 				spawner.player_despawned.connect(_on_player_count_changed)
+		_start_activation_poll_timer()
 		call_deferred("_refresh_bee_population")
 	else:
 		_request_current_bees_when_connected()
@@ -70,6 +73,7 @@ func _refresh_bee_population() -> void:
 	if not multiplayer.is_server():
 		return
 	var desired_count := _get_desired_bee_count()
+	_last_desired_bee_count = desired_count
 	var next_managed_names: Array[String] = []
 	var config: Dictionary = _build_bee_config(desired_count)
 	_bump_state_revision()
@@ -97,6 +101,8 @@ func _refresh_bee_population() -> void:
 func _get_desired_bee_count() -> int:
 	if _is_ui_test_bee_disabled():
 		return 0
+	if not _is_runtime_activation_allowed():
+		return 0
 	var player_count := 0
 	for node in get_tree().get_nodes_in_group("players"):
 		if node is Node3D:
@@ -104,6 +110,25 @@ func _get_desired_bee_count() -> int:
 	if player_count <= 0:
 		return min_bees
 	return max(min_bees, player_count + 1)
+
+
+func _start_activation_poll_timer() -> void:
+	if _activation_poll_timer != null:
+		return
+	_activation_poll_timer = Timer.new()
+	_activation_poll_timer.wait_time = 0.5
+	_activation_poll_timer.autostart = true
+	_activation_poll_timer.one_shot = false
+	_activation_poll_timer.timeout.connect(_on_activation_poll_timeout)
+	add_child(_activation_poll_timer)
+
+
+func _on_activation_poll_timeout() -> void:
+	if not multiplayer.is_server():
+		return
+	var desired_count := _get_desired_bee_count()
+	if desired_count != _last_desired_bee_count:
+		_refresh_bee_population()
 
 
 func _transform_for_bee_index(index: int) -> Transform3D:
@@ -194,15 +219,15 @@ func _request_current_bees() -> void:
 
 func _request_current_bees_when_connected() -> void:
 	var authority_id := 1
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_bees):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_bees, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_bees")):
 		return
 	_start_client_resync_watchdog()
 	_request_current_bees.rpc_id(authority_id)
 
 
 func _on_connected_to_server_request_bees() -> void:
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_bees")):
+		return
 	_start_client_resync_watchdog()
 	_request_current_bees.rpc_id(1)
 
@@ -233,6 +258,8 @@ func _on_client_resync_timeout() -> void:
 		return
 	if not _spawned_bee_names.is_empty():
 		_stop_client_resync_watchdog()
+		return
+	if not Connection.is_client_rpc_ready(multiplayer):
 		return
 	_client_resync_attempts_remaining -= 1
 	if _client_resync_attempts_remaining < 0:
@@ -309,4 +336,4 @@ func _push_current_state_to_peer_impl(peer_id: int) -> void:
 
 
 func _get_debug_sync_summary_impl() -> String:
-	return "abeilles actifs=%d graines=%d rev=%d" % [_spawned_bee_names.size(), _seed_bee_names.size(), _state_revision]
+	return "abeilles actifs=%d graines=%d rev=%d %s" % [_spawned_bee_names.size(), _seed_bee_names.size(), _state_revision, _get_activation_debug_summary()]

@@ -93,9 +93,7 @@ func _on_peer_connected(peer_id: int) -> void:
 func _request_current_state_when_connected() -> void:
 	if multiplayer.is_server():
 		return
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_state):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_state, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
 		return
 	call_deferred("_request_current_state_from_authority")
 
@@ -105,7 +103,9 @@ func _on_connected_to_server_request_state() -> void:
 
 
 func _request_current_state_from_authority() -> void:
-	if multiplayer.is_server() or multiplayer.multiplayer_peer == null:
+	if multiplayer.is_server():
+		return
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
 		return
 	_request_current_state.rpc_id(1)
 
@@ -163,11 +163,7 @@ func get_last_open_replication_delay_ms() -> int:
 
 
 func request_current_state_from_server() -> void:
-	if multiplayer.is_server():
-		return
-	if multiplayer.multiplayer_peer == null:
-		return
-	_request_current_state.rpc_id(1)
+	_request_current_state_when_connected()
 
 
 func push_current_state_to_peer(peer_id: int) -> void:

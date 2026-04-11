@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://dykqq00uscsiy"]
+[gd_scene load_steps=12 format=3 uid="uid://dykqq00uscsiy"]
 
 [ext_resource type="Script" path="res://levels/portal/portal.gd" id="1_4deld"]
 [ext_resource type="Material" uid="uid://ca0wtj0y4axjm" path="res://levels/portal/portal.material" id="2_yk1uj"]
@@ -10,6 +10,19 @@ size = Vector2(3.585, 1.63)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_gs3cv"]
 size = Vector3(0.3, 3.585, 1.63)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_guide"]
+top_radius = 0.18
+bottom_radius = 0.22
+height = 3.2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_guide"]
+shading_mode = 0
+transparency = 1
+albedo_color = Color(0.18, 0.95, 0.39, 0.92)
+emission_enabled = true
+emission = Color(0.18, 0.95, 0.39, 1)
+emission_energy_multiplier = 2.2
 
 [sub_resource type="Animation" id="Animation_tc7hl"]
 length = 0.001
@@ -80,5 +93,23 @@ libraries = {
 autoplay = "idle"
 
 [node name="doorOpen2" parent="." instance=ExtResource("3_u08r8")]
+
+[node name="GuidePylonLeft" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, 1.6, 0)
+mesh = SubResource("CylinderMesh_guide")
+surface_material_override/0 = SubResource("StandardMaterial3D_guide")
+
+[node name="GuidePylonRight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, 1.6, 0)
+mesh = SubResource("CylinderMesh_guide")
+surface_material_override/0 = SubResource("StandardMaterial3D_guide")
+
+[node name="PortalLabel" type="Label3D" parent="."]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 0, 4.6, 0)
+billboard = 1
+text = "PORTAL"
+font_size = 48
+outline_size = 18
+modulate = Color(0.18, 0.95, 0.39, 1)
 
 [connection signal="body_entered" from="Portal" to="." method="_on_portal_entered"]

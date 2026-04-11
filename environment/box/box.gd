@@ -65,9 +65,7 @@ func _sync_destroy_event() -> void:
 func _request_initial_state() -> void:
 	if not is_inside_tree() or is_multiplayer_authority():
 		return
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_state):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_state, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
 		return
 	var authority: int = get_multiplayer_authority()
 	if authority <= 0 or authority == multiplayer.get_unique_id():
@@ -149,6 +147,10 @@ func push_current_state_to_peer(peer_id: int) -> void:
 
 func get_state_revision() -> int:
 	return _state_revision
+
+
+func is_destroyed() -> bool:
+	return _destroyed
 
 
 func get_debug_sync_summary() -> String:

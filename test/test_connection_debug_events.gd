@@ -36,3 +36,20 @@ func test_clear_recent_sync_events_empties_both_views() -> void:
 	connection.clear_recent_sync_events()
 	assert_true(connection.get_recent_sync_events().is_empty())
 	assert_true(connection.get_recent_sync_event_entries().is_empty())
+
+
+func test_ensure_client_rpc_ready_connects_callback_even_before_peer_exists() -> void:
+	var probe := Node.new()
+	add_child_autofree(probe)
+	Connection.is_peer_connected = false
+	var callback := Callable(self, "_connection_ready_probe")
+
+	var ready := Connection.ensure_client_rpc_ready(probe.multiplayer, callback)
+	assert_false(ready, "Sans connexion établie, le helper ne doit pas autoriser l'envoi RPC.")
+	assert_true(probe.multiplayer.connected_to_server.is_connected(callback), "Le helper doit brancher le callback sur connected_to_server même si le peer n'existe pas encore.")
+
+	probe.multiplayer.connected_to_server.disconnect(callback)
+
+
+func _connection_ready_probe() -> void:
+	pass

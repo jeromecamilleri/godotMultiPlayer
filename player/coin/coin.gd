@@ -38,8 +38,7 @@ func _ready() -> void:
 			multiplayer.peer_connected.connect(_on_peer_connected)
 	else:
 		_apply_proxy_idle_state()
-		if multiplayer.multiplayer_peer != null:
-			_request_current_state.rpc_id(1)
+		call_deferred("_request_current_state_when_connected")
 
 
 func spawn(coin_delay: float = 0.5) -> void:
@@ -326,11 +325,7 @@ func get_debug_sync_summary() -> String:
 
 
 func request_current_state_from_server() -> void:
-	if _is_server_instance():
-		return
-	if multiplayer.multiplayer_peer == null:
-		return
-	_request_current_state.rpc_id(1)
+	_request_current_state_when_connected()
 
 
 func push_current_state_to_peer(peer_id: int) -> void:
@@ -345,3 +340,15 @@ func _record_sync_event(source: String, detail: String) -> void:
 	var connection := get_tree().get_first_node_in_group("connection_service")
 	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
 		connection.call("record_sync_event", source, detail)
+
+
+func _request_current_state_when_connected() -> void:
+	if _is_server_instance():
+		return
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
+		return
+	_request_current_state.rpc_id(1)
+
+
+func _on_connected_to_server_request_state() -> void:
+	_request_current_state_when_connected()

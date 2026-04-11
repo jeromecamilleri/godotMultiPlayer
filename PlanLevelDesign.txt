@@ -1,4 +1,15 @@
-• Plan de map
+ • Plan de map
+
+  Etat d'avancement au 2026-04-11
+
+  - OK : hub + 4 zones (`HubLevel`, `ZoneScierie`, `ZoneVerger`, `ZoneBreche`, `ZoneReactor`)
+  - OK : progression multi-zone réelle via portails (`portal_unlock`, `portal_logistics`, `portal_progression`)
+  - OK : mission finale cube rétablie dans la topologie étendue
+  - OK : `portal_unlock` préparé côté serveur via `UiTestScenarioServerPilot` pour rendre la collecte pomme/bois fiable côté autorité
+  - OK : batch UI complet repassé vert après migration du scénario
+  - OK : identité visuelle renforcée pour les zones avec marqueurs de zone lisibles
+  - OK : portails rendus auto-explicatifs avec état visuel rouge/vert et libellé de destination
+  - Suite logique : ajouter davantage de signalétique de navigation dans le hub et, si besoin, des variations de décor propres à chaque biome sans toucher à la progression
 
    hub central + 4 zones, où les téléporteurs servent à la fois de progression, de logistique et de raccourcis.
 
@@ -238,6 +249,48 @@ une seule grande scène de jeu, avec des zones éloignées reliées par les port
   Pour les portails, nomme-les explicitement :
 
   - Portal_Hub_To_Scierie
+
+Etat d'avancement valide au 2026-04-10
+
+- Topologie en place dans `main/main.tscn` :
+  - `HubLevel`
+  - `ZoneScierie`
+  - `ZoneVerger`
+  - `ZoneBreche`
+  - `ZoneReactor`
+- Progression portails active :
+  - hub -> scierie : actif
+  - hub -> verger : actif
+  - hub -> breche : débloqué par le coffre
+  - hub -> reactor : débloqué après ouverture de la brèche
+- Zones spécialisées déjà branchées :
+  - scierie : bois + caisses
+  - verger : pommes
+  - brèche : `BombDoor`
+  - reactor : cube + `CubeActivator`
+- Tests UI réels validés sur la nouvelle topologie :
+  - `test/UI/test_inventory_chest_ui.sh`
+  - `test/UI/test_portal_unlock_ui.sh`
+  - `test/UI/test_portal_logistics_ui.sh`
+  - `test/UI/test_cube_mission_ui.sh`
+  - `test/UI/test_beetle_targeting_ui.sh`
+- Suite GUT complète validée :
+  - `67/67`
+
+Travail récemment stabilisé
+
+- Le scénario `portal_unlock` ne dépend plus de noms de pickups fragiles ; il s'appuie sur les groupes `mission_wood_pickups` et `mission_apple_pickups`.
+- Le scénario `portal_logistics` valide maintenant un vrai trajet multi-zone :
+  - client A : hub -> scierie -> hub avec dépôt de bois
+  - client B : hub -> verger -> hub avec dépôt de pommes
+- Le scénario `cube_mission` a été recalé sur la géométrie actuelle du réacteur et des caisses.
+- Le portail hub -> réacteur a été replacé sur une zone accessible du hub.
+
+Prochaine étape recommandée
+
+- Ajouter un scénario UI de parcours complet :
+  - hub -> scierie/verger -> coffre -> brèche -> réacteur
+  - avec validation visuelle des états de portails au fil de la progression
   - Portal_Scierie_To_Hub
   - Portal_Hub_To_Verger
   - Portal_Verger_To_Hub
@@ -258,6 +311,49 @@ une seule grande scène de jeu, avec des zones éloignées reliées par les port
   - mission_cube_bomb_doors
   - cube_mission_crates
   - defense_zones
+
+Etat d'avancement au 2026-04-10
+
+- Topologie `HubLevel + ZoneScierie + ZoneVerger + ZoneBreche + ZoneReactor` implémentée dans `main/main.tscn`.
+- Portails hub en place:
+  - `Portal_Hub_To_Scierie`: actif au départ
+  - `Portal_Hub_To_Verger`: actif au départ
+  - `Portal_Hub_To_Breche`: déverrouillé par le coffre du hub
+  - `Portal_Hub_To_Reactor`: déverrouillé après ouverture de la brèche
+- Correctif d'accessibilité: le portail hub -> réacteur a été replacé sur la terre ferme.
+- Modularisation ennemis poursuivie:
+  - `main/mission_zone_verger_enemies.tscn` dédié au verger
+  - `main/mission_zone_breche_enemies.tscn` dédié à la brèche
+- La brèche a maintenant son propre `BeetleDirector` de zone, activé par portail + présence joueur, centré sur `MissionMarkers/DefenseMarker`.
+- Répartition des contenus terminée:
+  - Hub: coffre principal, coin de revive, UI mission, portails
+  - Scierie: bois, caisses, scarabées
+  - Verger: pommes, abeilles
+  - Brèche: caisses, `BombDoor`, scarabées de défense locale
+  - Réacteur: cube principal, `CubeActivator`, défense scarabées
+- Scénarios / validations actuellement au vert:
+  - GUT complet: `72/72`
+  - `test/UI/test_inventory_chest_ui.sh`
+  - `test/UI/test_portal_unlock_ui.sh`
+  - `test/UI/test_portal_logistics_ui.sh`
+  - `test/UI/test_portal_progression_ui.sh`
+  - `test/UI/test_cube_mission_ui.sh`
+  - `test/UI/test_beetle_targeting_ui.sh`
+
+Correctifs de robustesse ajoutés pendant l'extension
+
+- Le scénario UI de la mission cube attend maintenant un vrai état "caisse détruite" et suit une trajectoire de poussée adaptée à la nouvelle géométrie du réacteur.
+- Le scénario UI scarabées est désormais centré sur la zone de défense du réacteur, pour ne pas compter les scarabées de la scierie dans cette assertion.
+- La réplication des scarabées dynamiques a été durcie: suppression d'un push d'état redondant trop tôt au niveau de l'instance, qui provoquait des RPC vers des nœuds absents côté client.
+- Le wrapper UI de déverrouillage des portails supporte maintenant les fichiers JSON en cours d'écriture sans faux négatif.
+- Le scénario UI `portal_progression` écrit maintenant aussi ses phases côté serveur, ce qui supprime une fragilité de synchro entre clients et progression autoritaire.
+
+Reste à faire sur le chantier level design
+
+- Donner plus de relief visuel et de landmarks propres aux quatre zones.
+- Ajouter de vrais objectifs ou contraintes de téléportation/logistique entre zones, au-delà du simple déverrouillage.
+- Étendre la logique "directeur activé par portail + présence" aux autres zones si on ajoute encore des ennemis spécialisés.
+- Ajouter des tests UI dédiés aux trajets via portails et à la logistique multi-zone.
   - gameplay_objectives
 
   Ordre d’implémentation

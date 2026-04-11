@@ -5,6 +5,7 @@ const WORLD_ITEM_SCENE := preload("res://inventory/world_item.tscn")
 const CHEST_SCENE := preload("res://inventory/inventory_container.tscn")
 const COIN_SCENE := preload("res://player/coin/coin.tscn")
 const BOX_SCENE := preload("res://environment/box/box.tscn")
+const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
 const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 const BEETLE_SCENE := preload("res://enemies/beetle_bot.tscn")
 const PULL_CUBE_SCRIPT := preload("res://main/rigid_body_3d.gd")
@@ -38,6 +39,9 @@ func test_persistent_objects_expose_common_replicated_contract() -> void:
 	var box := BOX_SCENE.instantiate()
 	root.add_child(box)
 
+	var portal := PORTAL_SCENE.instantiate()
+	root.add_child(portal)
+
 	var bee := BEE_SCENE.instantiate()
 	root.add_child(bee)
 
@@ -58,6 +62,7 @@ func test_persistent_objects_expose_common_replicated_contract() -> void:
 	_assert_replicated_contract(chest, "InventoryContainer3D")
 	_assert_replicated_contract(coin, "Coin")
 	_assert_replicated_contract(box, "Box")
+	_assert_replicated_contract(portal, "Portal")
 	_assert_replicated_contract(cube, "PullableCube")
 	assert_not_null(bomb_door)
 	_assert_replicated_contract(bomb_door, "BombDoor")
@@ -94,6 +99,13 @@ func test_state_revisions_advance_on_persistent_state_changes() -> void:
 	var box_revision_before := int(box.call("get_state_revision"))
 	box.call("_apply_destroy_state", false, false)
 	assert_gt(int(box.call("get_state_revision")), box_revision_before, "La Box doit avancer sa revision sur destruction.")
+
+	var portal := PORTAL_SCENE.instantiate()
+	root.add_child(portal)
+	await wait_process_frames(1)
+	var portal_revision_before := int(portal.call("get_state_revision"))
+	portal.call("set_portal_active", false)
+	assert_gt(int(portal.call("get_state_revision")), portal_revision_before, "Le Portal doit avancer sa revision sur changement d'activation.")
 
 	var cube := PULL_CUBE_SCRIPT.new() as PullableCube
 	root.add_child(cube)

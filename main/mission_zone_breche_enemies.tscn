@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="1_betdir"]
+
+[node name="Enemies" type="Node3D"]
+
+[node name="BeetleDirector" type="Node3D" parent="." groups=["enemy_directors", "mission_breche_beetle_directors"]]
+script = ExtResource("1_betdir")
+defense_zone_path = NodePath("../../MissionMarkers/DefenseMarker")
+managed_seed_beetle_paths = Array[NodePath]([])
+activation_center_path = NodePath("../../MissionMarkers/DefenseMarker")
+activation_radius = 18.0
+activation_portal_group = "mission_portal_hub_breche"
+activation_requires_player_presence = true
+min_beetles = 1
+base_move_speed = 2.0
+move_speed_step_per_extra_player = 0.08
+guard_chase_radius = 8.0
+guard_return_radius = 10.0
+
+[node name="beetle_anchor_1" type="Node3D" parent="BeetleDirector"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 4.1, 9.4)
+
+[node name="beetle_anchor_2" type="Node3D" parent="BeetleDirector"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 4.1, 9.0)

@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://c54mpt43fs4wc" path="res://player/coin/coin.tscn" id="1_coin"]
+[ext_resource type="PackedScene" path="res://inventory/inventory_container.tscn" id="2_chest"]
+[ext_resource type="Resource" path="res://inventory/items/apple.tres" id="3_apple"]
+[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="4_wood"]
+
+[node name="Interactives" type="Node3D"]
+
+[node name="Coin" parent="." instance=ExtResource("1_coin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.677925, 4.6177497, 6.7908463)
+
+[node name="Chest" parent="." groups=["mission_hub_chests"] instance=ExtResource("2_chest")]
+transform = Transform3D(-0.1311519, 0, -0.8359003, 0, 1.8925308, 0, 1.1570579, 0, -0.09474889, -14.864765, 4.7570124, -3.0847158)
+inventory_name = "Coffre du hub"
+initial_items = Array[Resource]([ExtResource("4_wood"), ExtResource("3_apple")])
+initial_quantities = PackedInt32Array(6, 2)

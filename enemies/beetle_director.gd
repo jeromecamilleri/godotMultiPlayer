@@ -23,6 +23,7 @@ var _active_seed_count := 0
 var _client_resync_timer: Timer
 var _client_resync_attempts_remaining := 5
 var _target_rebalance_timer: Timer
+var _last_desired_beetle_count := -1
 
 
 func _ready() -> void:
@@ -77,6 +78,7 @@ func _refresh_beetle_population() -> void:
 	if not multiplayer.is_server():
 		return
 	var desired_total: int = _get_desired_beetle_count()
+	_last_desired_beetle_count = desired_total
 	var config: Dictionary = _build_beetle_config(desired_total)
 	_bump_state_revision()
 	_record_sync_event("scarabees", "refresh count=%d rev=%d" % [desired_total, _state_revision])
@@ -103,6 +105,8 @@ func _refresh_beetle_population() -> void:
 
 func _get_desired_beetle_count() -> int:
 	if _is_ui_test_beetle_disabled():
+		return 0
+	if not _is_runtime_activation_allowed():
 		return 0
 	var participant_count: int = _get_session_participant_count()
 	if participant_count <= 0:
@@ -226,6 +230,10 @@ func _start_target_rebalance_timer() -> void:
 
 
 func _on_target_rebalance_timeout() -> void:
+	var desired_count: int = _get_desired_beetle_count()
+	if desired_count != _last_desired_beetle_count:
+		_refresh_beetle_population()
+		return
 	_rebalance_beetle_targets()
 
 
@@ -352,15 +360,15 @@ func _request_current_beetles() -> void:
 
 func _request_current_beetles_when_connected() -> void:
 	var authority := 1
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_beetles):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_beetles, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_beetles")):
 		return
 	_start_client_resync_watchdog()
 	_request_current_beetles.rpc_id(authority)
 
 
 func _on_connected_to_server_request_beetles() -> void:
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_beetles")):
+		return
 	_start_client_resync_watchdog()
 	_request_current_beetles.rpc_id(1)
 
@@ -383,6 +391,8 @@ func _on_client_resync_timeout() -> void:
 	if _client_resync_attempts_remaining <= 0:
 		_client_resync_timer.queue_free()
 		_client_resync_timer = null
+		return
+	if not Connection.is_client_rpc_ready(multiplayer):
 		return
 	_client_resync_attempts_remaining -= 1
 	_request_current_beetles.rpc_id(1)
@@ -426,4 +436,4 @@ func _push_current_state_to_peer_impl(peer_id: int) -> void:
 
 
 func _get_debug_sync_summary_impl() -> String:
-	return "scarabees actifs=%d graines=%d rev=%d" % [_active_seed_count + _spawned_dynamic_names.size(), _seed_beetle_paths.size(), _state_revision]
+	return "scarabees actifs=%d graines=%d rev=%d %s" % [_active_seed_count + _spawned_dynamic_names.size(), _seed_beetle_paths.size(), _state_revision, _get_activation_debug_summary()]

@@ -66,3 +66,35 @@
 - Modularisation: extraction de `main/mission_cube_goal_zone.tscn` pour sortir `Activator/CubeActivator` de `main/main.tscn` tout en gardant le même chemin de scène logique.
 - Tests: ajout de `test/test_replicated_persistent_contract.gd` pour verrouiller le contrat commun et la progression des révisions sur les objets persistants majeurs.
 - Tests: `test/test_enemy_director_conventions.gd` couvre maintenant aussi l'API publique de resync/debug des directeurs et des ennemis.
+
+2026-04-10
+- Level design: extraction de `main/mission_zone_verger_enemies.tscn` pour découpler les abeilles du verger du runtime ennemis du hub.
+- Level design: ajout de `main/mission_zone_breche_enemies.tscn` avec un `BeetleDirector` dédié à la brèche, activé par portail + présence joueur autour d'un `DefenseMarker`.
+- Tests/UI: `portal_progression` écrit maintenant aussi ses phases `breche_unlocked` et `reactor_unlocked` côté serveur, ce qui supprime une fragilité de synchro entre observation client et progression autoritaire.
+- Tests: `test/test_beetle_director.gd` et `test/test_main_scene_structure.gd` couvrent désormais explicitement le directeur scarabées de la brèche.
+- Tests UI scarabées: ajout de `main/ui_test_scenario_server_pilot.gd`, un pilote serveur dédié au scénario `beetle_targeting`, pour préparer le monde de façon autoritaire avant observation côté clients.
+- Tests UI scarabées: `beetle_targeting` ne dépend plus d'un simple repositionnement client dans `PlayerUiTestDriver`; le serveur place maintenant les joueurs autour du réacteur, pousse l'état du `BeetleDirector` et attend les accusés de réception clients.
+- Tests: ajout de `test/test_ui_test_scenario_server_pilot.gd` pour verrouiller la présence du pilote dans `main/main.tscn` et la stabilité des slots joueurs autour de l'Activator.
+- Level design: la scène principale compose maintenant explicitement `HubLevel`, `ZoneScierie`, `ZoneVerger`, `ZoneBreche` et `ZoneReactor`, avec progression multi-zone via portails.
+- Hub: le portail vers le réacteur a été replacé sur la terre ferme pour rester atteignable dans le hub.
+- Mission cube: le driver UI attend désormais un vrai état de caisse détruite via `Box.is_destroyed()` avant de poursuivre le scénario.
+- Mission cube: la trajectoire coop de poussée du cube a été recalée sur la nouvelle géométrie du réacteur, ce qui remet `test/UI/test_cube_mission_ui.sh` au vert.
+- Tests UI: le scénario `beetle_targeting` est maintenant centré sur les scarabées de la zone réacteur et ne compte plus ceux de la scierie.
+- Scarabées: suppression d'un push d'état redondant sur `peer_connected` côté instance, qui pouvait envoyer des RPC à un scarabée dynamique pas encore instancié côté client.
+- Tests UI: le wrapper `portal_unlock` tolère désormais les fichiers JSON en cours d'écriture pour éviter un faux négatif sur lecture partielle.
+- Validation: base retrouvée verte avec `66/66` tests GUT passés et les wrappers UI `inventory_chest`, `portal_unlock`, `cube_mission` et `beetle_targeting` passants.
+- Tests UI: ajout du scénario `test/UI/test_portal_logistics_ui.sh`, qui valide un vrai aller-retour multi-zone via portails avec dépôt de bois et de pommes dans le coffre du hub.
+- Tests UI: le driver `portal_logistics` déclenche maintenant explicitement l'entrée dans les portails et choisit les pickups les plus proches par groupe stable au lieu de dépendre de noms globaux.
+- Tests UI: le scénario `portal_unlock` a été réaligné sur les groupes `mission_wood_pickups` et `mission_apple_pickups`, ce qui le rend compatible avec la nouvelle map multi-zone.
+- Validation: la base est maintenant verte avec `67/67` tests GUT passés, plus les wrappers UI `inventory_chest`, `portal_unlock`, `portal_logistics`, `cube_mission` et `beetle_targeting`.
+2026-04-11
+- Portails: ajout d'un libellé de destination dans `levels/portal/portal.tscn` et `levels/portal/portal.gd`, avec état visuel explicite `BLOQUE` rouge / `OUVERT` vert.
+- Portails: ajout de pylônes guides colorés autour de chaque portail pour renforcer la lisibilité à distance sans changer la logique de progression.
+- Zones: ajout de marqueurs visuels dédiés dans `zone_scierie.tscn`, `zone_verger.tscn`, `zone_breche.tscn` et `zone_reactor.tscn` pour donner une identité immédiate à chaque biome.
+- Tests: `test/integration/test_portal_progression.gd` vérifie maintenant aussi le texte d'état du portail (`BLOQUE` / `OUVERT`) en plus de la couleur rouge/verte.
+- Validation: `96/96` tests GUT passés, plus `test_portal_unlock_ui.sh`, `test_portal_progression_ui.sh` et `test_portal_logistics_ui.sh` verts.
+- Tests UI: `portal_unlock` passe maintenant par une préparation autoritaire côté serveur via `main/ui_test_scenario_server_pilot.gd`, sur le même modèle que `beetle_targeting` et `beetle_door_charge`.
+- Tests UI: le pilote serveur place explicitement `client_a` près du bois et `client_b` près des pommes, attend les accusés de réception clients, puis laisse le scénario observer les dépôts réels au coffre.
+- Tests UI: `player/components/player_ui_test_driver.gd` ne téléporte plus directement les clients pour `portal_unlock`; il se contente désormais de piloter les états gameplay après préparation serveur.
+- Validation: `test/UI/test_portal_unlock_ui.sh` repasse vert avec `portal_breche_active = true` sur serveur et clients.
+- Validation: batch UI complet repassé vert (`inventory_chest`, `inventory_player_proximity`, `inventory_transfer_multiplayer`, `late_join_bomb_wood`, `portal_unlock`, `portal_logistics`, `portal_progression`, `cube_mission`, `cube_mission_lock`, `beetle_targeting`, `beetle_door_charge`).

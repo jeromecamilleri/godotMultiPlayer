@@ -96,9 +96,7 @@ func _on_peer_connected(peer_id: int) -> void:
 func _request_current_state_when_connected() -> void:
 	if _is_server_instance():
 		return
-	if multiplayer.multiplayer_peer == null:
-		if not multiplayer.connected_to_server.is_connected(_on_connected_to_server_request_state):
-			multiplayer.connected_to_server.connect(_on_connected_to_server_request_state, CONNECT_ONE_SHOT)
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
 		return
 	call_deferred("_request_current_state_from_authority")
 
@@ -108,7 +106,9 @@ func _on_connected_to_server_request_state() -> void:
 
 
 func _request_current_state_from_authority() -> void:
-	if _is_server_instance() or multiplayer.multiplayer_peer == null:
+	if _is_server_instance():
+		return
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_on_connected_to_server_request_state")):
 		return
 	_request_current_state.rpc_id(1)
 

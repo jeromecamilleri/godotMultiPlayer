@@ -117,6 +117,7 @@ func _process(_delta: float) -> void:
 	_refresh_inventory_panels()
 	_update_debug_overlay()
 	_write_ui_test_layout_snapshot()
+	_write_portal_unlock_ui_test_state()
 
 
 func start_server_emit() -> void:
@@ -310,7 +311,7 @@ func _try_write_ui_test_result() -> void:
 	if _ui_test_result_written:
 		return
 	var scenario := OS.get_environment("UI_TEST_SCENARIO").strip_edges().to_lower()
-	if scenario != "cube_mission":
+	if scenario != "cube_mission" and scenario != "cube_mission_lock":
 		return
 	var role := OS.get_environment("UI_TEST_INSTANCE_ROLE").strip_edges().to_lower()
 	var sync_dir := OS.get_environment("UI_TEST_SYNC_DIR").strip_edges()
@@ -329,6 +330,46 @@ func _try_write_ui_test_result() -> void:
 	}))
 	file.close()
 	_ui_test_result_written = true
+
+
+func _write_portal_unlock_ui_test_state() -> void:
+	var scenario := OS.get_environment("UI_TEST_SCENARIO").strip_edges().to_lower()
+	if scenario != "portal_unlock":
+		return
+	var role := OS.get_environment("UI_TEST_INSTANCE_ROLE").strip_edges().to_lower()
+	if role.is_empty():
+		return
+	var sync_dir := OS.get_environment("UI_TEST_SYNC_DIR").strip_edges()
+	if sync_dir.is_empty():
+		return
+	var breche_portal := get_tree().get_first_node_in_group("mission_portal_hub_breche")
+	var reactor_portal := get_tree().get_first_node_in_group("mission_portal_hub_reactor")
+	var chest := get_tree().get_first_node_in_group("mission_hub_chests")
+	if not is_instance_valid(breche_portal) or not is_instance_valid(reactor_portal) or not is_instance_valid(chest):
+		return
+	if not breche_portal.has_method("is_portal_active") or not reactor_portal.has_method("is_portal_active"):
+		return
+	if not chest.has_method("get_inventory_component"):
+		return
+	var inventory = chest.call("get_inventory_component")
+	if inventory == null:
+		return
+	var chest_wood: int = int(inventory.call("count_item", "wood"))
+	var chest_apple: int = int(inventory.call("count_item", "apple"))
+	var file_name := "portal_unlock_server.json" if role == "server" else "portal_unlock_%s.json" % role
+	var file := FileAccess.open("%s/%s" % [sync_dir, file_name], FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify({
+		"state": _extract_state_name(_match_status_text),
+		"portal_breche_active": bool(breche_portal.call("is_portal_active")),
+		"portal_reactor_active": bool(reactor_portal.call("is_portal_active")),
+		"chest_wood": chest_wood,
+		"chest_apple": chest_apple,
+		"chest_wood_delivered": maxi(0, chest_wood - 6),
+		"chest_apple_delivered": maxi(0, chest_apple - 2),
+	}))
+	file.close()
 
 
 func _register_test_ids() -> void:

@@ -3,6 +3,26 @@ extends GutTest
 const PULL_CUBE_SCRIPT: GDScript = preload("res://main/rigid_body_3d.gd")
 
 
+func _make_fake_player(peer_id: int, locked: bool) -> Node3D:
+	var script := GDScript.new()
+	script.source_code = """
+extends Node3D
+var debug_locked := false
+func is_debug_position_locked() -> bool:
+	return debug_locked
+func is_dead() -> bool:
+	return false
+"""
+	var reload_error := script.reload()
+	assert_eq(OK, reload_error)
+	var player := Node3D.new()
+	player.set_script(script)
+	player.set_multiplayer_authority(peer_id)
+	player.set("debug_locked", locked)
+	player.add_to_group("players")
+	return player
+
+
 func test_pull_vector_accumulates_when_players_pull_same_side() -> void:
 	var world := Node3D.new()
 	add_child_autofree(world)
@@ -102,3 +122,29 @@ func test_cube_late_join_state_snapshot_reapplies_goal_visual_state() -> void:
 	assert_true(late_join_cube.freeze, "Le cube resynchronise doit etre fige chez le late joiner.")
 	assert_eq(goal_transform.origin, late_join_cube.global_transform.origin, "La position repliquée du cube doit etre reappliquee au late joiner.")
 	assert_eq(authoritative_cube.PULL_STATE_GOAL, late_join_cube._pull_state_sync, "L'etat visuel GOAL doit etre reapplique au late joiner.")
+
+
+func test_locked_anchor_can_remain_attached_beyond_normal_distance() -> void:
+	var world := Node3D.new()
+	add_child_autofree(world)
+
+	var cube: PullableCube = PULL_CUBE_SCRIPT.new() as PullableCube
+	assert_not_null(cube)
+	cube.server_peer_id = multiplayer.get_unique_id()
+	world.add_child(cube)
+
+	var locked_player := _make_fake_player(2, true)
+	world.add_child(locked_player)
+	locked_player.transform.origin = Vector3(12.0, 0.0, 0.0)
+	await wait_process_frames(1)
+
+	cube._attached_peers[2] = {
+		"active": true,
+		"intent_dir": Vector3.RIGHT,
+		"last_seen_ms": Time.get_ticks_msec(),
+	}
+
+	assert_false(cube._is_peer_attachable(2), "Hors debug lock, cette distance doit rester trop grande.")
+	assert_true(cube._is_peer_attachable(2, true), "Une ancre verrouillee deja attachee doit rester valide plus loin pour le test coop.")
+	cube._cleanup_invalid_attached_peers()
+	assert_true(cube._attached_peers.has(2), "Le nettoyage ne doit pas detacher une ancre verrouillee encore utile.")

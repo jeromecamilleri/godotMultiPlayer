@@ -31,7 +31,7 @@ func _ready() -> void:
 		add_child(inventory)
 	inventory.inventory_name = inventory_name
 	inventory.contents_changed.connect(_on_inventory_changed)
-	if multiplayer.is_server():
+	if _is_authority_instance():
 		if multiplayer.multiplayer_peer != null and not multiplayer.peer_connected.is_connected(_on_peer_connected):
 			multiplayer.peer_connected.connect(_on_peer_connected)
 		_seed_initial_contents()
@@ -75,12 +75,12 @@ func _on_inventory_changed(_contents: Array[Dictionary]) -> void:
 	if _is_loading_snapshot:
 		return
 	_refresh_label()
-	if multiplayer.is_server():
+	if _is_authority_instance():
 		_queue_inventory_snapshot_broadcast()
 
 
 func _queue_inventory_snapshot_broadcast(force: bool = false) -> void:
-	if not multiplayer.is_server():
+	if not _is_authority_instance():
 		return
 	if force:
 		_pending_broadcast = false
@@ -104,6 +104,8 @@ func _flush_inventory_snapshot_broadcast(force: bool = false) -> void:
 	_inventory_snapshot_contents = _duplicate_serialized_contents(next_snapshot_contents)
 	_last_snapshot_server_ms = Time.get_ticks_msec()
 	_snapshot_revision += 1
+	if multiplayer.multiplayer_peer == null:
+		return
 	if _should_use_delta_replication(force, delta_payload, delta_json, next_snapshot_json):
 		_last_sync_mode = "delta"
 		_record_sync_event("coffre", "delta rev=%d slots=%d" % [_snapshot_revision, int((delta_payload.get("slots", []) as Array).size())])
@@ -118,7 +120,7 @@ func _flush_inventory_snapshot_broadcast(force: bool = false) -> void:
 ## Garantit que le client a bien l’état à jour (évite les RPC broadcast manqués).
 @rpc("any_peer", "call_remote", "reliable")
 func request_chest_snapshot(known_revision: int = -1, force: bool = false) -> void:
-	if not multiplayer.is_server():
+	if not _is_authority_instance():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id == 0:
@@ -133,21 +135,23 @@ func request_chest_snapshot(known_revision: int = -1, force: bool = false) -> vo
 
 
 func _request_snapshot_when_connected() -> void:
-	if multiplayer.is_server():
+	if _is_authority_instance():
 		return
-	if multiplayer.multiplayer_peer == null:
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_request_snapshot_when_connected")):
 		return
 	request_chest_snapshot.rpc_id(1, _snapshot_revision, false)
 
 
 func _on_peer_connected(peer_id: int) -> void:
-	if not multiplayer.is_server():
+	if not _is_authority_instance():
 		return
 	call_deferred("_push_current_snapshot_to_peer", peer_id)
 
 
 func _push_current_snapshot_to_peer(peer_id: int) -> void:
-	if not multiplayer.is_server():
+	if not _is_authority_instance():
+		return
+	if multiplayer.multiplayer_peer == null:
 		return
 	sync_inventory_snapshot.rpc_id(peer_id, _inventory_snapshot_json, _last_snapshot_server_ms, _snapshot_revision)
 
@@ -158,7 +162,7 @@ func sync_inventory_snapshot(snapshot_json: String, server_event_ms: int = -1, r
 		return
 	_inventory_snapshot_json = snapshot_json
 	_inventory_snapshot_contents = _parse_snapshot_json(snapshot_json)
-	if server_event_ms >= 0 and not multiplayer.is_server():
+	if server_event_ms >= 0 and not _is_authority_instance():
 		_last_snapshot_replication_delay_ms = maxi(0, Time.get_ticks_msec() - server_event_ms)
 	_last_sync_mode = "snapshot"
 	_last_snapshot_server_ms = server_event_ms
@@ -182,7 +186,7 @@ func sync_inventory_delta(delta_json: String, server_event_ms: int = -1, revisio
 	var next_snapshot_contents: Array[Dictionary] = _apply_inventory_delta_contents(_inventory_snapshot_contents, parsed as Dictionary)
 	_inventory_snapshot_contents = _duplicate_serialized_contents(next_snapshot_contents)
 	_inventory_snapshot_json = JSON.stringify(_inventory_snapshot_contents)
-	if server_event_ms >= 0 and not multiplayer.is_server():
+	if server_event_ms >= 0 and not _is_authority_instance():
 		_last_snapshot_replication_delay_ms = maxi(0, Time.get_ticks_msec() - server_event_ms)
 	_last_sync_mode = "delta"
 	_last_snapshot_server_ms = server_event_ms
@@ -322,9 +326,9 @@ func _parse_snapshot_json(snapshot_json: String) -> Array[Dictionary]:
 
 
 func _request_forced_snapshot_recovery() -> void:
-	if multiplayer.is_server():
+	if _is_authority_instance():
 		return
-	if multiplayer.multiplayer_peer == null:
+	if not Connection.ensure_client_rpc_ready(multiplayer, Callable(self, "_request_forced_snapshot_recovery")):
 		return
 	_record_sync_event("coffre", "recovery snapshot rev=%d" % _snapshot_revision)
 	request_chest_snapshot.rpc_id(1, _snapshot_revision, true)
@@ -334,3 +338,7 @@ func _record_sync_event(source: String, detail: String) -> void:
 	var connection := get_tree().get_first_node_in_group("connection_service")
 	if is_instance_valid(connection) and connection.has_method("record_sync_event"):
 		connection.call("record_sync_event", source, detail)
+
+
+func _is_authority_instance() -> bool:
+	return multiplayer.is_server() or multiplayer.multiplayer_peer == null

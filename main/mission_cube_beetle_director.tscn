@@ -4,8 +4,11 @@
 
 [node name="BeetleDirector" type="Node3D" groups=["enemy_directors", "mission_cube_beetle_directors"]]
 script = ExtResource("1_betdir")
-defense_zone_path = NodePath("HubLevel/Ground/Activator/CubeActivator")
+defense_zone_path = NodePath("../../Interactives/Activator/CubeActivator")
 managed_seed_beetle_paths = Array[NodePath]([])
+activation_center_path = NodePath("../../Interactives/Activator/CubeActivator")
+activation_radius = 18.0
+activation_requires_player_presence = true
 guard_chase_radius = 9.5
 guard_return_radius = 12.0
 

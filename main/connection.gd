@@ -48,6 +48,20 @@ static func is_server() -> bool:
 	return "--server" in OS.get_cmdline_args()
 
 
+static func is_client_rpc_ready(multiplayer_api: MultiplayerAPI) -> bool:
+	return multiplayer_api != null and multiplayer_api.multiplayer_peer != null and Connection.is_peer_connected
+
+
+static func ensure_client_rpc_ready(multiplayer_api: MultiplayerAPI, on_connected: Callable) -> bool:
+	if Connection.is_client_rpc_ready(multiplayer_api):
+		return true
+	if multiplayer_api == null:
+		return false
+	if not multiplayer_api.connected_to_server.is_connected(on_connected):
+		multiplayer_api.connected_to_server.connect(on_connected, CONNECT_ONE_SHOT)
+	return false
+
+
 func start_server() -> void:
 	if max_clients == 0:
 		max_clients = 32
