@@ -112,3 +112,17 @@
 - Tests UI: `test_portal_unlock_ui.sh` est maintenant un wrapper de compatibilité qui délègue à `test_portal_progression_ui.py --phase breche` (même objectif métier, scénario moins fragile).
 - Tests UI: ajout d'un runner `smoke/full` opérationnel (`test/UI/run_ui_suite.sh`) validé avec `--profile smoke`, `--profile full` et `--changed`.
 - Validation: `99/99` GUT passés, `test/UI/run_ui_suite.sh --profile smoke` vert, `test/UI/run_ui_suite.sh --profile full` vert.
+- Level design: ajout de signalétique de navigation dans `levels/hub_level.tscn` via `MissionMarkers/HubSign_*`, avec 4 repères colorés orientant vers `SCIERIE`, `VERGER`, `BRECHE` et `REACTOR`.
+- Documentation: `PlanLevelDesign.txt` et `ARCHITECTURE_PROJET.md` mis à jour pour refléter cette étape terminée et la prochaine suite visuelle (variations de décor par biome).
+- Validation: `99/99` GUT verts et `test/UI/run_ui_suite.sh --profile smoke` vert après ajout de signalétique.
+- Validation/Blocage: `test/UI/test_beetle_door_charge_ui.sh` en échec sur 3 essais (flaky RPC nœuds dynamiques: `@RigidBody3D@...` / `Main/StaticBody3DBomb/MultiplayerSynchronizer`), ce qui maintient `UI full` non stable.
+2026-04-12
+- Outils: migration des scripts UI Python vers le binaire Godot `4.6.2` avec fallback configurable via `GODOT_BIN` (valeur par défaut `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`).
+- Rendu: stabilisation de la luminosité inter-version dans `defaults/world_environment.tres` (tonemap/exposition/brightness explicites) et lumière directionnelle explicite dans `levels/hub_level.tscn`.
+- Documentation: ajout du chemin binaire de référence et de la surcharge `GODOT_BIN` dans `ARCHITECTURE_PROJET.md` et `test/UI/README.md`.
+- UI stress: robustesse augmentée dans `test/UI/test_replication_stress_ui.py` (timeout adaptatif, désactivation explicite des scarabées de fond) et migration du scénario `replication_stress` vers les groupes de pickups stables dans `player/components/player_ui_test_driver.gd`.
+- Validation 4.6.2: GUT complet `99/99` vert, `UI smoke` vert, `UI full` exécute 10/11 scénarios puis reste exposé au flaky connu `test_beetle_door_charge_ui.sh` (RPC nœuds dynamiques) ; exécution isolée de `test_beetle_door_charge_ui.sh` verte.
+- Validation 4.6.2: `test/UI/test_replication_stress_ui.sh` reste en échec (fichiers `replication_stress_client_*` non produits), cas préexistant/structurel de ce scénario de charge à investiguer séparément.
+- Rendu 4.6.2 (ajustement 2): réduction nette des ombres bouchées via `DirectionalLight3D` (opacité d’ombre abaissée, blur augmenté) + ajout d’une `DirectionalLightFill` sans ombre dans `levels/hub_level.tscn`.
+- Rendu 4.6.2 (ajustement 2): hausse de l’éclairage global et de l’exposition dans `defaults/world_environment.tres` (`ambient_light_energy`, `tonemap_exposure`, `adjustment_brightness`) pour éviter les silhouettes noires.
+- Validation post-correctif rendu: démarrage headless OK, GUT `99/99` vert et `UI smoke` vert sous `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`.

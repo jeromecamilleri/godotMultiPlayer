@@ -405,8 +405,12 @@ func _setup_replication_stress_scenario(player) -> void:
 func _update_replication_stress_scenario(player) -> void:
 	var bomb_door := _find_bomb_door(player)
 	var chest := _find_chest(player)
-	var wood := _find_world_item(player, "WoodPickup")
-	var apple := _find_world_item(player, "ApplePickup")
+	var wood := _find_first_pickup_in_group_near_position(player, GROUP_MISSION_WOOD_PICKUPS, bomb_door.global_position) if bomb_door != null else null
+	if wood == null:
+		wood = _find_first_node3d_in_group(player, GROUP_MISSION_WOOD_PICKUPS)
+	var apple := _find_first_pickup_in_group_near_position(player, GROUP_MISSION_APPLE_PICKUPS, chest.global_position) if chest != null else null
+	if apple == null:
+		apple = _find_first_node3d_in_group(player, GROUP_MISSION_APPLE_PICKUPS)
 	if bomb_door == null or chest == null:
 		return
 	var chest_inventory = chest.get_inventory_component()
@@ -2306,8 +2310,12 @@ func _await_replication_stress_nodes(player) -> Dictionary:
 	for _attempt in range(120):
 		var bomb_door := _find_bomb_door(player)
 		var chest := _find_chest(player)
-		var wood := _find_world_item(player, "WoodPickup")
-		var apple := _find_world_item(player, "ApplePickup")
+		var wood := _find_first_pickup_in_group_near_position(player, GROUP_MISSION_WOOD_PICKUPS, bomb_door.global_position) if bomb_door != null else null
+		if wood == null:
+			wood = _find_first_node3d_in_group(player, GROUP_MISSION_WOOD_PICKUPS)
+		var apple := _find_first_pickup_in_group_near_position(player, GROUP_MISSION_APPLE_PICKUPS, chest.global_position) if chest != null else null
+		if apple == null:
+			apple = _find_first_node3d_in_group(player, GROUP_MISSION_APPLE_PICKUPS)
 		if bomb_door != null and chest != null and wood != null and apple != null:
 			if bomb_door.is_inside_tree() and chest.is_inside_tree() and wood.is_inside_tree() and apple.is_inside_tree():
 				return {

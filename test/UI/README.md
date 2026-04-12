@@ -85,8 +85,22 @@ Pour les tests, il faut privilégier ces identifiants et des assertions toléran
 # Campagne de charge réplication (par défaut 10 joueurs, ou liste "2,4,6,8,10")
 ./test/UI/test_replication_stress_ui.sh [OUT_DIR] [PLAYER_COUNTS]
 ```
+  - Linux : Ubuntu 24.04.4 LTS exécution pour le jeu, les scripts de test et l’automatisation CI locale.
+  - Xvfb : crée un écran X virtuel pour lancer les tests UI Godot sans écran physique.
+  - xdotool : pilote les fenêtres/souris/clavier pour simuler les actions joueur dans les tests UI.
+  - ImageMagick (import) : capture des screenshots des fenêtres de jeu pendant les scénarios UI.
+  - python3 : exécute les runners/tests UI (orchestration serveur/clients, assertions, logs).
+  - PIL (Pillow) : lit/analyse les images capturées pour vérifications visuelles automatiques.
 
 Prérequis : Linux, Xvfb, xdotool, ImageMagick (`import`), python3, PIL.
+
+Le binaire Godot utilisé par les scripts UI est configurable via `GODOT_BIN`.
+Par défaut : `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`.
+Exemple :
+
+```bash
+GODOT_BIN=/dataSSD/Godot_v4.6.2-stable_linux.x86_64 ./test/UI/run_ui_suite.sh --profile smoke
+```
 
 ## Intégration à la suite GUT
 

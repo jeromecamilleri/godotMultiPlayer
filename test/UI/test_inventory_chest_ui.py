@@ -28,7 +28,7 @@ for old_file in OUT_DIR.iterdir():
         old_file.unlink()
 
 RUN_LOG_PATH = OUT_DIR / "run.log"
-NATIVE_GODOT_PATH = Path("/dataSSD/Godot_v4.6.1-stable_linux.x86_64")
+NATIVE_GODOT_PATH = Path(os.environ.get("GODOT_BIN", "/dataSSD/Godot_v4.6.2-stable_linux.x86_64"))
 USE_XVFB = True
 XVFB_DISPLAY = ":99"
 
@@ -93,7 +93,7 @@ def log_process_snapshot() -> None:
     )
     log("process_snapshot_begin")
     for line in completed.stdout.splitlines():
-        if any(token in line for token in ("Xvfb", "openbox", "Godot_v4.6.1-stable_linux.x86_64", "godot-multiplayer")):
+        if any(token in line for token in ("Xvfb", "openbox", "Godot_v4.6.2-stable_linux.x86_64", "godot-multiplayer")):
             log(line)
     log("process_snapshot_end")
 

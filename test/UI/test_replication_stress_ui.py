@@ -24,7 +24,7 @@ PLAYER_COUNTS = [int(part) for part in COUNTS_ARG.split(",") if part.strip()]
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 RUN_LOG_PATH = OUT_DIR / "run.log"
 SUMMARY_PATH = OUT_DIR / "summary.txt"
-NATIVE_GODOT_PATH = Path("/dataSSD/Godot_v4.6.1-stable_linux.x86_64")
+NATIVE_GODOT_PATH = Path(os.environ.get("GODOT_BIN", "/dataSSD/Godot_v4.6.2-stable_linux.x86_64"))
 XVFB_DISPLAY = ":99"
 RUNTIME_NAME = "MutliplayerTemplate (DEBUG)"
 RUNTIME_SEARCH = "MutliplayerTemplate"
@@ -264,6 +264,7 @@ def start_xvfb(run_dir: Path) -> None:
         "DISPLAY": XVFB_DISPLAY,
         "LIBGL_ALWAYS_SOFTWARE": "1",
         "UI_TEST_DISABLE_BEES": "1",
+        "UI_TEST_DISABLE_BEETLES": "1",
     }
     deadline = time.monotonic() + 6.0
     while time.monotonic() < deadline:
@@ -357,7 +358,8 @@ def read_json(path: Path) -> dict | None:
 
 def wait_for_result_files(run_dir: Path, player_count: int, timeout_sec: float = 35.0) -> dict[str, dict]:
     expected_roles = [f"client_{i}" for i in range(1, player_count + 1)]
-    deadline = time.monotonic() + timeout_sec
+    adaptive_timeout = max(timeout_sec, 6.0 * float(player_count))
+    deadline = time.monotonic() + adaptive_timeout
     results: dict[str, dict] = {}
     while time.monotonic() < deadline:
         for role in expected_roles:

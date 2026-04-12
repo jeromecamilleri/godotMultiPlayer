@@ -5,7 +5,12 @@
 [resource]
 background_mode = 2
 sky = ExtResource("1_x1dgc")
+ambient_light_energy = 1.55
 tonemap_mode = 2
-ssao_enabled = true
-ssil_enabled = true
+tonemap_exposure = 1.42
+tonemap_white = 1.25
 glow_enabled = true
+adjustment_enabled = true
+adjustment_brightness = 1.16
+adjustment_contrast = 0.9
+adjustment_saturation = 1.02

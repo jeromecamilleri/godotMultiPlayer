@@ -9,7 +9,9 @@
   - OK : batch UI complet repassé vert après migration du scénario
   - OK : identité visuelle renforcée pour les zones avec marqueurs de zone lisibles
   - OK : portails rendus auto-explicatifs avec état visuel rouge/vert et libellé de destination
-  - Suite logique : ajouter davantage de signalétique de navigation dans le hub et, si besoin, des variations de décor propres à chaque biome sans toucher à la progression
+  - OK : signalétique de navigation ajoutée dans le hub (repères colorés vers SCIERIE / VERGER / BRECHE / REACTOR)
+  - Validation : `99/99` GUT verts, `UI smoke` vert, mais `UI full` reste bloqué par un flaky connu sur `test_beetle_door_charge_ui.sh` (erreurs RPC sur chemins dynamiques `@RigidBody3D@...` / `StaticBody3DBomb/MultiplayerSynchronizer`).
+  - Suite logique : ajouter des variations de décor propres à chaque biome sans toucher à la progression ni à la lisibilité des trajets
 
    hub central + 4 zones, où les téléporteurs servent à la fois de progression, de logistique et de raccourcis.
 

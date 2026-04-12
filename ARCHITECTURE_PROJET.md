@@ -5,6 +5,9 @@
 - Nom du projet: `MutliplayerTemplate`
 - Scène principale: `res://main/main.tscn`
 - Type de projet: jeu Godot multijoueur coopératif en 3D, avec UI en jeu, inventaire, ennemis, VOIP et logique de partie.
+- Binaire local de référence (tests/validation): `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`
+
+Pour les scripts UI Python, ce chemin peut être surchargé avec la variable d'environnement `GODOT_BIN`.
 
 Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotProjects/godot-multiplayer/main/main.tscn). Elle compose les systèmes réseau, UI, match, spawn des joueurs, niveau et services annexes.
 
@@ -107,6 +110,7 @@ Ces repères doivent rester purement visuels :
 
 - aucune logique de progression ne doit dépendre de ces marqueurs
 - la vérité gameplay reste portée par `MatchDirector` et les groupes de portails
+- le hub expose aussi des repères de navigation colorés (`MissionMarkers/HubSign_*`) vers `SCIERIE`, `VERGER`, `BRECHE` et `REACTOR` pour guider le trajet sans ajouter de contrainte gameplay
 
 ## Debug réseau / gameplay
 
