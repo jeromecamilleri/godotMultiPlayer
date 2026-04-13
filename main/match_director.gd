@@ -97,6 +97,7 @@ func start_match() -> void:
 	_state = MatchState.RUNNING
 	_time_left_sec = maxf(0.0, match_duration_sec)
 	_record_sync_event("match", "etat RUNNING")
+	_apply_dev_spawn_zone_portals()
 	_emit_snapshot()
 
 
@@ -452,6 +453,28 @@ func _set_portal_group_active(group_name: String, active: bool) -> void:
 		if not is_instance_valid(portal) or not portal.has_method("set_portal_active"):
 			continue
 		portal.call("set_portal_active", active)
+
+
+## Déverrouille immédiatement les portails nécessaires si DEV_SPAWN_ZONE est définie.
+## N'a aucun effet en dehors du serveur ou si la variable n'est pas renseignée.
+func _apply_dev_spawn_zone_portals() -> void:
+	if not _is_server_instance():
+		return
+	var dev_zone := OS.get_environment("DEV_SPAWN_ZONE").strip_edges().to_lower()
+	if dev_zone.is_empty() or dev_zone == "hub":
+		return
+	DebugLog.gameplay("[DEV] DEV_SPAWN_ZONE=%s : déverrouillage des portails en mode test" % dev_zone)
+	# La breche et le reactor nécessitent les deux portails en cascade
+	var unlock_breche := dev_zone in ["breche", "reactor"]
+	var unlock_reactor := dev_zone == "reactor"
+	if unlock_breche:
+		_portal_breche_unlocked = true
+		_team_progress["portal_breche_unlocked"] = 1
+		_set_portal_group_active("mission_portal_hub_breche", true)
+	if unlock_reactor:
+		_portal_reactor_unlocked = true
+		_team_progress["portal_reactor_unlocked"] = 1
+		_set_portal_group_active("mission_portal_hub_reactor", true)
 
 
 func request_current_state_from_server() -> void:

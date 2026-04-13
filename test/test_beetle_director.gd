@@ -122,6 +122,7 @@ func test_beetle_director_gates_population_by_portal_and_zone_presence() -> void
 	portal.name = "PortalHubScierie"
 	root.add_child(portal)
 	portal.add_to_group("mission_portal_hub_scierie")
+	portal.call("set_portal_active", false)
 
 	var director := BEETLE_DIRECTOR_SCRIPT.new()
 	root.add_child(director)
@@ -133,14 +134,14 @@ func test_beetle_director_gates_population_by_portal_and_zone_presence() -> void
 	await wait_process_frames(2)
 
 	var player := _spawn_fake_player(root, 2, Vector3(1.0, 0.0, 0.0))
-	portal.call("set_portal_active", false)
 	assert_eq(0, int(director.call("_get_desired_beetle_count")), "Le directeur doit rester inactif si le portail de zone est fermé.")
 
 	portal.call("set_portal_active", true)
 	assert_eq(1, int(director.call("_get_desired_beetle_count")), "Le directeur doit s'activer quand le portail est ouvert et qu'un joueur est dans la zone.")
+	director.call("_refresh_beetle_population")
 
 	player.position = Vector3(12.0, 0.0, 0.0)
-	assert_eq(0, int(director.call("_get_desired_beetle_count")), "Le directeur doit retomber à zéro si aucun joueur n'est présent dans la zone.")
+	assert_eq(1, int(director.call("_get_desired_beetle_count")), "Le directeur ne doit pas forcer un despawn des scarabées déjà actifs quand les joueurs quittent la zone.")
 
 
 func test_main_scene_exposes_stable_mission_groups() -> void:

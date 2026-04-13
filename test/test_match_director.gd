@@ -1,6 +1,15 @@
 extends GutTest
 
 const MATCH_DIRECTOR_SCRIPT := preload("res://main/match_director.gd")
+var _previous_dev_spawn_zone := ""
+
+
+func before_each() -> void:
+	_previous_dev_spawn_zone = OS.get_environment("DEV_SPAWN_ZONE")
+
+
+func after_each() -> void:
+	OS.set_environment("DEV_SPAWN_ZONE", _previous_dev_spawn_zone)
 
 func _create_director(match_duration_sec: float = 0.6) -> Node:
 	# Build the node in isolation and force server behavior for deterministic tests.
@@ -75,3 +84,14 @@ func test_enemy_kill_reports_score_and_objective_progress() -> void:
 
 	assert_true(snapshot.find("peer_11: 1") >= 0, "Killer should receive +1 score")
 	assert_true(snapshot.find("bees_killed: 1") >= 0, "Enemy objective progress should be incremented")
+
+
+func test_dev_spawn_zone_reactor_unlocks_required_portals_on_match_start() -> void:
+	OS.set_environment("DEV_SPAWN_ZONE", "reactor")
+	var director := await _create_director(5.0)
+	director.register_peer(15)
+	await wait_process_frames(1)
+	var snapshot: String = director.get_snapshot_text()
+
+	assert_true(snapshot.find("portal_breche_unlocked: 1") >= 0, "DEV_SPAWN_ZONE=reactor doit déverrouiller le portail brèche.")
+	assert_true(snapshot.find("portal_reactor_unlocked: 1") >= 0, "DEV_SPAWN_ZONE=reactor doit déverrouiller le portail reactor.")

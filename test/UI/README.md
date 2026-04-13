@@ -85,6 +85,13 @@ Pour les tests, il faut privilégier ces identifiants et des assertions toléran
 # Campagne de charge réplication (par défaut 10 joueurs, ou liste "2,4,6,8,10")
 ./test/UI/test_replication_stress_ui.sh [OUT_DIR] [PLAYER_COUNTS]
 ```
+Note optimisation pour la phase reactor:
+- `test_portal_progression_reactor_ui.sh` active automatiquement `DEV_SPAWN_ZONE=breche` pour accélérer le scénario.
+- Cette optimisation conserve la vérification du déverrouillage Reactor.
+- Vous pouvez forcer un autre comportement via `UI_TEST_DEV_SPAWN_ZONE`.
+- Mesure actuelle (2026-04-13): run non optimisé `UI_TEST_DEV_SPAWN_ZONE=hub` = `35.10s`, run optimisé `DEV_SPAWN_ZONE=breche` = `34.89s`.
+- Gain observé: ~`0.21s` (~`0.6%`), donc amélioration faible en pratique avec le scénario actuel.
+
   - Linux : Ubuntu 24.04.4 LTS exécution pour le jeu, les scripts de test et l’automatisation CI locale.
   - Xvfb : crée un écran X virtuel pour lancer les tests UI Godot sans écran physique.
   - xdotool : pilote les fenêtres/souris/clavier pour simuler les actions joueur dans les tests UI.

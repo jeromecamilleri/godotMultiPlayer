@@ -75,6 +75,7 @@ func test_bee_director_can_gate_population_by_portal_and_zone_presence() -> void
 	portal.name = "PortalHubVerger"
 	root.add_child(portal)
 	portal.add_to_group("mission_portal_hub_verger")
+	portal.call("set_portal_active", false)
 
 	var player := Node3D.new()
 	player.name = "Player2"
@@ -92,11 +93,11 @@ func test_bee_director_can_gate_population_by_portal_and_zone_presence() -> void
 
 	await get_tree().process_frame
 
-	portal.call("set_portal_active", false)
 	assert_eq(0, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles doit rester inactif si le portail de zone est fermé.")
 
 	portal.call("set_portal_active", true)
 	assert_eq(2, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles doit s'activer quand le portail est ouvert et qu'un joueur est dans la zone.")
+	bee_director.call("_refresh_bee_population")
 
 	player.position = Vector3(10.0, 0.0, 0.0)
-	assert_eq(0, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles doit retomber à zéro si personne n'est dans la zone.")
+	assert_eq(2, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles ne doit pas despawn les ennemis déjà actifs quand la zone devient vide.")

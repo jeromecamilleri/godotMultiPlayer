@@ -564,7 +564,8 @@ func _is_within_guard_radius(world_position: Vector3, radius: float) -> bool:
 
 func _return_to_guard_position(delta: float) -> void:
 	sleeping = false
-	var to_home := _home_position - global_position
+	# Retourner vers _guard_center (l'Activator) et non vers le spawn d'origine
+	var to_home := _guard_center - global_position
 	to_home.y = 0.0
 	var distance_to_home: float = to_home.length()
 	if distance_to_home <= return_home_stop_distance:
@@ -575,7 +576,7 @@ func _return_to_guard_position(delta: float) -> void:
 		_sync_beetle_transform.rpc(global_transform)
 		return
 	var direction := to_home.normalized()
-	var look_target := _home_position
+	var look_target := _guard_center
 	look_target.y = global_position.y
 	look_at(look_target)
 	linear_velocity.x = direction.x * move_speed

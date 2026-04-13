@@ -89,6 +89,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 8, -24)
 [node name="platform4" parent="SpawnPoints" unique_id=2108964678 instance=ExtResource("2_gdd4m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 4, 0)
 
+[node name="zone_reactor" type="Node3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120, 4, 22)
+
+[node name="zone_breche" type="Node3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119, 4, 28)
+
+[node name="zone_scierie" type="Node3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 4, 0)
+
+[node name="zone_verger" type="Node3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -120)
+
 [node name="Ground" type="Node3D" parent="." unique_id=1347585944]
 
 [node name="blockLarge2" parent="Ground" unique_id=466882885 instance=ExtResource("3_vpp8y")]

@@ -107,11 +107,15 @@ func _get_desired_beetle_count() -> int:
 	if _is_ui_test_beetle_disabled():
 		return 0
 	if not _is_runtime_activation_allowed():
-		return 0
+		return _get_current_managed_beetle_count()
 	var participant_count: int = _get_session_participant_count()
 	if participant_count <= 0:
 		return min_beetles
 	return max(min_beetles, participant_count + beetles_participant_offset)
+
+
+func _get_current_managed_beetle_count() -> int:
+	return _active_seed_count + _spawned_dynamic_names.size()
 
 
 func _get_session_participant_count() -> int:
@@ -140,9 +144,26 @@ func _build_target_assignments(beetle_count: int, player_peer_ids: Array[int]) -
 	var assignments: Array[int] = []
 	if beetle_count <= 0 or player_peer_ids.is_empty():
 		return assignments
+	# Trier les joueurs par proximité à l'Activator : le plus proche = priorité maximale
+	var guard_center := _resolve_guard_center()
+	var sorted_players := player_peer_ids.duplicate()
+	sorted_players.sort_custom(func(a: int, b: int) -> bool:
+		var pa := _find_player_position(a)
+		var pb := _find_player_position(b)
+		return pa.distance_squared_to(guard_center) < pb.distance_squared_to(guard_center)
+	)
 	for index in range(beetle_count):
-		assignments.append(player_peer_ids[index % player_peer_ids.size()])
+		assignments.append(sorted_players[index % sorted_players.size()])
 	return assignments
+
+
+func _find_player_position(peer_id: int) -> Vector3:
+	for node in get_tree().get_nodes_in_group("players"):
+		if not (node is Node3D):
+			continue
+		if node.get_multiplayer_authority() == peer_id:
+			return (node as Node3D).global_position
+	return Vector3.ZERO
 
 
 func _transform_for_index(index: int) -> Transform3D:

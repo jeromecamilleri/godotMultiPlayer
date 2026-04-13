@@ -64,6 +64,17 @@ X11_ENV = dict(os.environ)
 TEST_PORT = str(27000 + (os.getpid() % 10000) + random.randint(0, 999))
 
 
+def resolve_dev_spawn_zone_for_phase() -> str:
+    override = os.environ.get("UI_TEST_DEV_SPAWN_ZONE", "").strip().lower()
+    if override:
+        return override
+    # Reactor phase can skip the long Breche unlock loop while still validating
+    # the bomb-door step that unlocks Reactor.
+    if PHASE_MODE == "reactor":
+        return "breche"
+    return ""
+
+
 def log(message: str) -> None:
     print(message)
     print(message, file=run_log)
@@ -232,6 +243,9 @@ def start_xvfb() -> None:
         "UI_TEST_SYNC_DIR": str(OUT_DIR),
         "UI_TEST_PORT": TEST_PORT,
     }
+    dev_spawn_zone = resolve_dev_spawn_zone_for_phase()
+    if dev_spawn_zone:
+        X11_ENV["DEV_SPAWN_ZONE"] = dev_spawn_zone
     X11_ENV.pop("XAUTHORITY", None)
     time.sleep(1.0)
     subprocess.Popen(
@@ -245,6 +259,8 @@ def start_xvfb() -> None:
     time.sleep(1.0)
     phase("Xvfb prêt", f"display={XVFB_DISPLAY}")
     log(f"ui_test_port={TEST_PORT}")
+    if dev_spawn_zone:
+        phase("Optimisation spawn", f"DEV_SPAWN_ZONE={dev_spawn_zone}")
 
 
 def launch_runtime_instance(label: str, role: str) -> None:

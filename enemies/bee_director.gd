@@ -102,7 +102,7 @@ func _get_desired_bee_count() -> int:
 	if _is_ui_test_bee_disabled():
 		return 0
 	if not _is_runtime_activation_allowed():
-		return 0
+		return _get_current_managed_bee_count()
 	var player_count := 0
 	for node in get_tree().get_nodes_in_group("players"):
 		if node is Node3D:
@@ -110,6 +110,10 @@ func _get_desired_bee_count() -> int:
 	if player_count <= 0:
 		return min_bees
 	return max(min_bees, player_count + 1)
+
+
+func _get_current_managed_bee_count() -> int:
+	return _spawned_bee_names.size()
 
 
 func _start_activation_poll_timer() -> void:
