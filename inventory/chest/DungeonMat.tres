@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://wt5nd1k1wic8"]
+
+[ext_resource type="Texture2D" uid="uid://da5xbr5amvrjx" path="res://inventory/chest/chest_texture.png" id="1_ukhpw"]
+
+[resource]
+resource_name = "DungeonMat"
+albedo_color = Color(0.9063318, 0.9063318, 0.9063318, 1)
+albedo_texture = ExtResource("1_ukhpw")
+roughness = 0.0

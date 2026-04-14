@@ -135,6 +135,9 @@ transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.
 
 [node name="Interactives" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=162002002 instance=ExtResource("30_intpkg")]
 
+[node name="Chest" parent="HubLevel/Env/Interactives" index="1"]
+transform = Transform3D(0.99999994, 0, 1.7320509, 0, 2, 0, -1.7320509, 0, 0.99999994, -10.767752, 3.858674, -8.189757)
+
 [node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
 transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, 1.3171921, 0)
 transparency = 0.87
@@ -159,13 +162,13 @@ trigger_radius = 3.5
 open_height = 4.0
 objective_id = "bomb_door_opened"
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor4" index="0"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor4" unique_id=792009022]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2514105, -0.02226162, -0.2206491)
 mesh = SubResource("BoxMesh_bd01")
 skeleton = NodePath("../../BombDoor3")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor4" index="1"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor4" unique_id=197435708]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8894806, 0.027832031, 0.13574219)
 shape = SubResource("BoxShape3D_bd01")
 
@@ -210,12 +213,12 @@ trigger_radius = 3.5
 open_height = 4.0
 objective_id = "bomb_door_opened"
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor7" index="0"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ZoneBreche/Interactives/BombDoor7" unique_id=323329795]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5623875, 0, 0)
 mesh = SubResource("BoxMesh_bd01")
 surface_material_override/0 = SubResource("StandardMaterial3D_bd01")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor7" index="1"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ZoneBreche/Interactives/BombDoor7" unique_id=1941529752]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5490217, 0, -0.009033203)
 shape = SubResource("BoxShape3D_bd01")
 
