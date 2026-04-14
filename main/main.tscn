@@ -136,7 +136,7 @@ transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.
 [node name="Interactives" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=162002002 instance=ExtResource("30_intpkg")]
 
 [node name="Chest" parent="HubLevel/Env/Interactives" index="1"]
-transform = Transform3D(0.99999994, 0, 1.7320509, 0, 2, 0, -1.7320509, 0, 0.99999994, -10.767752, 3.858674, -8.189757)
+transform = Transform3D(0.99999994, 0, 1.7320509, 0, 2, 0, -1.7320509, 0, 0.99999994, -10.767752, 4.8, -8.189757)
 
 [node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
 transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, 1.3171921, 0)

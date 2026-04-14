@@ -291,7 +291,13 @@ func is_inventory_mode_open() -> bool:
 
 
 func set_inventory_mode_open(open: bool) -> void:
+	if _inventory_mode_open == open:
+		return
+	if not open:
+		_set_focused_container_lid_open(false)
 	_inventory_mode_open = open
+	if open:
+		_set_focused_container_lid_open(true)
 
 
 func is_debug_position_locked() -> bool:
@@ -342,12 +348,12 @@ func _server_set_debug_position_lock_state(enabled: bool) -> void:
 
 func toggle_inventory_mode() -> void:
 	if _inventory_mode_open:
-		_inventory_mode_open = false
+		set_inventory_mode_open(false)
 		return
 	var interacted := _interactions.try_pickup_or_focus_target(self)
 	if not interacted:
 		_interactions.refresh_inventory_focus(self)
-	_inventory_mode_open = true
+	set_inventory_mode_open(true)
 	_request_focused_inventory_snapshot()
 
 
@@ -362,18 +368,47 @@ func get_focused_inventory_target() -> Node:
 
 
 func set_focused_inventory_target(target: Node) -> void:
+	var previous_target := get_focused_inventory_target()
 	if target == self:
 		return
 	if target == null:
+		if _inventory_mode_open and is_instance_valid(previous_target):
+			_close_container_lid_if_available(previous_target)
 		_inventory_target_path = NodePath("")
 		_last_target_snapshot_request_path = NodePath("")
 		return
 	if not target.has_method("get_inventory_component"):
+		if _inventory_mode_open and is_instance_valid(previous_target):
+			_close_container_lid_if_available(previous_target)
 		_inventory_target_path = NodePath("")
 		_last_target_snapshot_request_path = NodePath("")
 		return
+	if _inventory_mode_open and is_instance_valid(previous_target) and previous_target != target:
+		_close_container_lid_if_available(previous_target)
 	_inventory_target_path = target.get_path()
+	if _inventory_mode_open:
+		_open_container_lid_if_available(target)
 	_request_focused_inventory_snapshot()
+
+
+func _set_focused_container_lid_open(open: bool) -> void:
+	var target := get_focused_inventory_target()
+	if not is_instance_valid(target):
+		return
+	if open:
+		_open_container_lid_if_available(target)
+		return
+	_close_container_lid_if_available(target)
+
+
+func _open_container_lid_if_available(target: Node) -> void:
+	if target.has_method("open_chestlid"):
+		target.call("open_chestlid")
+
+
+func _close_container_lid_if_available(target: Node) -> void:
+	if target.has_method("close_chestlid"):
+		target.call("close_chestlid")
 
 
 func _begin_ui_test_driver() -> void:

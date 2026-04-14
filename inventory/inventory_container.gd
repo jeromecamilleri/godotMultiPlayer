@@ -2,7 +2,30 @@ extends StaticBody3D
 class_name InventoryContainer3D
 
 const InventoryComponentScript := preload("res://inventory/inventory_component.gd")
+@onready var chest_anim: AnimationPlayer = $chest_gold/AnimationPlayer
 
+var is_open := false
+
+func open_chestlid() -> void:
+	if is_open:
+		return
+	
+	is_open = true
+	chest_anim.play("open")
+
+func close_chestlid() -> void:
+	if not is_open:
+		return
+	
+	is_open = false
+	chest_anim.play_backwards("open")
+
+func toggle_chestlid() -> void:
+	if is_open:
+		close_chestlid()
+	else:
+		open_chestlid()
+		
 @export var inventory_name := "Coffre"
 @export var initial_items: Array[Resource] = []
 @export var initial_quantities: PackedInt32Array = PackedInt32Array()
