@@ -358,7 +358,7 @@ def read_json(path: Path) -> dict | None:
 
 def wait_for_result_files(run_dir: Path, player_count: int, timeout_sec: float = 35.0) -> dict[str, dict]:
     expected_roles = [f"client_{i}" for i in range(1, player_count + 1)]
-    adaptive_timeout = max(timeout_sec, 6.0 * float(player_count))
+    adaptive_timeout = max(timeout_sec, 12.0 * float(player_count), 60.0)
     deadline = time.monotonic() + adaptive_timeout
     results: dict[str, dict] = {}
     while time.monotonic() < deadline:
@@ -395,6 +395,8 @@ def percentile(values: list[float], value: float) -> float:
 def summarize_metrics(results: dict[str, dict]) -> dict[str, float | str]:
     client_roles = sorted(role for role in results if role.startswith("client_"))
     client_results = [results[role] for role in client_roles]
+    scenario_statuses = [str(item.get("scenario_status", "ok")) for item in client_results]
+    incomplete_clients = sum(1 for status in scenario_statuses if status != "ok")
     avg_rtts = [float(item.get("network_rtt_avg_ms", -1.0)) for item in client_results if float(item.get("network_rtt_avg_ms", -1.0)) >= 0.0]
     last_rtts = [float(item.get("network_rtt_ms", -1.0)) for item in client_results if float(item.get("network_rtt_ms", -1.0)) >= 0.0]
     jitter = [float(item.get("network_jitter_ms", -1.0)) for item in client_results if float(item.get("network_jitter_ms", -1.0)) >= 0.0]
@@ -426,8 +428,11 @@ def summarize_metrics(results: dict[str, dict]) -> dict[str, float | str]:
         health = "DEGRADED"
     if max_chest_delay > 5000.0 or max_door_delay > 3000.0 or max_fanout > 6000.0 or max_event_ms > 12000.0:
         health = "UNSTABLE"
+    if incomplete_clients > 0:
+        health = "UNSTABLE"
     return {
         "health": health,
+        "incomplete_clients": float(incomplete_clients),
         "rtt_avg_p50_ms": round(percentile(avg_rtts, 0.50), 1) if avg_rtts else -1.0,
         "rtt_avg_p95_ms": round(percentile(avg_rtts, 0.95), 1) if avg_rtts else -1.0,
         "rtt_last_max_ms": round(max(last_rtts), 1) if last_rtts else -1.0,
@@ -491,6 +496,7 @@ def run_single_count(player_count: int) -> dict[str, float | str]:
     summary_lines = [
         f"player_count={player_count}",
         f"health={metrics['health']}",
+        f"incomplete_clients={int(metrics['incomplete_clients'])}",
         f"rtt_avg_p50_ms={metrics['rtt_avg_p50_ms']}",
         f"rtt_avg_p95_ms={metrics['rtt_avg_p95_ms']}",
         f"rtt_last_max_ms={metrics['rtt_last_max_ms']}",

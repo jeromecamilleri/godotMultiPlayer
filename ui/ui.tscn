@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://rclnl7v8k722" path="res://user_data/user_data_events.res" id="5_tmjbr"]
 [ext_resource type="PackedScene" uid="uid://dpre6ebljycx4" path="res://ui/player_panel.tscn" id="6_lta7j"]
 [ext_resource type="PackedScene" path="res://ui/inventory_panel.tscn" id="7_inv00"]
+[ext_resource type="AudioStream" uid="uid://dxv00m8q7huw5" path="res://player/coin/audio/completetask_0.mp3" id="8_mission_sfx"]
 
 [node name="UI" type="Control" unique_id=1008402551]
 layout_mode = 3
@@ -170,6 +171,38 @@ theme_override_font_sizes/font_size = 32
 text = "TIME 00:00"
 horizontal_alignment = 1
 
+[node name="MissionTrackerBackdrop" type="ColorRect" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 490.0
+offset_bottom = 168.0
+color = Color(0.05, 0.08, 0.11, 0.82)
+
+[node name="MissionTrackerTitle" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 470.0
+offset_bottom = 62.0
+theme_override_font_sizes/font_size = 22
+text = "MISSION"
+horizontal_alignment = 0
+
+[node name="MissionTrackerBody" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 40.0
+offset_top = 66.0
+offset_right = 470.0
+offset_bottom = 160.0
+theme_override_font_sizes/font_size = 16
+text = "Suivi d'objectif en attente..."
+autowrap_mode = 3
+vertical_alignment = 0
+
 [node name="MatchResultBackdrop" type="ColorRect" parent="InGameUI"]
 visible = false
 layout_mode = 1
@@ -197,6 +230,38 @@ grow_horizontal = 2
 theme_override_font_sizes/font_size = 34
 text = ""
 horizontal_alignment = 1
+
+[node name="MissionEventBackdrop" type="ColorRect" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 158.0
+offset_right = 300.0
+offset_bottom = 208.0
+grow_horizontal = 2
+color = Color(0.09, 0.22, 0.31, 0.9)
+
+[node name="MissionEventLabel" type="Label" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 168.0
+offset_right = 280.0
+offset_bottom = 198.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 20
+text = ""
+horizontal_alignment = 1
+
+[node name="MissionEventSfx" type="AudioStreamPlayer" parent="InGameUI"]
+stream = ExtResource("8_mission_sfx")
+volume_db = -10.0
 
 [node name="NetworkStats" type="Label" parent="InGameUI"]
 layout_mode = 1
@@ -256,6 +321,40 @@ text = ""
 clip_text = true
 horizontal_alignment = 0
 vertical_alignment = 0
+
+[node name="ContextHintBackdrop" type="ColorRect" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -340.0
+offset_top = -142.0
+offset_right = 340.0
+offset_bottom = -92.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.05, 0.05, 0.07, 0.86)
+
+[node name="ContextHintLabel" type="Label" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -134.0
+offset_right = 320.0
+offset_bottom = -98.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 18
+text = ""
+horizontal_alignment = 1
 
 [node name="InventoryToggleButton" type="Button" parent="InGameUI"]
 layout_mode = 1

@@ -16,6 +16,14 @@ signal connect_client
 @onready var _server_player_stats_label: Label = get_node_or_null("InGameUI/ServerPlayerStats") as Label
 @onready var _debug_overlay_backdrop: Control = get_node_or_null("InGameUI/DebugOverlayBackdrop") as Control
 @onready var _debug_overlay_label: Label = get_node_or_null("InGameUI/DebugOverlayLabel") as Label
+@onready var _mission_tracker_backdrop: ColorRect = get_node_or_null("InGameUI/MissionTrackerBackdrop") as ColorRect
+@onready var _mission_tracker_title: Label = get_node_or_null("InGameUI/MissionTrackerTitle") as Label
+@onready var _mission_tracker_body: Label = get_node_or_null("InGameUI/MissionTrackerBody") as Label
+@onready var _mission_event_backdrop: ColorRect = get_node_or_null("InGameUI/MissionEventBackdrop") as ColorRect
+@onready var _mission_event_label: Label = get_node_or_null("InGameUI/MissionEventLabel") as Label
+@onready var _mission_event_sfx: AudioStreamPlayer = get_node_or_null("InGameUI/MissionEventSfx") as AudioStreamPlayer
+@onready var _context_hint_backdrop: ColorRect = get_node_or_null("InGameUI/ContextHintBackdrop") as ColorRect
+@onready var _context_hint_label: Label = get_node_or_null("InGameUI/ContextHintLabel") as Label
 @onready var _player_inventory_panel: Control = get_node_or_null("InGameUI/PlayerInventoryPanel") as Control
 @onready var _external_inventory_panel: Control = get_node_or_null("InGameUI/TargetInventoryPanel") as Control
 @onready var _player_list_margin: Control = get_node_or_null("InGameUI/MarginContainer") as Control
@@ -38,6 +46,8 @@ var _external_selected_slot := 0
 var _ui_test_result_written := false
 var _last_ui_test_layout_signature := ""
 var _debug_overlay_enabled := false
+var _last_objectives: Dictionary = {}
+var _mission_event_hide_at_ms := 0
 
 
 func _ready():
@@ -57,6 +67,9 @@ func _ready():
 	_update_server_player_stats_label()
 	_refresh_server_status_visibility()
 	_update_match_result_banner()
+	_last_objectives = _extract_objectives_map()
+	_update_mission_tracker()
+	_update_context_hint()
 	_sync_main_menu_endpoint_fields()
 	if is_instance_valid(_player_inventory_panel):
 		_player_inventory_panel.slot_action_requested.connect(_on_player_inventory_action_requested)
@@ -116,6 +129,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	_refresh_inventory_panels()
 	_update_debug_overlay()
+	_update_mission_event_toast()
+	_update_context_hint()
 	_write_ui_test_layout_snapshot()
 	_write_portal_unlock_ui_test_state()
 
@@ -161,6 +176,7 @@ func _on_server_status_changed(status_text: String) -> void:
 
 
 func _on_match_snapshot_changed(status_text: String) -> void:
+	var previous_objectives := _extract_objectives_map()
 	_match_status_text = status_text
 	_update_server_status_label()
 	_update_match_timer_label()
@@ -169,6 +185,8 @@ func _on_match_snapshot_changed(status_text: String) -> void:
 	_update_server_player_stats_label()
 	_refresh_server_status_visibility()
 	_update_match_result_banner()
+	_update_mission_tracker()
+	_process_mission_progress_events(previous_objectives, _extract_objectives_map())
 	_try_write_ui_test_result()
 
 
@@ -185,6 +203,12 @@ func _refresh_server_status_visibility() -> void:
 	if is_instance_valid(_match_timer_label):
 		_match_timer_label.visible = $InGameUI.visible and not _is_server_instance()
 		_match_timer_label.z_index = 10
+	if is_instance_valid(_mission_tracker_backdrop):
+		_mission_tracker_backdrop.visible = $InGameUI.visible and not _is_server_instance()
+	if is_instance_valid(_mission_tracker_title):
+		_mission_tracker_title.visible = $InGameUI.visible and not _is_server_instance()
+	if is_instance_valid(_mission_tracker_body):
+		_mission_tracker_body.visible = $InGameUI.visible and not _is_server_instance()
 	if is_instance_valid(_network_stats_label):
 		_network_stats_label.visible = $InGameUI.visible and not _is_server_instance()
 	if is_instance_valid(_endpoint_reminder_label):
@@ -201,6 +225,14 @@ func _refresh_server_status_visibility() -> void:
 		_debug_overlay_backdrop.visible = $InGameUI.visible and _debug_overlay_enabled
 	if is_instance_valid(_debug_overlay_label):
 		_debug_overlay_label.visible = $InGameUI.visible and _debug_overlay_enabled
+	if is_instance_valid(_mission_event_backdrop):
+		_mission_event_backdrop.visible = $InGameUI.visible and not _is_server_instance() and Time.get_ticks_msec() < _mission_event_hide_at_ms
+	if is_instance_valid(_mission_event_label):
+		_mission_event_label.visible = $InGameUI.visible and not _is_server_instance() and Time.get_ticks_msec() < _mission_event_hide_at_ms and not _mission_event_label.text.is_empty()
+	if is_instance_valid(_context_hint_backdrop):
+		_context_hint_backdrop.visible = $InGameUI.visible and not _is_server_instance() and is_instance_valid(_context_hint_label) and not _context_hint_label.text.is_empty()
+	if is_instance_valid(_context_hint_label):
+		_context_hint_label.visible = $InGameUI.visible and not _is_server_instance() and not _context_hint_label.text.is_empty()
 	if is_instance_valid(_player_inventory_panel):
 		var local_player := _get_local_player()
 		var inventory_open := local_player != null and local_player.is_inventory_mode_open()
@@ -247,6 +279,205 @@ func _update_network_stats_label() -> void:
 	if not is_instance_valid(_network_stats_label):
 		return
 	_network_stats_label.text = _connection.get_network_stats_text()
+
+
+func _update_mission_tracker() -> void:
+	if not is_instance_valid(_mission_tracker_title) or not is_instance_valid(_mission_tracker_body):
+		return
+	var phase_data := _build_mission_phase_data()
+	_mission_tracker_title.text = String(phase_data.get("title", "MISSION"))
+	_mission_tracker_body.text = String(phase_data.get("body", ""))
+
+
+func _build_mission_phase_data() -> Dictionary:
+	# The client renders mission guidance from server snapshot values only.
+	var objectives := _extract_objectives_map()
+	var state_name := _extract_state_name(_match_status_text)
+	var required_wood := _objective_int(objectives, "required_wood", 4)
+	var required_apples := _objective_int(objectives, "required_apples", 2)
+	var delivered_wood := _objective_int(objectives, "chest_wood_delivered", 0)
+	var delivered_apples := _objective_int(objectives, "chest_apples_delivered", 0)
+	var required_bomb_doors := _objective_int(objectives, "required_bomb_doors", 0)
+	var opened_bomb_doors := _objective_int(objectives, "bomb_door_opened", 0)
+	var mission_phase := _objective_int(objectives, "mission_phase", 1)
+	var portal_breche_unlocked := _objective_int(objectives, "portal_breche_unlocked", 0) > 0
+	var portal_reactor_unlocked := _objective_int(objectives, "portal_reactor_unlocked", 0) > 0
+	var cube_goal_reached := _objective_int(objectives, "cube_activator_reached", 0) > 0
+
+	if state_name == "WON":
+		return {
+			"title": "MISSION ACCOMPLIE",
+			"body": "Le cube est sur l'Activator. Exfiltration ou nouvelle partie.",
+		}
+
+	if mission_phase <= 1:
+		var remaining_wood := maxi(0, required_wood - delivered_wood)
+		var remaining_apples := maxi(0, required_apples - delivered_apples)
+		return {
+			"title": "PHASE 1 - COLLECTE",
+			"body": "Deposez au coffre du hub:\nBois %d/%d (reste %d)\nPommes %d/%d (reste %d)\nPortail BRECHE: %s" % [
+				delivered_wood,
+				required_wood,
+				remaining_wood,
+				delivered_apples,
+				required_apples,
+				remaining_apples,
+				"OUVERT" if portal_breche_unlocked else "BLOQUE",
+			],
+		}
+
+	if mission_phase == 2:
+		var door_goal := maxi(1, required_bomb_doors)
+		return {
+			"title": "PHASE 2 - BRECHE",
+			"body": "Ouvrez les BombDoor avec des bombes:\nBombDoor %d/%d\nPortail REACTOR: %s" % [
+				opened_bomb_doors,
+				door_goal,
+				"OUVERT" if portal_reactor_unlocked else "BLOQUE",
+			],
+		}
+
+	if mission_phase >= 3 and not cube_goal_reached:
+		return {
+			"title": "PHASE 3 - REACTOR",
+			"body": "Poussez le gros cube vers l'Activator.\nMaintenez la poussee a plusieurs pour stabiliser le mouvement.",
+		}
+
+	return {
+		"title": "MISSION",
+		"body": "Objectifs en cours...",
+	}
+
+
+func _extract_objectives_map() -> Dictionary:
+	var values: Dictionary = {}
+	var in_objectives := false
+	# Parse the textual snapshot section produced by MatchDirector.get_snapshot_text().
+	for raw_line in _match_status_text.split("\n"):
+		var line := raw_line.strip_edges()
+		if line == "objectives:":
+			in_objectives = true
+			continue
+		if not in_objectives:
+			continue
+		if line.is_empty():
+			continue
+		if not line.contains(":"):
+			continue
+		var parts := line.split(":")
+		if parts.size() < 2:
+			continue
+		var key := String(parts[0]).strip_edges()
+		var value_text := String(parts[1]).strip_edges()
+		values[key] = value_text
+	return values
+
+
+func _objective_int(objectives: Dictionary, key: String, default_value: int = 0) -> int:
+	if not objectives.has(key):
+		return default_value
+	var value := String(objectives.get(key, str(default_value))).strip_edges()
+	if not value.is_valid_int():
+		return default_value
+	return int(value)
+
+
+func _process_mission_progress_events(previous_objectives: Dictionary, current_objectives: Dictionary) -> void:
+	# Keep one "important" toast per snapshot transition to avoid noisy stacking.
+	var previous_phase := _objective_int(previous_objectives, "mission_phase", 1)
+	var current_phase := _objective_int(current_objectives, "mission_phase", previous_phase)
+	var important_event := ""
+	if current_phase > previous_phase:
+		match current_phase:
+			2:
+				important_event = "Phase 2 debloquee: direction la BRECHE."
+			3:
+				important_event = "Phase 3 debloquee: portail REACTOR actif."
+			4:
+				important_event = "Objectif final valide: cube sur Activator."
+			_:
+				important_event = "Nouvelle phase mission: %d" % current_phase
+
+	var prev_breche := _objective_int(previous_objectives, "portal_breche_unlocked", 0)
+	var curr_breche := _objective_int(current_objectives, "portal_breche_unlocked", prev_breche)
+	if important_event.is_empty() and prev_breche == 0 and curr_breche == 1:
+		important_event = "Portail BRECHE ouvert."
+
+	var prev_reactor := _objective_int(previous_objectives, "portal_reactor_unlocked", 0)
+	var curr_reactor := _objective_int(current_objectives, "portal_reactor_unlocked", prev_reactor)
+	if important_event.is_empty() and prev_reactor == 0 and curr_reactor == 1:
+		important_event = "Portail REACTOR ouvert."
+
+	if not important_event.is_empty():
+		_show_mission_event(important_event, true)
+
+	var prev_wood := _objective_int(previous_objectives, "chest_wood_delivered", 0)
+	var curr_wood := _objective_int(current_objectives, "chest_wood_delivered", prev_wood)
+	if important_event.is_empty() and curr_wood > prev_wood:
+		_show_mission_event("Depot coffre: +%d bois." % (curr_wood - prev_wood), false)
+
+	var prev_apples := _objective_int(previous_objectives, "chest_apples_delivered", 0)
+	var curr_apples := _objective_int(current_objectives, "chest_apples_delivered", prev_apples)
+	if important_event.is_empty() and curr_apples > prev_apples:
+		_show_mission_event("Depot coffre: +%d pomme(s)." % (curr_apples - prev_apples), false)
+
+	_last_objectives = current_objectives.duplicate(true)
+
+
+func _show_mission_event(text: String, play_sound: bool = true) -> void:
+	if not is_instance_valid(_mission_event_label):
+		return
+	_mission_event_label.text = text
+	_mission_event_hide_at_ms = Time.get_ticks_msec() + 2800
+	if play_sound and is_instance_valid(_mission_event_sfx):
+		_mission_event_sfx.play()
+	_refresh_server_status_visibility()
+
+
+func _update_mission_event_toast() -> void:
+	if _mission_event_hide_at_ms <= 0:
+		return
+	if Time.get_ticks_msec() < _mission_event_hide_at_ms:
+		return
+	_mission_event_hide_at_ms = 0
+	if is_instance_valid(_mission_event_label):
+		_mission_event_label.text = ""
+	_refresh_server_status_visibility()
+
+
+func _update_context_hint() -> void:
+	if not is_instance_valid(_context_hint_label):
+		return
+	var hint := ""
+	if not _is_server_instance():
+		var player := _get_local_player()
+		if player != null:
+			hint = _build_context_hint(player)
+	_context_hint_label.text = hint
+	_refresh_server_status_visibility()
+
+
+func _build_context_hint(player: Player) -> String:
+	# Local proximity hint only; gameplay validation remains server-authoritative.
+	var chest := get_tree().get_first_node_in_group("mission_hub_chests") as Node3D
+	if is_instance_valid(chest):
+		var chest_distance := player.global_position.distance_to(chest.global_position)
+		if chest_distance <= 5.0:
+			if player.has_focused_inventory_target():
+				var target := player.get_focused_inventory_target()
+				if target == chest:
+					return "Coffre cible: appuyez sur I puis transferez vos objets."
+			return "Objectif collecte: approchez du coffre puis appuyez sur I."
+	var cube := get_tree().get_first_node_in_group("mission_cube_primary") as Node3D
+	var activator := get_tree().get_first_node_in_group("mission_cube_goal_zones") as Node3D
+	if is_instance_valid(cube):
+		var cube_distance := player.global_position.distance_to(cube.global_position)
+		if cube_distance <= 9.0:
+			var target_name := "l'Activator"
+			if is_instance_valid(activator):
+				target_name = "la zone Activator"
+			return "Devant le cube, maintenez le clic gauche pour pousser vers %s." % target_name
+	return ""
 
 
 func _update_endpoint_reminder_label() -> void:
@@ -391,6 +622,14 @@ func _register_test_ids() -> void:
 		_inventory_toggle_hint.set_meta("test_id", "inventory_toggle_hint")
 	if is_instance_valid(_match_timer_label):
 		_match_timer_label.set_meta("test_id", "match_timer")
+	if is_instance_valid(_mission_tracker_title):
+		_mission_tracker_title.set_meta("test_id", "mission_tracker_title")
+	if is_instance_valid(_mission_tracker_body):
+		_mission_tracker_body.set_meta("test_id", "mission_tracker_body")
+	if is_instance_valid(_mission_event_label):
+		_mission_event_label.set_meta("test_id", "mission_event_label")
+	if is_instance_valid(_context_hint_label):
+		_context_hint_label.set_meta("test_id", "context_hint_label")
 	if is_instance_valid(_network_stats_label):
 		_network_stats_label.set_meta("test_id", "network_stats")
 	if is_instance_valid(_match_result_banner):

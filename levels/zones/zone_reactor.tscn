@@ -70,6 +70,13 @@ portal_title = "HUB"
 [node name="ObjectiveMarker" type="Node3D" parent="MissionMarkers"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0)
 
+[node name="ObjectiveHint" type="Label3D" parent="MissionMarkers/ObjectiveMarker"]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, 0, 5.2, 0)
+billboard = 1
+text = "POUSSEZ LE CUBE\nVERS L'ACTIVATOR"
+font_size = 34
+outline_size = 12
+
 [node name="ZoneLandmark" type="Node3D" parent="MissionMarkers"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 4, 11)
 

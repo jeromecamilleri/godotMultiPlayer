@@ -348,3 +348,11 @@ Player architecture refactor (domain components)
 - Interaction inventaire: un tonneau pousseable devant le joueur bloque désormais correctement l'interaction du coffre derrière (pas d'ouverture/focus à travers obstacle).
 - Tests: ajout de `test/test_player_interactions.gd` avec régression unitaire sur le cas "coffre bloqué par tonneau" + contrôle du cas nominal coffre accessible.
 - QA/itération locale: usage de `DEV_SPAWN_ZONE` conservé pour accélérer les cycles de validation UI longs, avec gain constaté limité selon la géométrie/état des zones.
+- Lisibilité mission: ajout d'un tracker mission client dans `ui/ui.tscn` + `ui/ui.gd`, piloté par le snapshot autoritaire de `MatchDirector` (phases Collecte/Breche/Reactor avec compteurs).
+- Progression autoritaire: `main/match_director.gd` publie désormais explicitement `mission_phase`, `required_bomb_doors` et `bomb_door_opened` à partir de l'état réel des portes.
+- Feedbacks gameplay: ajout de toasts mission (dépôts coffre, déblocage portails, changement de phase) avec signal sonore UI.
+- Guidage contexte: ajout de hints HUD près du coffre et du cube pour expliciter l'action attendue (`I` pour coffre, poussée vers Activator pour cube).
+- Reactor: renforcement visuel de l'objectif final via balises `Label3D` + lumière de beacon sur `CubeActivator` et glow idle léger du cube dans `main/rigid_body_3d.gd`.
+- Hub: ajout d'un repère `Label3D` au-dessus du coffre principal pour rendre la mission de dépôt visible sans ouvrir le debug.
+- Tests: extension de `test/test_match_director.gd` avec une régression de phases mission (collecte -> brèche -> reactor) basée sur l'état réel coffre/portes.
+- Validation: démarrage headless OK et suite GUT complète verte (`104/104`).

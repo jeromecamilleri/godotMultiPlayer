@@ -20,6 +20,9 @@ const GROUP_PORTAL_REACTOR_HUB := "mission_portal_reactor_hub"
 const GROUP_MISSION_WOOD_PICKUPS := "mission_wood_pickups"
 const GROUP_MISSION_APPLE_PICKUPS := "mission_apple_pickups"
 const BEETLE_DOOR_CHARGE_OBSERVER_OFFSET := Vector3(-6.0, 0.0, -5.0)
+const REPLICATION_STRESS_TIMEOUT_MS := 28000
+const REPLICATION_STRESS_DEFAULT_SEED_WOOD := 6
+const REPLICATION_STRESS_DEFAULT_SEED_APPLE := 2
 
 var _scenario_name := ""
 var _instance_role := ""
@@ -368,8 +371,12 @@ func _setup_replication_stress_scenario(player) -> void:
 	_replication_stress["did_transfer"] = false
 	_replication_stress["requested_chest_snapshot"] = false
 	var chest_inventory = chest.get_inventory_component()
-	_replication_stress["initial_chest_wood"] = chest_inventory.count_item("wood")
-	_replication_stress["initial_chest_apple"] = chest_inventory.count_item("apple")
+	var current_wood: int = int(chest_inventory.count_item("wood"))
+	var current_apple: int = int(chest_inventory.count_item("apple"))
+	var seed_counts := _resolve_replication_stress_seed_counts(player)
+	# Keep a stable baseline even if this client starts observing late.
+	_replication_stress["initial_chest_wood"] = mini(current_wood, int(seed_counts.get("wood", REPLICATION_STRESS_DEFAULT_SEED_WOOD)))
+	_replication_stress["initial_chest_apple"] = mini(current_apple, int(seed_counts.get("apple", REPLICATION_STRESS_DEFAULT_SEED_APPLE)))
 	var connection := _find_connection(player)
 	if connection != null and connection.has_method("reset_network_metrics"):
 		connection.call("reset_network_metrics")
@@ -470,6 +477,11 @@ func _update_replication_stress_scenario(player) -> void:
 		if bool(bomb_door.call("is_open")) and chest_inventory.count_item("wood") > initial_wood and chest_inventory.count_item("apple") > initial_apple:
 			_write_replication_stress_result(player, bomb_door, chest, wood, apple)
 			_replication_stress["state"] = "done"
+	var elapsed_ms := Time.get_ticks_msec() - int(_replication_stress["started_ms"])
+	if elapsed_ms > REPLICATION_STRESS_TIMEOUT_MS and not bool(_replication_stress["written"]):
+		_record_replication_stress_event("timeout_before_all_events")
+		_write_replication_stress_result(player, bomb_door, chest, wood, apple)
+		_replication_stress["state"] = "done"
 
 
 func _record_replication_stress_event(event_name: String) -> void:
@@ -485,9 +497,14 @@ func _write_replication_stress_result(player, bomb_door: Node3D, chest: Node3D, 
 		return
 	var connection := _find_connection(player)
 	var chest_inventory = chest.get_inventory_component()
+	var events := (_replication_stress["events"] as Dictionary).duplicate(true)
+	var has_required_events := events.has("door_open_seen") and events.has("chest_wood_seen") and events.has("chest_apple_seen")
+	var scenario_status := "ok" if has_required_events else "incomplete"
 	var result := {
 		"role": _instance_role,
-		"events_ms": (_replication_stress["events"] as Dictionary).duplicate(true),
+		"events_ms": events,
+		"scenario_status": scenario_status,
+		"elapsed_ms": Time.get_ticks_msec() - int(_replication_stress["started_ms"]),
 		"door_open": bomb_door.has_method("is_open") and bool(bomb_door.call("is_open")),
 		"wood_pickable": wood != null and wood.has_method("can_be_picked_up") and bool(wood.call("can_be_picked_up")),
 		"apple_pickable": apple != null and apple.has_method("can_be_picked_up") and bool(apple.call("can_be_picked_up")),
@@ -503,6 +520,23 @@ func _write_replication_stress_result(player, bomb_door: Node3D, chest: Node3D, 
 	}
 	_write_sync_result("replication_stress_%s.json" % _instance_role, result)
 	_replication_stress["written"] = true
+
+
+func _resolve_replication_stress_seed_counts(player) -> Dictionary:
+	var seed_wood := REPLICATION_STRESS_DEFAULT_SEED_WOOD
+	var seed_apple := REPLICATION_STRESS_DEFAULT_SEED_APPLE
+	var director := _find_match_director(player)
+	if director != null:
+		var wood_value: Variant = director.get("hub_chest_seed_wood")
+		if wood_value is int:
+			seed_wood = int(wood_value)
+		var apple_value: Variant = director.get("hub_chest_seed_apples")
+		if apple_value is int:
+			seed_apple = int(apple_value)
+	return {
+		"wood": seed_wood,
+		"apple": seed_apple,
+	}
 
 
 func _setup_beetle_targeting_scenario(player) -> void:

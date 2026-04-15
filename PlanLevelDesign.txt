@@ -13,6 +13,38 @@
   - Validation : `99/99` GUT verts, `UI smoke` vert, mais `UI full` reste bloqué par un flaky connu sur `test_beetle_door_charge_ui.sh` (erreurs RPC sur chemins dynamiques `@RigidBody3D@...` / `StaticBody3DBomb/MultiplayerSynchronizer`).
   - Suite logique : ajouter des variations de décor propres à chaque biome sans toucher à la progression ni à la lisibilité des trajets
 
+  Plan lisibilité mission (2026-04-15)
+
+  Objectif: rendre la mission auto-explicative pour un joueur qui découvre la map, sans casser l'autorité serveur.
+
+  1. Tracker mission HUD (source MatchDirector autoritaire)
+  - Statut: FAIT
+  - Livré: panneau mission client avec phase courante + objectifs chiffrés.
+
+  2. Phases explicites Collecte -> Brèche -> Reactor
+  - Statut: FAIT
+  - Livré: progression publiée par `MatchDirector` (`mission_phase`, quotas coffre, BombDoor ouvertes/total).
+
+  3. Feedback immédiat progression
+  - Statut: FAIT
+  - Livré: toasts en jeu (dépôts coffre, déblocage portail, changement de phase) + son UI.
+
+  4. Lisibilité forte de l'objectif final
+  - Statut: FAIT
+  - Livré: balises visuelles Reactor/Activator (label objectif + beacon lumineux) et cube plus lisible à distance.
+
+  5. Hints contextuels d'interaction
+  - Statut: FAIT
+  - Livré: hints HUD contextuels près du coffre et du cube pour guider l'action attendue.
+
+  6. Variations de décor par biome (sans toucher progression)
+  - Statut: A FAIRE
+  - Prochaine passe:
+    - Scierie: teinte plus chaude + éléments bois/atelier.
+    - Verger: densité végétale + fruits visibles de loin.
+    - Brèche: lecture militaire/ruine + repères bombables.
+    - Reactor: accent industriel + guidage visuel vers activator.
+
    hub central + 4 zones, où les téléporteurs servent à la fois de progression, de logistique et de raccourcis.
 
   1. Hub central : Avant-poste

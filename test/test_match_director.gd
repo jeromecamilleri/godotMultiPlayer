@@ -24,6 +24,76 @@ func _create_director(match_duration_sec: float = 0.6) -> Node:
 	return director
 
 
+func _make_fake_inventory(wood_count: int, apple_count: int) -> Node:
+	var script := GDScript.new()
+	script.source_code = """
+extends Node
+var wood := 0
+var apple := 0
+func count_item(item_id: String) -> int:
+	if item_id == "wood":
+		return wood
+	if item_id == "apple":
+		return apple
+	return 0
+"""
+	assert_eq(OK, script.reload())
+	var inventory := Node.new()
+	inventory.set_script(script)
+	inventory.set("wood", wood_count)
+	inventory.set("apple", apple_count)
+	return inventory
+
+
+func _make_fake_chest(inventory: Node) -> Node:
+	var script := GDScript.new()
+	script.source_code = """
+extends Node
+var inventory_ref: Node = null
+func get_inventory_component():
+	return inventory_ref
+"""
+	assert_eq(OK, script.reload())
+	var chest := Node.new()
+	chest.set_script(script)
+	chest.set("inventory_ref", inventory)
+	chest.add_to_group("mission_hub_chests")
+	return chest
+
+
+func _make_fake_portal(group_name: String) -> Node:
+	var script := GDScript.new()
+	script.source_code = """
+extends Node
+var active := false
+func set_portal_active(value: bool) -> void:
+	active = value
+func is_portal_active() -> bool:
+	return active
+"""
+	assert_eq(OK, script.reload())
+	var portal := Node.new()
+	portal.set_script(script)
+	portal.add_to_group(group_name)
+	return portal
+
+
+func _make_fake_bomb_door(opened: bool) -> Node:
+	var script := GDScript.new()
+	script.source_code = """
+extends Node
+var opened := false
+func is_open() -> bool:
+	return opened
+"""
+	assert_eq(OK, script.reload())
+	var door := Node.new()
+	door.set_script(script)
+	door.set("opened", opened)
+	door.add_to_group("mission_cube_bomb_doors")
+	return door
+
+
 func test_register_peer_auto_starts_running() -> void:
 	var director := await _create_director()
 	director.register_peer(10)
@@ -95,3 +165,54 @@ func test_dev_spawn_zone_reactor_unlocks_required_portals_on_match_start() -> vo
 
 	assert_true(snapshot.find("portal_breche_unlocked: 1") >= 0, "DEV_SPAWN_ZONE=reactor doit déverrouiller le portail brèche.")
 	assert_true(snapshot.find("portal_reactor_unlocked: 1") >= 0, "DEV_SPAWN_ZONE=reactor doit déverrouiller le portail reactor.")
+
+
+func test_zone_progression_exposes_collect_breche_reactor_phases() -> void:
+	var director := await _create_director(5.0)
+	director.register_peer(21)
+	await wait_process_frames(1)
+
+	var inventory := _make_fake_inventory(6, 2)
+	add_child_autofree(inventory)
+	var chest := _make_fake_chest(inventory)
+	add_child_autofree(chest)
+	var portal_breche := _make_fake_portal("mission_portal_hub_breche")
+	add_child_autofree(portal_breche)
+	var portal_reactor := _make_fake_portal("mission_portal_hub_reactor")
+	add_child_autofree(portal_reactor)
+	var door_a := _make_fake_bomb_door(false)
+	var door_b := _make_fake_bomb_door(false)
+	var door_c := _make_fake_bomb_door(false)
+	add_child_autofree(door_a)
+	add_child_autofree(door_b)
+	add_child_autofree(door_c)
+
+	director.call("_update_zone_progression")
+	director.call("_emit_snapshot")
+	var snapshot_collect: String = director.get_snapshot_text()
+	assert_true(snapshot_collect.find("mission_phase: 1") >= 0, "Phase 1 attendue tant que les quotas coffre ne sont pas atteints.")
+	assert_true(snapshot_collect.find("required_bomb_doors: 3") >= 0, "Le snapshot doit publier le nombre total de BombDoor.")
+	assert_true(snapshot_collect.find("bomb_door_opened: 0") >= 0)
+
+	inventory.set("wood", 10)
+	inventory.set("apple", 4)
+	director.call("_update_zone_progression")
+	director.call("_emit_snapshot")
+	var snapshot_breche: String = director.get_snapshot_text()
+	assert_true(snapshot_breche.find("portal_breche_unlocked: 1") >= 0, "Le portail brèche doit s'ouvrir après dépôt des quotas.")
+	assert_true(snapshot_breche.find("mission_phase: 2") >= 0, "Le directeur doit exposer la phase BRECHE.")
+
+	door_a.set("opened", true)
+	director.call("_update_zone_progression")
+	director.call("_emit_snapshot")
+	var snapshot_breche_doors: String = director.get_snapshot_text()
+	assert_true(snapshot_breche_doors.find("bomb_door_opened: 1") >= 0, "La progression BombDoor doit suivre l'état réel des portes.")
+	assert_true(snapshot_breche_doors.find("mission_phase: 2") >= 0)
+
+	door_b.set("opened", true)
+	door_c.set("opened", true)
+	director.call("_update_zone_progression")
+	director.call("_emit_snapshot")
+	var snapshot_reactor: String = director.get_snapshot_text()
+	assert_true(snapshot_reactor.find("portal_reactor_unlocked: 1") >= 0, "Le portail reactor doit s'ouvrir quand toutes les BombDoor sont ouvertes.")
+	assert_true(snapshot_reactor.find("mission_phase: 3") >= 0, "Le directeur doit exposer la phase REACTOR.")

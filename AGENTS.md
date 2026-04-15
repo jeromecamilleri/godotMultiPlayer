@@ -204,6 +204,7 @@ After changes:
 * Modify the smallest possible surface
 * Do not refactor unrelated code unless necessary
 * Keep naming consistent with existing codebase
+* Document only critical intent with short comments (authority assumptions, sync edge cases, non-obvious tradeoffs); avoid obvious or repetitive comments
 * Respect existing architecture:
 
   * Player = façade

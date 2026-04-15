@@ -119,8 +119,13 @@ func reset_to_lobby() -> void:
 	_team_progress["players_alive"] = _connected_peers.size()
 	_team_progress["chest_wood_delivered"] = 0
 	_team_progress["chest_apples_delivered"] = 0
+	_team_progress["required_wood"] = portal_unlock_base_wood
+	_team_progress["required_apples"] = portal_unlock_base_apples
+	_team_progress["required_bomb_doors"] = 0
+	_team_progress["bomb_door_opened"] = 0
 	_team_progress["portal_breche_unlocked"] = 0
 	_team_progress["portal_reactor_unlocked"] = 0
+	_team_progress["mission_phase"] = 1
 	_portal_breche_unlocked = false
 	_portal_reactor_unlocked = false
 	_emit_snapshot()
@@ -404,6 +409,10 @@ func _count_alive_players() -> int:
 func _update_zone_progression() -> void:
 	if not _is_server_instance():
 		return
+	# Authoritative mission progression contract:
+	# 1) compute delivered resources from hub chest,
+	# 2) unlock portals from those durable conditions,
+	# 3) publish coarse mission_phase for client HUD/readability.
 	var chest_inventory: Variant = _find_hub_chest_inventory()
 	var delivered_wood: int = 0
 	var delivered_apples: int = 0
@@ -417,6 +426,10 @@ func _update_zone_progression() -> void:
 	_team_progress["required_apples"] = required_apples
 	_team_progress["chest_wood_delivered"] = delivered_wood
 	_team_progress["chest_apples_delivered"] = delivered_apples
+	var total_bomb_doors: int = _count_total_cube_bomb_doors()
+	var opened_bomb_doors: int = _count_open_cube_bomb_doors()
+	_team_progress["required_bomb_doors"] = total_bomb_doors
+	_team_progress["bomb_door_opened"] = opened_bomb_doors
 	var should_unlock_breche: bool = delivered_wood >= required_wood and delivered_apples >= required_apples
 	var should_unlock_reactor: bool = should_unlock_breche and _are_all_cube_bomb_doors_open()
 	if should_unlock_breche != _portal_breche_unlocked:
@@ -429,6 +442,15 @@ func _update_zone_progression() -> void:
 		_record_sync_event("match", "portal reactor=%s" % ("on" if should_unlock_reactor else "off"))
 	_set_portal_group_active("mission_portal_hub_reactor", should_unlock_reactor)
 	_team_progress["portal_reactor_unlocked"] = 1 if _portal_reactor_unlocked else 0
+	# Mission HUD only depends on this phase value, not on local client inference.
+	var mission_phase := 1
+	if _portal_breche_unlocked:
+		mission_phase = 2
+	if _portal_reactor_unlocked:
+		mission_phase = 3
+	if int(_team_progress.get("cube_activator_reached", 0)) > 0 or _state == MatchState.WON:
+		mission_phase = 4
+	_team_progress["mission_phase"] = mission_phase
 
 
 func _find_hub_chest_inventory():
@@ -446,6 +468,20 @@ func _are_all_cube_bomb_doors_open() -> bool:
 		if not is_instance_valid(door) or not door.has_method("is_open") or not bool(door.call("is_open")):
 			return false
 	return true
+
+
+func _count_total_cube_bomb_doors() -> int:
+	return get_tree().get_nodes_in_group("mission_cube_bomb_doors").size()
+
+
+func _count_open_cube_bomb_doors() -> int:
+	var opened := 0
+	for door in get_tree().get_nodes_in_group("mission_cube_bomb_doors"):
+		if not is_instance_valid(door) or not door.has_method("is_open"):
+			continue
+		if bool(door.call("is_open")):
+			opened += 1
+	return opened
 
 
 func _set_portal_group_active(group_name: String, active: bool) -> void:
@@ -470,10 +506,12 @@ func _apply_dev_spawn_zone_portals() -> void:
 	if unlock_breche:
 		_portal_breche_unlocked = true
 		_team_progress["portal_breche_unlocked"] = 1
+		_team_progress["mission_phase"] = maxi(2, int(_team_progress.get("mission_phase", 1)))
 		_set_portal_group_active("mission_portal_hub_breche", true)
 	if unlock_reactor:
 		_portal_reactor_unlocked = true
 		_team_progress["portal_reactor_unlocked"] = 1
+		_team_progress["mission_phase"] = maxi(3, int(_team_progress.get("mission_phase", 1)))
 		_set_portal_group_active("mission_portal_hub_reactor", true)
 
 

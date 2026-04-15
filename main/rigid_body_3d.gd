@@ -530,8 +530,10 @@ func _apply_visual_state() -> void:
 	match _pull_state_sync:
 		PULL_STATE_IDLE:
 			_runtime_material.albedo_color = Color(0.26, 1.0, 0.0, 1.0)
-			_runtime_material.emission_enabled = false
-			emission_base = 0.0
+			# Keep a faint glow so the objective cube remains readable from far away.
+			_runtime_material.emission_enabled = true
+			_runtime_material.emission = Color(0.24, 0.92, 0.32, 1.0)
+			emission_base = 0.25
 		PULL_STATE_ATTACHED:
 			_runtime_material.albedo_color = Color(1.0, 0.85, 0.2, 1.0)
 			_runtime_material.emission_enabled = true
