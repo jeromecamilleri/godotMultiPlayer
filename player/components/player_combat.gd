@@ -14,7 +14,19 @@ func process_rigidbody_push_collisions(player) -> void:
 		if collision.get_collider() is RigidBody3D:
 			var body := collision.get_collider() as RigidBody3D
 			var push_dir: Vector3 = -collision.get_normal()
-			var impulse: Vector3 = push_dir * 1.5
+			var push_strength: float = 1.5
+			if body.is_in_group("pushable_barrels"):
+				# Keep barrel pushes horizontal so they do not "pop" upward.
+				push_dir.y = 0.0
+				if push_dir.length_squared() > 0.0001:
+					push_dir = push_dir.normalized()
+				else:
+					var fallback: Vector3 = body.global_position - player.global_position
+					fallback.y = 0.0
+					if fallback.length_squared() > 0.0001:
+						push_dir = fallback.normalized()
+				push_strength = 22.0
+			var impulse: Vector3 = push_dir * push_strength
 			var body_authority: int = body.get_multiplayer_authority()
 			# Push requests must be executed by the rigidbody authority.
 			if body.has_method("request_push"):

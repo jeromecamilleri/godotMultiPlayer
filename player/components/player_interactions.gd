@@ -239,6 +239,10 @@ func try_pickup_or_focus_target(player) -> bool:
 		DebugLog.gameplay("inventory: no direct interaction target found")
 	else:
 		DebugLog.gameplay("inventory: interaction target=%s path=%s" % [target.name, str(target.get_path())])
+		if _is_pushable_barrel_target(target):
+			# A barrel blocks the chest: keep target empty so player must move barrels first.
+			player.set_focused_inventory_target(null)
+			return true
 		if target.has_method("can_be_picked_up") and bool(target.call("can_be_picked_up")):
 			DebugLog.gameplay("inventory: target is pickable, sending pickup request")
 			player.request_pickup_world_item(target.get_path())
@@ -276,6 +280,9 @@ func try_pickup_or_focus_target(player) -> bool:
 
 func refresh_inventory_focus(player) -> bool:
 	var target := _get_interaction_target(player)
+	if _is_pushable_barrel_target(target):
+		player.set_focused_inventory_target(null)
+		return false
 	if target != null and target.has_method("get_inventory_component"):
 		player.set_focused_inventory_target(target)
 		return true
@@ -315,10 +322,23 @@ func _get_interaction_target(player) -> Node:
 func _resolve_interaction_target(node: Node) -> Node:
 	var current: Node = node
 	while current != null:
+		if current.is_in_group("pushable_barrels"):
+			return current
 		if current.has_method("can_be_picked_up") or current.has_method("get_inventory_component"):
 			return current
 		current = current.get_parent()
 	return node
+
+
+func _is_pushable_barrel_target(target: Node) -> bool:
+	if target == null:
+		return false
+	var current: Node = target
+	while current != null:
+		if current.is_in_group("pushable_barrels"):
+			return true
+		current = current.get_parent()
+	return false
 
 
 func _find_nearest_proximity_target(player, allow_pickable: bool = true, allow_inventory: bool = true) -> Node:

@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://bilg3cgxxv2h5" path="res://addons/kenney_platformer_kit/block.glb" id="11_n3o0a"]
 [ext_resource type="PackedScene" uid="uid://bgfpp81rtuc0s" path="res://addons/kenney_platformer_kit/blockSlope.glb" id="12_s758e"]
 [ext_resource type="PackedScene" uid="uid://dr8slkof1nc8r" path="res://environment/trees/tree.tscn" id="13_na0o7"]
+[ext_resource type="PackedScene" uid="uid://bkmgid034c6en" path="res://environment/barrel/barrels.tscn" id="15_re7it"]
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
 [ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
 [ext_resource type="PackedScene" path="res://main/mission_hub_interactives.tscn" id="30_intpkg"]
@@ -107,17 +108,62 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.006908, 4, 10)
 [node name="blockSlope3" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="30" unique_id=1674956779 instance=ExtResource("12_s758e")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -17.988014, 7.96714, 10)
 
+[node name="Barrels" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="31" unique_id=399028568 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.487752, 4, -9.909757)
+
+[node name="Barrels2" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="32" unique_id=1172647984 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.767752, 4, -9.909757)
+
+[node name="Barrels3" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="33" unique_id=990487402 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.047752, 4, -9.909757)
+
+[node name="Barrels4" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="34" unique_id=731877568 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.487752, 4, -8.189757)
+
+[node name="Barrels5" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="35" unique_id=9802860 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.047752, 4, -8.189757)
+
+[node name="Barrels6" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="36" unique_id=1872974239 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.487752, 4, -6.469757)
+
+[node name="Barrels7" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="37" unique_id=1833036329 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.767752, 4, -6.469757)
+
+[node name="Barrels8" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="38" unique_id=2136851852 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.047752, 4, -6.469757)
+
+[node name="Barrels9" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="39" unique_id=941198851 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.627752, 5.95, -9.049757)
+
+[node name="Barrels10" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="40" unique_id=1676862524 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.907752, 5.95, -9.049757)
+
+[node name="Barrels11" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="41" unique_id=1846744556 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.627752, 5.95, -7.329757)
+
+[node name="Barrels12" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="42" unique_id=1460458755 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.907752, 5.95, -7.329757)
+
+[node name="Barrels13" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="43" unique_id=1171269964 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.627752, 7.9, -8.189757)
+
+[node name="Barrels14" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="44" unique_id=549689419 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.907752, 7.9, -8.189757)
+
+[node name="Barrels15" parent="HubLevel/Ground" parent_id_path=PackedInt32Array(1150027112, 1347585944) index="45" unique_id=189949227 instance=ExtResource("15_re7it")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.767752, 9.85, -8.189757)
+
 [node name="fenceCorner3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="2" unique_id=1229230674]
 transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, 11.99863, 4.007114, 15.995415)
 
 [node name="tree2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="6" unique_id=1396597241]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, -2.1932158)
 
-[node name="plant6" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="18" unique_id=1535960963]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6542916, 4, 14)
+[node name="treePine2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="8" unique_id=1555962731]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 4, -9)
 
-[node name="plant7" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="19" unique_id=59418837]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.173691, 4.0735116, 16.568993)
+[node name="plant8" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="20" unique_id=1346275582]
+visible = false
 
 [node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001]
 
@@ -136,7 +182,7 @@ transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.
 [node name="Interactives" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=162002002 instance=ExtResource("30_intpkg")]
 
 [node name="Chest" parent="HubLevel/Env/Interactives" index="1"]
-transform = Transform3D(0.99999994, 0, 1.7320509, 0, 2, 0, -1.7320509, 0, 0.99999994, -10.767752, 4.8, -8.189757)
+transform = Transform3D(0.74999994, 0, 1.2990382, 0, 1.5, 0, -1.2990382, 0, 0.74999994, -10.767752, 4.6, -8.189757)
 
 [node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
 transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, 1.3171921, 0)
