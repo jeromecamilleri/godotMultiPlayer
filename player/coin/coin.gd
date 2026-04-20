@@ -84,18 +84,19 @@ func _follow(offset: float) -> void:
 	global_position = lerp(_initial_tween_position, _target.global_position, offset)
 
 
-func _on_body_entered(body: PhysicsBody3D) -> void:
+func _on_body_entered(body: Node3D) -> void:
 	if not _is_server_instance() or _consumed:
 		return
-	if body is Player:
-		var player := body as Player
-		if player.can_be_revived():
-			set_target(player)
-			return
-		# When someone is downed, keep coins for revive instead of normal pickup.
-		if _has_any_downed_player():
-			return
+	if not (body is Player):
+		return
+	var player := body as Player
+	if player.can_be_revived():
 		set_target(player)
+		return
+	# When someone is downed, keep coins for revive instead of normal pickup.
+	if _has_any_downed_player():
+		return
+	set_target(player)
 
 
 func _collect() -> void:

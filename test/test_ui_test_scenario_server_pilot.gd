@@ -2,6 +2,14 @@ extends GutTest
 
 const MAIN_SCENE := preload("res://main/main.tscn")
 const UI_TEST_SCENARIO_SERVER_PILOT := preload("res://main/ui_test_scenario_server_pilot.gd")
+const TERRAIN3D_DEPRECATION_TEXT := "instance_reset_physics_interpolation() is deprecated."
+const TERRAIN3D_TEXTURE_WARNING_TEXT := "normal texture is not connected to a file."
+
+
+func _handle_known_terrain3d_engine_warning() -> void:
+	for err in get_errors():
+		if err.is_engine_error() and (err.contains_text(TERRAIN3D_DEPRECATION_TEXT) or err.contains_text(TERRAIN3D_TEXTURE_WARNING_TEXT)):
+			err.handled = true
 
 
 func test_main_scene_exposes_ui_test_scenario_server_pilot() -> void:
@@ -9,6 +17,7 @@ func test_main_scene_exposes_ui_test_scenario_server_pilot() -> void:
 	add_child_autofree(root)
 	var main := MAIN_SCENE.instantiate()
 	root.add_child(main)
+	_handle_known_terrain3d_engine_warning()
 
 	var pilot := main.get_node_or_null("UiTestScenarioServerPilot")
 	assert_not_null(pilot, "La scene principale doit exposer un pilote de scenario UI cote serveur.")

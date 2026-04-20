@@ -4,6 +4,14 @@ const BEETLE_DIRECTOR_SCRIPT := preload("res://enemies/beetle_director.gd")
 const BEETLE_SCRIPT := preload("res://enemies/beetle_bot.gd")
 const MAIN_SCENE := preload("res://main/main.tscn")
 const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
+const TERRAIN3D_DEPRECATION_TEXT := "instance_reset_physics_interpolation() is deprecated."
+const TERRAIN3D_TEXTURE_WARNING_TEXT := "normal texture is not connected to a file."
+
+
+func _handle_known_terrain3d_engine_warning() -> void:
+	for err in get_errors():
+		if err.is_engine_error() and (err.contains_text(TERRAIN3D_DEPRECATION_TEXT) or err.contains_text(TERRAIN3D_TEXTURE_WARNING_TEXT)):
+			err.handled = true
 
 
 func _spawn_fake_player(parent: Node3D, peer_id: int, position: Vector3 = Vector3.ZERO) -> Node3D:
@@ -78,6 +86,7 @@ func test_beetle_director_resolves_explicit_defense_zone_and_seed_paths() -> voi
 func test_main_scene_has_no_root_level_beetle_instance() -> void:
 	var main := MAIN_SCENE.instantiate()
 	add_child_autofree(main)
+	_handle_known_terrain3d_engine_warning()
 	var stray_beetle_names: Array[String] = []
 	for child in main.get_children():
 		if child.get_script() == BEETLE_SCRIPT:
@@ -88,6 +97,7 @@ func test_main_scene_has_no_root_level_beetle_instance() -> void:
 func test_main_scene_beetle_director_targets_activator_zone() -> void:
 	var main := MAIN_SCENE.instantiate()
 	add_child_autofree(main)
+	_handle_known_terrain3d_engine_warning()
 
 	var director := main.get_node_or_null("ZoneReactor/Enemies/BeetleDirector")
 	assert_not_null(director, "La scene principale doit embarquer un BeetleDirector.")
@@ -101,6 +111,7 @@ func test_main_scene_beetle_director_targets_activator_zone() -> void:
 func test_main_scene_breche_beetle_director_targets_defense_zone() -> void:
 	var main := MAIN_SCENE.instantiate()
 	add_child_autofree(main)
+	_handle_known_terrain3d_engine_warning()
 
 	var director := main.get_node_or_null("ZoneBreche/Enemies/BeetleDirector")
 	assert_not_null(director, "La scene principale doit embarquer un BeetleDirector dans la brèche.")
@@ -147,6 +158,7 @@ func test_beetle_director_gates_population_by_portal_and_zone_presence() -> void
 func test_main_scene_exposes_stable_mission_groups() -> void:
 	var main := MAIN_SCENE.instantiate()
 	add_child_autofree(main)
+	_handle_known_terrain3d_engine_warning()
 
 	var activator := main.get_node_or_null("ZoneReactor/Interactives/Activator/CubeActivator")
 	var director := main.get_node_or_null("ZoneReactor/Enemies/BeetleDirector")

@@ -18,7 +18,7 @@
 [ext_resource type="Material" uid="uid://b6hul1wci17cm" path="res://defaults/water/ocean_water.tres" id="15_wat01"]
 [ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
 [ext_resource type="PackedScene" path="res://main/mission_hub_interactives.tscn" id="30_intpkg"]
-[ext_resource type="PackedScene" path="res://levels/zones/zone_scierie.tscn" id="34_zone_scierie"]
+[ext_resource type="PackedScene" uid="uid://dpebmn1qpmvjj" path="res://levels/zones/zone_scierie.tscn" id="34_zone_scierie"]
 [ext_resource type="PackedScene" path="res://levels/zones/zone_verger.tscn" id="35_zone_verger"]
 [ext_resource type="PackedScene" path="res://levels/zones/zone_breche.tscn" id="36_zone_breche"]
 [ext_resource type="PackedScene" path="res://levels/zones/zone_reactor.tscn" id="37_zone_reactor"]
@@ -162,38 +162,37 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.132831, 4, -2.1932158)
 [node name="treePine2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="8" unique_id=1555962731]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 4, -9)
 
-[node name="plant8" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="20" unique_id=1346275582]
+[node name="plant8" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="14" unique_id=1346275582]
 visible = false
 
-[node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=162002001]
+[node name="Enemies" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="33" unique_id=162002001]
 
-[node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=55966136 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="34" unique_id=55966136 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -12.47961, 4.02946, 2.7943625)
 
-[node name="Tree1Geo3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="41" unique_id=686525054 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo3" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="35" unique_id=686525054 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -11.240726, 4.02946, 7.372601)
 
-[node name="Tree1Geo4" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="42" unique_id=269579418 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo4" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="36" unique_id=269579418 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -8.722778, 4.02946, 7.372601)
 
-[node name="Tree1Geo2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="43" unique_id=1115235982 instance=ExtResource("13_na0o7")]
+[node name="Tree1Geo2" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="37" unique_id=1115235982 instance=ExtResource("13_na0o7")]
 transform = Transform3D(1, 0, 0, 0, 1.6716352, 0, 0, 0, 1.2885021, -9.733398, 4.02946, 2.7943625)
 
-[node name="Interactives" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="44" unique_id=162002002 instance=ExtResource("30_intpkg")]
+[node name="Interactives" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="38" unique_id=162002002 instance=ExtResource("30_intpkg")]
 
 [node name="Chest" parent="HubLevel/Env/Interactives" index="1"]
 transform = Transform3D(0.74999994, 0, 1.2990382, 0, 1.5, 0, -1.2990382, 0, 0.74999994, -10.767752, 4.6, -8.189757)
 
-[node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="45" unique_id=602239731]
-transform = Transform3D(117.23441, 0, 0, 0, 2.7572255, 0, 0, 0, 94.87244, 2.0900764, 1.3171921, 0)
+[node name="Water" type="MeshInstance3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="39" unique_id=602239731]
+transform = Transform3D(165, 0, 0, 0, 2.7572255, 0, 0, 0, 140, -75, 1.3171921, -30)
 transparency = 0.87
 mesh = SubResource("PlaneMesh_n3o0a")
 surface_material_override/0 = ExtResource("15_wat01")
 
-[node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="46" unique_id=162002003]
+[node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=162002003]
 
 [node name="ZoneScierie" parent="." unique_id=1900001001 instance=ExtResource("34_zone_scierie")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
 
 [node name="ZoneVerger" parent="." unique_id=1900001002 instance=ExtResource("35_zone_verger")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -120)
@@ -277,8 +276,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120, 0, 28)
 
 [editable path="HubLevel"]
 [editable path="HubLevel/Env/Interactives"]
-[editable path="ZoneScierie"]
-[editable path="ZoneScierie/Interactives"]
 [editable path="ZoneVerger"]
 [editable path="ZoneVerger/Interactives"]
 [editable path="ZoneVerger/Enemies"]

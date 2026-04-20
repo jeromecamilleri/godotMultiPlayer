@@ -1,6 +1,8 @@
 extends GutTest
 
 const MAIN_SCENE := preload("res://main/main.tscn")
+const TERRAIN3D_DEPRECATION_TEXT := "instance_reset_physics_interpolation() is deprecated."
+const TERRAIN3D_TEXTURE_WARNING_TEXT := "normal texture is not connected to a file."
 const WORLD_ITEM_SCENE := preload("res://inventory/world_item.tscn")
 const CHEST_SCENE := preload("res://inventory/inventory_container.tscn")
 const COIN_SCENE := preload("res://player/coin/coin.tscn")
@@ -9,6 +11,12 @@ const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
 const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 const BEETLE_SCENE := preload("res://enemies/beetle_bot.tscn")
 const PULL_CUBE_SCRIPT := preload("res://main/rigid_body_3d.gd")
+
+
+func _handle_known_terrain3d_engine_warning() -> void:
+	for err in get_errors():
+		if err.is_engine_error() and (err.contains_text(TERRAIN3D_DEPRECATION_TEXT) or err.contains_text(TERRAIN3D_TEXTURE_WARNING_TEXT)):
+			err.handled = true
 
 
 func _assert_replicated_contract(node: Node, label: String) -> void:
@@ -26,6 +34,7 @@ func test_persistent_objects_expose_common_replicated_contract() -> void:
 
 	var main := MAIN_SCENE.instantiate()
 	root.add_child(main)
+	_handle_known_terrain3d_engine_warning()
 
 	var world_item := WORLD_ITEM_SCENE.instantiate()
 	root.add_child(world_item)

@@ -1,26 +1,26 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b1op0hyburm7r"]
 
 [ext_resource type="PackedScene" path="res://inventory/world_item.tscn" id="1_world"]
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="2_wood"]
 [ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="3_box"]
 
-[node name="Interactives" type="Node3D"]
+[node name="Interactives" type="Node3D" unique_id=2146767002]
 
-[node name="WoodPickup" parent="." groups=["mission_resource_pickups", "mission_wood_pickups"] instance=ExtResource("1_world")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.2, 4.42, 0.35)
+[node name="WoodPickup" parent="." unique_id=2109169506 groups=["mission_resource_pickups", "mission_wood_pickups"] instance=ExtResource("1_world")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.42, 0.35)
 item_definition = ExtResource("2_wood")
 quantity = 5
 
-[node name="WoodPickup2" parent="." groups=["mission_resource_pickups", "mission_wood_pickups"] instance=ExtResource("1_world")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4, 4.42, -1.7)
+[node name="WoodPickup2" parent="." unique_id=1264098326 groups=["mission_resource_pickups", "mission_wood_pickups"] instance=ExtResource("1_world")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.8, 0.42, -1.7)
 item_definition = ExtResource("2_wood")
 quantity = 4
 
-[node name="ScierieCrate1" parent="." instance=ExtResource("3_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 4, -3)
+[node name="ScierieCrate1" parent="." unique_id=1130828862 instance=ExtResource("3_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 1.9006896, -3)
 
-[node name="ScierieCrate2" parent="." instance=ExtResource("3_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.8, 4, -2.2)
+[node name="ScierieCrate2" parent="." unique_id=59800590 instance=ExtResource("3_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.8, 2.4412923, -2.2)
 
-[node name="ScierieCrate3" parent="." instance=ExtResource("3_box")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.2, 4, 2.4)
+[node name="ScierieCrate3" parent="." unique_id=1982482699 instance=ExtResource("3_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.2, 2.32902, 2.4)
