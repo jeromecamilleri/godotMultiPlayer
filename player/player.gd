@@ -154,16 +154,19 @@ func _ready() -> void:
 	if is_instance_valid(inventory):
 		inventory.inventory_name = "Sac"
 		inventory.contents_changed.connect(_on_inventory_contents_changed)
-	DebugLog.gameplay("Player ready | peer=%d authority=%s" % [multiplayer.get_unique_id(), str(is_multiplayer_authority())])
+	var has_peer := _has_active_multiplayer_peer()
+	var is_local_authority := has_peer and is_multiplayer_authority()
+	var peer_label := str(multiplayer.get_unique_id()) if has_peer else "none"
+	DebugLog.gameplay("Player ready | peer=%s authority=%s" % [peer_label, str(is_local_authority)])
 	# Only the authority owns camera/input simulation; remotes are interpolation-only.
-	if is_multiplayer_authority():
+	if not has_peer or is_local_authority:
 		_camera_controller.setup(self)
 	else:
 		rotation_speed /= 1.5
 		_synchronizer.delta_synchronized.connect(on_synchronized)
 		_synchronizer.synchronized.connect(on_synchronized)
 		on_synchronized()
-	if multiplayer.is_server():
+	if has_peer and multiplayer.is_server():
 		call_deferred("_queue_inventory_snapshot_broadcast", true)
 	if _ui_test_driver.is_enabled():
 		call_deferred("_begin_ui_test_driver")
@@ -201,12 +204,14 @@ func _register_unused_debug_fields() -> void:
 
 
 func _process(_delta: float) -> void:
-	if not is_multiplayer_authority():
+	if not _has_active_multiplayer_peer() or not is_multiplayer_authority():
 		return
 	_ui_test_driver.process(self)
 
 
 func _physics_process(delta: float) -> void:
+	if not _has_active_multiplayer_peer():
+		return
 	if not is_multiplayer_authority():
 		_net_sync.interpolate_client(self, delta)
 		return
@@ -238,6 +243,10 @@ func set_sync_properties() -> void:
 
 func on_synchronized() -> void:
 	_net_sync.on_synchronized(self)
+
+
+func _has_active_multiplayer_peer() -> bool:
+	return multiplayer != null and multiplayer.has_multiplayer_peer()
 
 
 func interpolate_client(delta: float) -> void:

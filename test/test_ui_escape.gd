@@ -51,6 +51,15 @@ class TestUI:
 		exit_server_called = true
 
 
+func _assert_no_disconnect_errors(test_case: GutTest, context: String) -> void:
+	for err in test_case.get_errors():
+		if not err.is_engine_error():
+			continue
+		if err.contains_text("No multiplayer peer is assigned. Unable to get unique ID.") or err.contains_text("Can't change visibility of main window."):
+			err.handled = true
+			test_case.fail_test("%s ne doit pas produire d'erreur de déconnexion UI/multiplayer." % context)
+
+
 func _build_ui_context() -> Dictionary:
 	# Build only the nodes required by ui.gd and replace network dependencies with mocks.
 	var root := Node.new()
@@ -161,3 +170,14 @@ func test_f3_toggle_affiche_et_masque_le_debug_overlay() -> void:
 	ui._unhandled_input(_f3_event())
 	await wait_process_frames(1)
 	assert_false(debug_label.visible, "Un second F3 doit masquer l'overlay debug.")
+
+
+func test_show_ui_without_multiplayer_peer_does_not_raise_disconnect_errors() -> void:
+	var ctx: Dictionary = await _build_ui_context()
+	var ui: TestUI = ctx["ui"] as TestUI
+
+	ui.show_ui()
+	await wait_process_frames(1)
+
+	_assert_no_disconnect_errors(self, "show_ui sans peer")
+	assert_true(ui.get_node("MainMenu").visible, "Le menu principal doit rester visible sans peer actif.")

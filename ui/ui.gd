@@ -293,6 +293,7 @@ func _build_mission_phase_data() -> Dictionary:
 	# The client renders mission guidance from server snapshot values only.
 	var objectives := _extract_objectives_map()
 	var state_name := _extract_state_name(_match_status_text)
+	var result_reason := _extract_result_reason(_match_status_text)
 	var required_wood := _objective_int(objectives, "required_wood", 4)
 	var required_apples := _objective_int(objectives, "required_apples", 2)
 	var delivered_wood := _objective_int(objectives, "chest_wood_delivered", 0)
@@ -304,7 +305,7 @@ func _build_mission_phase_data() -> Dictionary:
 	var portal_reactor_unlocked := _objective_int(objectives, "portal_reactor_unlocked", 0) > 0
 	var cube_goal_reached := _objective_int(objectives, "cube_activator_reached", 0) > 0
 
-	if state_name == "WON":
+	if state_name == "WON" and (cube_goal_reached or result_reason == "cube_activator_reached"):
 		return {
 			"title": "MISSION ACCOMPLIE",
 			"body": "Le cube est sur l'Activator. Exfiltration ou nouvelle partie.",
@@ -347,6 +348,14 @@ func _build_mission_phase_data() -> Dictionary:
 		"title": "MISSION",
 		"body": "Objectifs en cours...",
 	}
+
+
+func _extract_result_reason(snapshot_text: String) -> String:
+	for raw_line in snapshot_text.split("\n"):
+		var line := raw_line.strip_edges()
+		if line.begins_with("result_reason:"):
+			return line.trim_prefix("result_reason:").strip_edges()
+	return ""
 
 
 func _extract_objectives_map() -> Dictionary:
@@ -1062,21 +1071,25 @@ func _extract_snapshot_section(section_name: String) -> Dictionary:
 
 func _exit_client() -> void:
 	_connection.disconnect_peer()
-	# Hide immediately to avoid a frozen gray frame while quitting.
-	get_window().visible = false
-	await get_tree().process_frame
-	get_tree().quit()
+	await _quit_after_disconnect()
 
 
 func _exit_server() -> void:
 	await _connection.shutdown_server()
-	get_window().visible = false
-	await get_tree().process_frame
-	get_tree().quit()
+	await _quit_after_disconnect()
 
 
 func _is_server_instance() -> bool:
-	return multiplayer.is_server()
+	return _has_active_multiplayer_peer() and multiplayer.is_server()
+
+
+func _has_active_multiplayer_peer() -> bool:
+	return multiplayer != null and multiplayer.has_multiplayer_peer()
+
+
+func _quit_after_disconnect() -> void:
+	await get_tree().process_frame
+	get_tree().quit()
 
 
 func _refresh_inventory_panels() -> void:
@@ -1121,6 +1134,8 @@ func _refresh_inventory_panels() -> void:
 
 
 func _get_local_player() -> Player:
+	if not _has_active_multiplayer_peer():
+		return null
 	for node in get_tree().get_nodes_in_group("players"):
 		if node is Player and node.is_multiplayer_authority():
 			return node as Player

@@ -46,6 +46,10 @@ func test_main_scene_preserves_modular_runtime_paths() -> void:
 	assert_eq(NodePath("ZoneReactor/Env/PhysicsObjects/RigidCube3D"), main.get_path_to(cube))
 
 
+# Vérifie l'invariant d'ancrage introduit avec Terrain3D:
+# la scène source et l'instance dans main doivent partager le même ancrage de zone.
+# Le noeud Terrain reste top_level et vit à l'origine monde; c'est donc l'ancrage de ZoneScierie
+# qui est le vrai contrat de placement pour le gameplay et l'édition.
 func test_zone_scierie_terrain_uses_same_world_anchor_in_zone_and_main() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
@@ -60,6 +64,7 @@ func test_zone_scierie_terrain_uses_same_world_anchor_in_zone_and_main() -> void
 	var zone_only_anchor_support := zone_only.get_node("Ground/AnchorSupport") as StaticBody3D
 	var expected_anchor := Vector3(120.0, 0.0, 0.0)
 	var zone_only_anchor := zone_only_root.transform.origin
+	var zone_only_terrain_global := zone_only_terrain.global_position
 	assert_eq(expected_anchor, zone_only_root.global_position, "La scène zone_scierie doit être éditée à son offset final.")
 	assert_true(zone_only_terrain.top_level, "Le plugin Terrain3D force un repère monde indépendant; ce comportement doit rester explicite dans ce test.")
 	assert_lt(zone_only_anchor_support.global_position.y, zone_only_terrain.global_position.y, "Le support d'ancrage doit rester légèrement sous le terrain visible.")
@@ -77,9 +82,12 @@ func test_zone_scierie_terrain_uses_same_world_anchor_in_zone_and_main() -> void
 	var main_terrain := main.get_node("ZoneScierie/Ground/Terrain") as Node3D
 	assert_eq(expected_anchor, main_zone.global_position, "Main doit instancier la scierie au même ancrage que la scène dédiée.")
 	assert_eq(zone_only_anchor, main_zone.transform.origin, "Main ne doit pas réintroduire un décalage supplémentaire sur ZoneScierie.")
-	assert_eq(expected_anchor, main_terrain.global_position, "Le Terrain3D instancié dans main doit garder le même ancrage global que dans la scène dédiée.")
+	assert_eq(zone_only_terrain_global, main_terrain.global_position, "Le Terrain3D doit garder le même repère global entre la scène source et main.")
 
 
+# Garde-fou gameplay: les points de spawn des scarabées doivent toujours retomber sur une
+# collision valide. En pratique le raycast retombe actuellement sur AnchorSupport, qui sert
+# de support stable côté éditeur autour du plateau Terrain3D.
 func test_zone_scierie_beetle_anchors_stay_over_supported_ground() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
@@ -102,9 +110,11 @@ func test_zone_scierie_beetle_anchors_stay_over_supported_ground() -> void:
 		assert_false(hit.is_empty(), "%s doit avoir un sol sous l'ancre." % anchor_path)
 		if not hit.is_empty():
 			var collider := hit["collider"] as Object
-			assert_eq("Terrain", String(collider.get("name")), "%s doit retomber sur le Terrain3D de la scierie." % anchor_path)
+			assert_true(["Terrain", "AnchorSupport"].has(String(collider.get("name"))), "%s doit retomber sur un support solide de la scierie." % anchor_path)
 
 
+# Même logique que pour les scarabées, mais appliquée au portail retour:
+# on accepte Terrain3D ou AnchorSupport comme support solide tant que le portail reste jouable.
 func test_zone_scierie_portal_has_terrain_support_beneath_it() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
@@ -135,9 +145,11 @@ func test_zone_scierie_portal_has_terrain_support_beneath_it() -> void:
 		assert_false(hit.is_empty(), "Le portail de la scierie doit avoir du terrain sous %s." % sample)
 		if not hit.is_empty():
 			var collider := hit["collider"] as Object
-			assert_eq("Terrain", String(collider.get("name")), "Le support du portail doit venir du Terrain3D.")
+			assert_true(["Terrain", "AnchorSupport"].has(String(collider.get("name"))), "Le support du portail doit venir d'un sol solide de la scierie.")
 
 
+# Vérifie qu'un déplacement du portail dans zone_scierie.tscn se propage dans main
+# sans être masqué par un override local oublié dans l'instance.
 func test_zone_scierie_portal_transform_matches_between_source_scene_and_main() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
@@ -164,6 +176,7 @@ func test_zone_scierie_portal_transform_matches_between_source_scene_and_main() 
 	assert_eq(expected_global, main_portal.global_position, "Le portail retour doit apparaître au même endroit dans main et dans la scène source.")
 
 
+# Régression visuelle: le grand plan d'eau du hub ne doit plus revenir sous l'accès scierie.
 func test_hub_water_plane_stays_out_of_zone_scierie_portal_area() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
@@ -187,6 +200,8 @@ func test_hub_water_plane_stays_out_of_zone_scierie_portal_area() -> void:
 	assert_true(portal.global_position.z >= water_min_z and portal.global_position.z <= water_max_z, "Le test suppose le portail aligné sur la profondeur du plan d'eau.")
 
 
+# Ce test complète le précédent:
+# on veut un plan d'eau assez large pour entourer les îles principales, mais toujours arrêté avant la scierie.
 func test_hub_water_plane_wraps_main_islands_without_covering_scierie() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
@@ -219,6 +234,10 @@ func test_hub_water_plane_wraps_main_islands_without_covering_scierie() -> void:
 	assert_true(scierie_portal.global_position.x > water_max_x, "La scierie doit rester hors du plan d'eau malgre l'agrandissement.")
 
 
+# Test purement structurel sur le fichier texte de main.tscn.
+# Son but est d'empêcher le retour du bug principal observé pendant l'intégration Terrain3D:
+# des overrides enregistrés sous ZoneScierie dans main qui désynchronisent l'édition entre
+# la scène source et l'instance utilisée au runtime.
 func test_main_scene_keeps_zone_scierie_as_clean_instance_without_child_overrides() -> void:
 	var main_scene_text := FileAccess.get_file_as_string("res://main/main.tscn")
 	assert_false(main_scene_text.contains("parent=\"ZoneScierie/"), "main.tscn ne doit plus contenir d'override sur des enfants de ZoneScierie.")

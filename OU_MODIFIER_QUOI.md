@@ -236,6 +236,34 @@ Règle pratique:
 - placement global du monde joué: `main/main.tscn`
 - détail du décor et du hub: `levels/hub_level.tscn`
 
+## Si tu modifies la scierie ou le plugin Terrain3D
+
+Fichiers à regarder:
+
+- [`levels/zones/zone_scierie.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie.tscn)
+- [`levels/zones/zone_scierie_terrain_material.tres`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie_terrain_material.tres)
+- [`levels/zones/zone_scierie_terrain_assets.tres`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie_terrain_assets.tres)
+- [`levels/zones/zone_scierie_terrain_data/`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie_terrain_data)
+- [`environment/terrain3d_runtime.gd`](/home/camillej/godotProjects/godot-multiplayer/environment/terrain3d_runtime.gd)
+- [`main/main.tscn`](/home/camillej/godotProjects/godot-multiplayer/main/main.tscn)
+- [`tools/generate_zone_scierie_terrain.gd`](/home/camillej/godotProjects/godot-multiplayer/tools/generate_zone_scierie_terrain.gd)
+- [`tools/backup_zone_scierie_terrain.gd`](/home/camillej/godotProjects/godot-multiplayer/tools/backup_zone_scierie_terrain.gd)
+
+Tu touches ici pour:
+
+- sculpter ou peindre le terrain de la scierie
+- changer les textures `Grass` / `Dirt`
+- régénérer une île de scierie
+- faire un backup avant une session d'édition Terrain3D
+- comprendre un décalage entre `zone_scierie.tscn` et `main/main.tscn`
+
+Règles importantes:
+
+- éditer le terrain dans `zone_scierie.tscn`, pas dans `main/main.tscn`
+- `main/main.tscn` ne doit pas contenir d'overrides sur des enfants `ZoneScierie/*`
+- `Ground/Terrain` est `top_level`, donc son ancrage monde doit rester cohérent avec l'ancrage de la scène
+- après un crash Terrain3D, vérifier d'abord l'état du cache `.godot/` avant de conclure à une scène cassée
+
 ## Si tu modifies la VOIP
 
 Fichiers à regarder:
@@ -285,6 +313,9 @@ Règle pratique:
 - logique de test GUT: `test/*.gd`
 - orchestration UI E2E: `test/UI/*`
 - comportement spécial côté runtime pour les tests UI: `player_ui_test_driver.gd`
+- la CLI GUT locale n'accepte pas `-gfilter`
+- pour cibler un script: `-gselect=test_ui_e2e.gd`
+- pour cibler un test dans ce script: `-gunit_test_name=test_ui_e2e_cube_mission`
 
 ## Heuristique rapide
 

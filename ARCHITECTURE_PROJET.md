@@ -6,10 +6,27 @@
 - Scène principale: `res://main/main.tscn`
 - Type de projet: jeu Godot multijoueur coopératif en 3D, avec UI en jeu, inventaire, ennemis, VOIP et logique de partie.
 - Binaire local de référence (tests/validation): `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`
+- Plugin terrain ajouté au projet: `addons/terrain_3d/` pour la zone `ZoneScierie`
 
 Pour les scripts UI Python, ce chemin peut être surchargé avec la variable d'environnement `GODOT_BIN`.
 
 Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotProjects/godot-multiplayer/main/main.tscn). Elle compose les systèmes réseau, UI, match, spawn des joueurs, niveau et services annexes.
+
+## Changements structurants récents
+
+- Intégration du plugin `Terrain3D` dans `ZoneScierie`.
+- Remplacement du sol statique de la scierie par un terrain piloté par:
+  - `levels/zones/zone_scierie.tscn`
+  - `levels/zones/zone_scierie_terrain_material.tres`
+  - `levels/zones/zone_scierie_terrain_assets.tres`
+  - `levels/zones/zone_scierie_terrain_data/`
+  - `environment/terrain3d_runtime.gd`
+- Ajout d'outils locaux pour ce flux:
+  - `tools/generate_zone_scierie_terrain.gd`
+  - `tools/backup_zone_scierie_terrain.gd`
+- Ajustement du plan d'eau du hub dans `main/main.tscn` pour entourer les îles principales sans recouvrir la scierie.
+- Ajout de tests de régression sur l'ancrage scierie, le portail retour, le plan d'eau et l'absence d'overrides `ZoneScierie/*` dans `main`.
+- Rappel GUT local: la CLI installée accepte `-gselect` et `-gunit_test_name`, pas `-gfilter`.
 
 ## Arborescence logique
 
@@ -63,6 +80,22 @@ Les autres zones portent désormais les objectifs spécialisés:
 - `ZoneVerger`: pommes et pression abeilles
 - `ZoneBreche`: caisses bloqueuses + `BombDoor` + scarabées de défense locale
 - `ZoneReactor`: gros cube, `CubeActivator`, scarabées de défense du réacteur
+
+### Détail `ZoneScierie` / Terrain3D
+
+`ZoneScierie` a maintenant une contrainte d'édition spécifique:
+
+- le terrain visible et collisionnable vient de `Terrain3D`, pas d'un mesh statique classique
+- `Ground/Terrain` est `top_level`, donc son repère monde doit rester cohérent avec l'ancrage de la scène
+- l'ancrage attendu de la scène source est `x = 120`
+- `main/main.tscn` doit instancier `ZoneScierie` sans overrides sur ses enfants
+- les modifications de terrain, portail ou repères de zone doivent être faites dans `levels/zones/zone_scierie.tscn`
+- `main/main.tscn` sert uniquement à vérifier l'intégration, pas à repositionner des enfants de la scierie
+
+Conséquence pratique:
+
+- si `main` et `zone_scierie` n'affichent pas le même placement, vérifier d'abord l'absence de noeuds `parent="ZoneScierie/...` dans `main/main.tscn`
+- après un crash éditeur Terrain3D, repartir de `zone_scierie.tscn` avant de contrôler `main`
 
 Sous-scènes mission désormais extraites depuis `main/` :
 
@@ -133,6 +166,18 @@ Quand un nouvel objet persistant est ajouté, penser à :
 - exposer des getters de debug simples si l'état est utile à lire en `F3`
 - enregistrer un événement de sync sur les transitions importantes
 - conserver la logique gameplay autoritaire côté serveur
+
+## Validation GUT locale
+
+Pour les validations ciblées avec la version de GUT embarquée dans ce dépôt:
+
+- ne pas utiliser `-gfilter`
+- utiliser `-gselect=<script>` pour filtrer un fichier de test
+- utiliser `-gunit_test_name=<nom_partiel_ou_exact>` pour filtrer un test dans ce script
+
+Exemple valide:
+
+- `HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=test_ui_e2e.gd -gunit_test_name=test_ui_e2e_cube_mission -gexit`
 
 ## Systèmes principaux
 

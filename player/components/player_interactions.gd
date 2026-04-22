@@ -8,6 +8,7 @@ var _active_pull_cube_authority := 0
 var _debug_pull_latched := false
 var _debug_locked_pull_intent := Vector3.ZERO
 var _debug_locked_pull_intent_valid := false
+var _spawned_bomb_sequence := 0
 
 
 func setup(player) -> void:
@@ -62,6 +63,8 @@ func place_bomb(player) -> void:
 func spawn_bomb(player, pos: Vector3, throw_velocity: Vector3) -> void:
 	DebugLog.gameplay("Bomb creating")
 	var bomb = BOMB_SCENE.instantiate()
+	_spawned_bomb_sequence += 1
+	bomb.name = "Bomb_%d" % _spawned_bomb_sequence
 	var parent_node: Node = player.get_tree().current_scene
 	if parent_node == null:
 		parent_node = player

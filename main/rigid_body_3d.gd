@@ -48,6 +48,9 @@ func _on_player_count_changed(_id: int) -> void:
 	_update_mass_for_player_count()
 
 func _update_mass_for_player_count() -> void:
+	if not _has_active_multiplayer_peer():
+		mass = base_mass
+		return
 	var players: int = max(min_players, multiplayer.get_peers().size() + 1) # + 1 for server/host peer
 	mass = base_mass + mass_per_player * float(players - 1)
 
@@ -55,29 +58,29 @@ func _update_mass_for_player_count() -> void:
 func _ready() -> void:
 	# Only the authority simulates physics; clients receive replicated state.
 	set_multiplayer_authority(server_peer_id)
-	freeze = not is_multiplayer_authority()
-	sleeping = not is_multiplayer_authority()
+	freeze = not _should_simulate_locally()
+	sleeping = not _should_simulate_locally()
 	add_to_group("pullable_cubes")
 	add_to_group("replicated_persistent_objects")
 	_mesh_instance = get_node_or_null("MeshInstance3D")
 	_setup_runtime_material()
 	_resolve_reactor_node()
-	if is_multiplayer_authority():
+	if _should_simulate_locally():
 		_update_mass_for_player_count()
-		if multiplayer.has_multiplayer_peer():
+		if _has_active_multiplayer_peer():
 			if not multiplayer.peer_connected.is_connected(_on_player_count_changed):
 				multiplayer.peer_connected.connect(_on_player_count_changed)
 			if not multiplayer.peer_disconnected.is_connected(_on_player_count_changed):
 				multiplayer.peer_disconnected.connect(_on_player_count_changed)
 			if not multiplayer.peer_connected.is_connected(_on_peer_connected):
 				multiplayer.peer_connected.connect(_on_peer_connected)
-	elif multiplayer.has_multiplayer_peer():
+	elif _has_active_multiplayer_peer():
 		call_deferred("_request_current_state_when_connected")
 	_apply_visual_state()
 
 
 func _physics_process(_delta: float) -> void:
-	if not is_multiplayer_authority():
+	if not _should_simulate_locally():
 		# Prevent local physics from fighting replicated transform updates.
 		sleeping = true
 		_apply_visual_state()
@@ -338,6 +341,14 @@ func _get_goal_direction() -> Vector3:
 	return to_goal.normalized()
 
 
+func _has_active_multiplayer_peer() -> bool:
+	return multiplayer != null and multiplayer.has_multiplayer_peer()
+
+
+func _should_simulate_locally() -> bool:
+	return not _has_active_multiplayer_peer() or is_multiplayer_authority()
+
+
 func _should_auto_move(net_pull: Vector3) -> bool:
 	if _goal_reached:
 		return false
@@ -503,14 +514,10 @@ func _resolve_reactor_node() -> void:
 func _update_goal_state() -> void:
 	if _goal_reached:
 		return
-	if is_instance_valid(_reactor_node) and _active_attached_count() >= auto_move_min_players:
-		var coop_goal_distance := global_position.distance_to(_reactor_node.global_position)
-		if coop_goal_distance <= coop_goal_snap_radius:
-			complete_goal(_reactor_node.global_position)
-			return
-	if not evaluate_goal_reached():
-		return
-	complete_goal()
+	# Goal completion is authoritative through CubeActivator.
+	# Keep reactor/goal distance helpers for guidance and tests, but do not
+	# auto-complete the mission from proximity alone.
+	pass
 
 func _setup_runtime_material() -> void:
 	if not is_instance_valid(_mesh_instance):

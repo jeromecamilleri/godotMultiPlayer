@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene format=3 uid="uid://b5e5klqe8gc52"]
 
 [ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
 [ext_resource type="PackedScene" path="res://main/mission_cube_goal_zone.tscn" id="2_goal"]
@@ -8,23 +8,14 @@
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(44, 8, 32)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
-size = Vector3(44, 8, 32)
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.223529, 0.678431, 0.87451, 1)
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_marker"]
-top_radius = 0.95
-bottom_radius = 1.15
-height = 5.8
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(44, 8, 32)
 
 [sub_resource type="BoxMesh" id="BoxMesh_marker"]
 size = Vector3(3.6, 0.7, 3.6)
-
-[sub_resource type="SphereMesh" id="SphereMesh_core"]
-radius = 1.05
-height = 2.1
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
 albedo_color = Color(0.258824, 0.858824, 0.956863, 1)
@@ -32,71 +23,81 @@ emission_enabled = true
 emission = Color(0.258824, 0.858824, 0.956863, 1)
 emission_energy_multiplier = 2.1
 
-[node name="ZoneReactor" type="Node3D" groups=["mission_zone_reactor"]]
+[sub_resource type="CylinderMesh" id="CylinderMesh_marker"]
+top_radius = 0.95
+bottom_radius = 1.15
+height = 5.8
 
-[node name="Ground" type="Node3D" parent="."]
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 1.05
+height = 2.1
 
-[node name="Floor" type="StaticBody3D" parent="Ground"]
+[node name="ZoneReactor" type="Node3D" unique_id=431479306 groups=["mission_zone_reactor"]]
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground/Floor"]
+[node name="Ground" type="Node3D" parent="." unique_id=1655684413]
+
+[node name="Floor" type="StaticBody3D" parent="Ground" unique_id=866999711]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground/Floor" unique_id=333359256]
 mesh = SubResource("BoxMesh_floor")
 surface_material_override/0 = SubResource("StandardMaterial3D_floor")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/Floor"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/Floor" unique_id=2138336701]
 shape = SubResource("BoxShape3D_floor")
 
-[node name="Env" type="Node3D" parent="."]
+[node name="Env" type="Node3D" parent="." unique_id=717453261]
 
-[node name="PhysicsObjects" parent="Env" instance=ExtResource("3_physics")]
+[node name="PhysicsObjects" parent="Env" unique_id=1156507942 instance=ExtResource("3_physics")]
 
-[node name="Interactives" type="Node3D" parent="."]
+[node name="Interactives" type="Node3D" parent="." unique_id=556991494]
 
-[node name="Activator" parent="Interactives" instance=ExtResource("2_goal")]
+[node name="Activator" parent="Interactives" unique_id=1358673903 instance=ExtResource("2_goal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7847384, 11.671597, 3.6642096, 13.816065)
 
-[node name="Enemies" type="Node3D" parent="."]
+[node name="Enemies" type="Node3D" parent="." unique_id=935782174]
 
-[node name="BeetleDirector" parent="Enemies" instance=ExtResource("4_beetles")]
+[node name="BeetleDirector" parent="Enemies" unique_id=634840790 instance=ExtResource("4_beetles")]
 
-[node name="Portals" type="Node3D" parent="."]
+[node name="Portals" type="Node3D" parent="." unique_id=1861069794]
 
-[node name="Portal_Reactor_To_Hub" parent="Portals" groups=["mission_zone_reactor", "mission_portal_reactor_hub"] instance=ExtResource("1_portal")]
+[node name="Portal_Reactor_To_Hub" parent="Portals" unique_id=1370000755 groups=["mission_portal_reactor_hub", "mission_zone_reactor"] instance=ExtResource("1_portal")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -16, 4, 0)
 linked_portal_path = NodePath("../../../HubLevel/Portals/Portal_Hub_To_Reactor")
 exit_distance = -2.0
 portal_title = "HUB"
 
-[node name="MissionMarkers" type="Node3D" parent="."]
+[node name="MissionMarkers" type="Node3D" parent="." unique_id=2016700687]
 
-[node name="ObjectiveMarker" type="Node3D" parent="MissionMarkers"]
+[node name="ObjectiveMarker" type="Node3D" parent="MissionMarkers" unique_id=1152643684]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0)
 
-[node name="ObjectiveHint" type="Label3D" parent="MissionMarkers/ObjectiveMarker"]
+[node name="ObjectiveHint" type="Label3D" parent="MissionMarkers/ObjectiveMarker" unique_id=983189271]
 transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, 0, 5.2, 0)
 billboard = 1
-text = "POUSSEZ LE CUBE\nVERS L'ACTIVATOR"
+text = "POUSSEZ LE CUBE
+VERS L'ACTIVATOR"
 font_size = 34
-outline_size = 12
 
-[node name="ZoneLandmark" type="Node3D" parent="MissionMarkers"]
+[node name="ZoneLandmark" type="Node3D" parent="MissionMarkers" unique_id=1630842859]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 4, 11)
 
-[node name="Pedestal" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+[node name="Pedestal" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark" unique_id=2014962606]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
 mesh = SubResource("BoxMesh_marker")
 surface_material_override/0 = SubResource("StandardMaterial3D_marker")
 
-[node name="Pillar" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
+[node name="Pillar" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark" unique_id=948551830]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.1, 0)
 mesh = SubResource("CylinderMesh_marker")
 surface_material_override/0 = SubResource("StandardMaterial3D_marker")
 
-[node name="Core" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.0, 0)
+[node name="Core" type="MeshInstance3D" parent="MissionMarkers/ZoneLandmark" unique_id=985109361]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
 mesh = SubResource("SphereMesh_core")
 surface_material_override/0 = SubResource("StandardMaterial3D_marker")
 
-[node name="Label3D" type="Label3D" parent="MissionMarkers/ZoneLandmark"]
-transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 8.0, 0)
+[node name="Label3D" type="Label3D" parent="MissionMarkers/ZoneLandmark" unique_id=865383590]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 8, 0)
 billboard = 1
 text = "REACTOR"
 font_size = 48

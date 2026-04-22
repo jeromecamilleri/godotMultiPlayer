@@ -7,12 +7,12 @@ func _ready() -> void:
 	# Keep barrels server-authoritative like the rest of gameplay physics.
 	set_multiplayer_authority(server_peer_id)
 	add_to_group("replicated_persistent_objects")
-	if not is_multiplayer_authority():
+	if not _should_simulate_locally():
 		sleeping = true
 
 
 func _physics_process(_delta: float) -> void:
-	if not is_multiplayer_authority():
+	if not _should_simulate_locally():
 		# Prevent client-side physics from fighting replicated transforms.
 		sleeping = true
 
@@ -26,3 +26,11 @@ func request_push(impulse: Vector3) -> void:
 	# Never add upward impulse from player collision pushes.
 	safe_impulse.y = minf(0.0, safe_impulse.y)
 	apply_central_impulse(safe_impulse)
+
+
+func _has_active_multiplayer_peer() -> bool:
+	return multiplayer != null and multiplayer.has_multiplayer_peer()
+
+
+func _should_simulate_locally() -> bool:
+	return not _has_active_multiplayer_peer() or is_multiplayer_authority()

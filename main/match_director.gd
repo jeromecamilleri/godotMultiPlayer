@@ -43,6 +43,7 @@ var _remote_snapshot_text := ""
 var _snapshot_revision := 0
 var _portal_breche_unlocked := false
 var _portal_reactor_unlocked := false
+var _result_reason := ""
 
 
 func _ready() -> void:
@@ -95,6 +96,7 @@ func start_match() -> void:
 	if not _is_server_instance():
 		return
 	_state = MatchState.RUNNING
+	_result_reason = ""
 	_time_left_sec = maxf(0.0, match_duration_sec)
 	_record_sync_event("match", "etat RUNNING")
 	_apply_dev_spawn_zone_portals()
@@ -128,6 +130,7 @@ func reset_to_lobby() -> void:
 	_team_progress["mission_phase"] = 1
 	_portal_breche_unlocked = false
 	_portal_reactor_unlocked = false
+	_result_reason = ""
 	_emit_snapshot()
 
 
@@ -137,6 +140,7 @@ func report_team_won(reason: String = "objective_complete") -> void:
 	if _state != MatchState.RUNNING:
 		return
 	_state = MatchState.WON
+	_result_reason = reason
 	DebugLog.gameplay("[MatchDirector] state=WON reason=%s" % reason)
 	_record_sync_event("match", "etat WON (%s)" % reason)
 	_emit_snapshot()
@@ -148,6 +152,7 @@ func report_team_lost(reason: String = "team_eliminated") -> void:
 	if _state != MatchState.RUNNING:
 		return
 	_state = MatchState.LOST
+	_result_reason = reason
 	DebugLog.gameplay("[MatchDirector] state=LOST reason=%s" % reason)
 	_record_sync_event("match", "etat LOST (%s)" % reason)
 	_emit_snapshot()
@@ -297,6 +302,7 @@ func get_snapshot_text() -> String:
 	var lines: PackedStringArray = []
 	lines.append("MATCH")
 	lines.append("state: %s" % state_name)
+	lines.append("result_reason: %s" % _result_reason)
 	lines.append("time_left: %.1fs" % _time_left_sec)
 	lines.append("players: %d" % _connected_peers.size())
 	lines.append("score:")

@@ -68,7 +68,7 @@ func test_coop_force_uses_goal_direction_when_locked_anchor_and_opposed_pulls() 
 	assert_true(coop_force.z > 0.9, "La direction de secours doit pointer vers l'activateur.")
 
 
-func test_cube_reaching_reactor_switches_to_goal_state() -> void:
+func test_cube_reaching_reactor_does_not_auto_complete_without_activator() -> void:
 	var world := Node3D.new()
 	add_child_autofree(world)
 
@@ -84,9 +84,9 @@ func test_cube_reaching_reactor_switches_to_goal_state() -> void:
 	world.add_child(cube)
 	await wait_process_frames(3)
 
-	assert_true(cube.evaluate_goal_reached(), "Cube should be detected inside reactor goal radius")
-	assert_true(cube.freeze, "Cube should freeze once parked in reactor")
-	assert_eq(3, cube._pull_state_sync, "Goal state should be replicated as state=3")
+	assert_true(cube.evaluate_goal_reached(), "Cube should still detect proximity to the reactor goal area")
+	assert_false(cube.is_goal_reached(), "La mission ne doit plus se valider par simple proximite sans passer dans l'Activator.")
+	assert_false(cube.freeze, "Le cube ne doit pas se figer avant l'Activator.")
 
 
 func test_cube_late_join_state_snapshot_reapplies_goal_visual_state() -> void:
