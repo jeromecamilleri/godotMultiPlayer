@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://b5e5klqe8gc52"]
 
 [ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_goal_zone.tscn" id="2_goal"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_physics_objects.tscn" id="3_physics"]
-[ext_resource type="PackedScene" path="res://main/mission_cube_beetle_director.tscn" id="4_beetles"]
+[ext_resource type="PackedScene" path="res://levels/zones/finale/reactor_goal_zone.tscn" id="2_goal"]
+[ext_resource type="PackedScene" path="res://levels/zones/finale/reactor_physics_objects.tscn" id="3_physics"]
+[ext_resource type="PackedScene" path="res://levels/zones/finale/reactor_beetle_director.tscn" id="4_beetles"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(44, 8, 32)

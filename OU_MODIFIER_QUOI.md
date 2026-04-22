@@ -218,7 +218,7 @@ Points d'entrée utiles:
 
 Fichiers à regarder:
 
-- [`levels/hub_level.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/hub_level.tscn)
+- [`levels/hub/hub_level.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/hub/hub_level.tscn)
 - [`main/main.tscn`](/home/camillej/godotProjects/godot-multiplayer/main/main.tscn)
 - [`levels/fall_respawn_zone.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/fall_respawn_zone.tscn)
 - [`levels/fall_respawn_zone.gd`](/home/camillej/godotProjects/godot-multiplayer/levels/fall_respawn_zone.gd)
@@ -234,16 +234,17 @@ Tu touches ici pour:
 Règle pratique:
 
 - placement global du monde joué: `main/main.tscn`
-- détail du décor et du hub: `levels/hub_level.tscn`
+- détail du décor et du hub: `levels/hub/hub_level.tscn`
+- les scènes de zone sont désormais rangées par dossier: `levels/zones/scierie/`, `levels/zones/verger/`, `levels/zones/finale/`
 
 ## Si tu modifies la scierie ou le plugin Terrain3D
 
 Fichiers à regarder:
 
-- [`levels/zones/zone_scierie.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie.tscn)
-- [`levels/zones/zone_scierie_terrain_material.tres`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie_terrain_material.tres)
-- [`levels/zones/zone_scierie_terrain_assets.tres`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie_terrain_assets.tres)
-- [`levels/zones/zone_scierie_terrain_data/`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie_terrain_data)
+- [`levels/zones/scierie/zone_scierie.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/scierie/zone_scierie.tscn)
+- [`levels/zones/scierie/zone_scierie_terrain_material.tres`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/scierie/zone_scierie_terrain_material.tres)
+- [`levels/zones/scierie/zone_scierie_terrain_assets.tres`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/scierie/zone_scierie_terrain_assets.tres)
+- [`levels/zones/scierie/zone_scierie_terrain_data/`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/scierie/zone_scierie_terrain_data)
 - [`environment/terrain3d_runtime.gd`](/home/camillej/godotProjects/godot-multiplayer/environment/terrain3d_runtime.gd)
 - [`main/main.tscn`](/home/camillej/godotProjects/godot-multiplayer/main/main.tscn)
 - [`tools/generate_zone_scierie_terrain.gd`](/home/camillej/godotProjects/godot-multiplayer/tools/generate_zone_scierie_terrain.gd)
@@ -263,6 +264,25 @@ Règles importantes:
 - `main/main.tscn` ne doit pas contenir d'overrides sur des enfants `ZoneScierie/*`
 - `Ground/Terrain` est `top_level`, donc son ancrage monde doit rester cohérent avec l'ancrage de la scène
 - après un crash Terrain3D, vérifier d'abord l'état du cache `.godot/` avant de conclure à une scène cassée
+
+## Si tu modifies la brèche, le réacteur ou la mission finale
+
+Fichiers à regarder:
+
+- [`levels/zones/finale/zone_breche.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/zone_breche.tscn)
+- [`levels/zones/finale/breche_interactives.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/breche_interactives.tscn)
+- [`levels/zones/finale/breche_enemies.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/breche_enemies.tscn)
+- [`levels/zones/finale/zone_reactor.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/zone_reactor.tscn)
+- [`levels/zones/finale/reactor_goal_zone.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/reactor_goal_zone.tscn)
+- [`levels/zones/finale/reactor_physics_objects.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/reactor_physics_objects.tscn)
+- [`levels/zones/finale/reactor_beetle_director.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/reactor_beetle_director.tscn)
+
+Tu touches ici pour:
+
+- ajuster la mission bombes de la brèche
+- modifier le parcours final du cube
+- déplacer l'Activator ou le cube principal
+- régler les scarabées de la phase finale
 
 ## Si tu modifies la VOIP
 

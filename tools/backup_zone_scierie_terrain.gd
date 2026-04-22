@@ -7,22 +7,22 @@ extends SceneTree
 # What it copies:
 # - zone_scierie.tscn
 # - terrain assets/material resources used by the scene
-# - every file in levels/zones/zone_scierie_terrain_data
+# - every file in levels/zones/scierie/zone_scierie_terrain_data
 #
 # Output location:
 # - user://terrain_backups/zone_scierie_<timestamp>/
 #   Godot prints the resolved absolute path in the terminal.
 
 const FILES_TO_COPY := [
-	"res://levels/zones/zone_scierie.tscn",
-	"res://levels/zones/zone_scierie_terrain_assets.tres",
-	"res://levels/zones/zone_scierie_terrain_material.tres",
-	"res://levels/zones/zone_scierie_grass_terrain.png",
-	"res://levels/zones/zone_scierie_grass_terrain_normal.png",
-	"res://levels/zones/zone_scierie_dirt_terrain.png",
-	"res://levels/zones/zone_scierie_dirt_terrain_normal.png",
+	"res://levels/zones/scierie/zone_scierie.tscn",
+	"res://levels/zones/scierie/zone_scierie_terrain_assets.tres",
+	"res://levels/zones/scierie/zone_scierie_terrain_material.tres",
+	"res://levels/zones/scierie/zone_scierie_grass_terrain.png",
+	"res://levels/zones/scierie/zone_scierie_grass_terrain_normal.png",
+	"res://levels/zones/scierie/zone_scierie_dirt_terrain.png",
+	"res://levels/zones/scierie/zone_scierie_dirt_terrain_normal.png",
 ]
-const DATA_DIR := "res://levels/zones/zone_scierie_terrain_data"
+const DATA_DIR := "res://levels/zones/scierie/zone_scierie_terrain_data"
 const BACKUP_ROOT := "user://terrain_backups"
 
 

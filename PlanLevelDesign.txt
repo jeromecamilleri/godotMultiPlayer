@@ -237,20 +237,20 @@ une seule grande scène de jeu, avec des zones éloignées reliées par les port
   - ZoneReactor : gros cube + CubeActivator + défense finale.
 
   Scènes à créer
-  - levels/zones/zone_scierie.tscn
-  - levels/zones/zone_verger.tscn
-  - levels/zones/zone_breche.tscn
-  - levels/zones/zone_reactor.tscn
-  - main/mission_hub_interactives.tscn
-  - main/mission_zone_scierie_interactives.tscn
-  - main/mission_zone_verger_interactives.tscn
-  - main/mission_zone_breche_interactives.tscn
+  - levels/zones/scierie/zone_scierie.tscn
+  - levels/zones/verger/zone_verger.tscn
+  - levels/zones/finale/zone_breche.tscn
+  - levels/zones/finale/zone_reactor.tscn
+  - levels/hub/hub_interactives.tscn
+  - levels/zones/scierie/scierie_interactives.tscn
+  - levels/zones/verger/verger_interactives.tscn
+  - levels/zones/finale/breche_interactives.tscn
 
   Tu peux réutiliser l’existant :
 
-  - main/mission_cube_goal_zone.tscn pour ZoneReactor
-  - main/mission_cube_physics_objects.tscn
-  - main/mission_cube_beetle_director.tscn
+  - levels/zones/finale/reactor_goal_zone.tscn pour ZoneReactor
+  - levels/zones/finale/reactor_physics_objects.tscn
+  - levels/zones/finale/reactor_beetle_director.tscn
 
   Nœuds exacts à créer
   Dans chaque zone, garde une structure stable :
@@ -356,8 +356,8 @@ Etat d'avancement au 2026-04-10
   - `Portal_Hub_To_Reactor`: déverrouillé après ouverture de la brèche
 - Correctif d'accessibilité: le portail hub -> réacteur a été replacé sur la terre ferme.
 - Modularisation ennemis poursuivie:
-  - `main/mission_zone_verger_enemies.tscn` dédié au verger
-  - `main/mission_zone_breche_enemies.tscn` dédié à la brèche
+  - `levels/zones/verger/verger_enemies.tscn` dédié au verger
+  - `levels/zones/finale/breche_enemies.tscn` dédié à la brèche
 - La brèche a maintenant son propre `BeetleDirector` de zone, activé par portail + présence joueur, centré sur `MissionMarkers/DefenseMarker`.
 - Répartition des contenus terminée:
   - Hub: coffre principal, coin de revive, UI mission, portails
@@ -394,7 +394,7 @@ Reste à faire sur le chantier level design
 
   1. Créer les 4 scènes de zone, vides mais avec la structure Ground / Env / Interactives / Enemies / Portals / MissionMarkers.
   2. Instancier ces 4 scènes dans main/main.tscn, loin du hub sur l’axe X/Z.
-  3. Dupliquer les portails existants de levels/hub_level.tscn et renommer proprement les 8 portails.
+  3. Dupliquer les portails existants de levels/hub/hub_level.tscn et renommer proprement les 8 portails.
   4. Câbler tous les linked_portal_path par paire.
   5. Déplacer le contenu actuel :
       - coffre principal dans le hub

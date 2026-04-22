@@ -252,7 +252,7 @@ Player architecture refactor (domain components)
 
 2026-04-09
 - Refactor structurel: extraction de `main/mission_hub_enemies.tscn` pour sortir le runtime `Enemies` de `main/main.tscn` tout en gardant les mêmes chemins logiques.
-- Refactor structurel: extraction de `main/mission_cube_physics_objects.tscn` pour sortir `PhysicsObjects` de `main/main.tscn` sans casser `HubLevel/Env/PhysicsObjects/...`.
+- Refactor structurel: extraction de `levels/zones/finale/reactor_physics_objects.tscn` pour sortir `PhysicsObjects` de `main/main.tscn` sans casser `HubLevel/Env/PhysicsObjects/...`.
 - Ennemis: ajout de `enemies/enemy_instance_base.gd` pour homogénéiser la révision d'état, le contrat de resync/debug et les groupes runtime des instances ennemies.
 - Ennemis: `BeeBot` et `BeetleBot` héritent maintenant d'une base commune légère, comme `BeeDirector` / `BeetleDirector` héritaient déjà de `EnemyDirectorBase`.
 - Objets persistants: ajout du groupe générique `replicated_persistent_objects` sur les objets gameplay durables majeurs pour rendre le debug et les tests moins fragiles.
@@ -266,7 +266,7 @@ Player architecture refactor (domain components)
 - Abeilles: `BeeDirector` supporte maintenant des graines explicites via `managed_seed_bee_paths`, alignées sur le style déjà utilisé côté scarabées.
 - Coffre: `InventoryContainer3D` diffuse maintenant des deltas de slots modifiés quand ils sont plus compacts qu'un snapshot complet, tout en conservant les snapshots complets pour le late join et la récupération.
 - Tests: ajout de `test/test_enemy_director_conventions.gd` et `test/test_inventory_container.gd` pour verrouiller respectivement le contrat directeurs/ennemis et la logique de delta du coffre.
-- Modularisation: extraction de `main/mission_cube_beetle_director.tscn` et `main/mission_cube_interactives.tscn` pour alléger `main/main.tscn` sans changer les chemins racine utiles (`BeetleDirector`, `Interactives`).
+- Modularisation: extraction de `levels/zones/finale/reactor_beetle_director.tscn` et `main/mission_cube_interactives.tscn` pour alléger `main/main.tscn` sans changer les chemins racine utiles (`BeetleDirector`, `Interactives`).
 - Debug réseau/gameplay: `Connection` conserve maintenant un historique borné des événements de synchronisation (`record_sync_event`) consulté par le panneau `F3`.
 - UI debug: le mode `F3` affiche désormais plus de détail sur le `MatchDirector` (vies, scores, morts), le mode de réplication du coffre, l'état du coin de résurrection et les événements récents de sync.
 - Coin: le coin de résurrection suit maintenant la checklist late join au lieu d'être `queue_free` à la consommation ; il reste caché/désactivé et pousse explicitement son état courant aux nouveaux peers.
@@ -280,13 +280,13 @@ Player architecture refactor (domain components)
 - Directeurs ennemis: extraction d'une base légère commune `enemies/enemy_director_base.gd` pour mutualiser groupes, révision d'état, debug et helpers de scène.
 - Directeurs ennemis: `BeeDirector` et `BeetleDirector` héritent maintenant de cette base et exposent eux aussi la convention publique de resynchronisation/debug.
 - UI debug: l'overlay `F3` consomme maintenant prioritairement `get_debug_sync_summary()` quand un objet persistant l'expose.
-- Modularisation: extraction de `main/mission_cube_goal_zone.tscn` pour sortir `Activator/CubeActivator` de `main/main.tscn` tout en gardant le même chemin de scène logique.
+- Modularisation: extraction de `levels/zones/finale/reactor_goal_zone.tscn` pour sortir `Activator/CubeActivator` de `main/main.tscn` tout en gardant le même chemin de scène logique.
 - Tests: ajout de `test/test_replicated_persistent_contract.gd` pour verrouiller le contrat commun et la progression des révisions sur les objets persistants majeurs.
 - Tests: `test/test_enemy_director_conventions.gd` couvre maintenant aussi l'API publique de resync/debug des directeurs et des ennemis.
 
 2026-04-10
-- Level design: extraction de `main/mission_zone_verger_enemies.tscn` pour découpler les abeilles du verger du runtime ennemis du hub.
-- Level design: ajout de `main/mission_zone_breche_enemies.tscn` avec un `BeetleDirector` dédié à la brèche, activé par portail + présence joueur autour d'un `DefenseMarker`.
+- Level design: extraction de `levels/zones/verger/verger_enemies.tscn` pour découpler les abeilles du verger du runtime ennemis du hub.
+- Level design: ajout de `levels/zones/finale/breche_enemies.tscn` avec un `BeetleDirector` dédié à la brèche, activé par portail + présence joueur autour d'un `DefenseMarker`.
 - Tests/UI: `portal_progression` écrit maintenant aussi ses phases `breche_unlocked` et `reactor_unlocked` côté serveur, ce qui supprime une fragilité de synchro entre observation client et progression autoritaire.
 - Tests: `test/test_beetle_director.gd` et `test/test_main_scene_structure.gd` couvrent désormais explicitement le directeur scarabées de la brèche.
 - Tests UI scarabées: ajout de `main/ui_test_scenario_server_pilot.gd`, un pilote serveur dédié au scénario `beetle_targeting`, pour préparer le monde de façon autoritaire avant observation côté clients.
@@ -329,18 +329,18 @@ Player architecture refactor (domain components)
 - Tests UI: `test_portal_unlock_ui.sh` est maintenant un wrapper de compatibilité qui délègue à `test_portal_progression_ui.py --phase breche` (même objectif métier, scénario moins fragile).
 - Tests UI: ajout d'un runner `smoke/full` opérationnel (`test/UI/run_ui_suite.sh`) validé avec `--profile smoke`, `--profile full` et `--changed`.
 - Validation: `99/99` GUT passés, `test/UI/run_ui_suite.sh --profile smoke` vert, `test/UI/run_ui_suite.sh --profile full` vert.
-- Level design: ajout de signalétique de navigation dans `levels/hub_level.tscn` via `MissionMarkers/HubSign_*`, avec 4 repères colorés orientant vers `SCIERIE`, `VERGER`, `BRECHE` et `REACTOR`.
+- Level design: ajout de signalétique de navigation dans `levels/hub/hub_level.tscn` via `MissionMarkers/HubSign_*`, avec 4 repères colorés orientant vers `SCIERIE`, `VERGER`, `BRECHE` et `REACTOR`.
 - Documentation: `PlanLevelDesign.txt` et `ARCHITECTURE_PROJET.md` mis à jour pour refléter cette étape terminée et la prochaine suite visuelle (variations de décor par biome).
 - Validation: `99/99` GUT verts et `test/UI/run_ui_suite.sh --profile smoke` vert après ajout de signalétique.
 - Validation/Blocage: `test/UI/test_beetle_door_charge_ui.sh` en échec sur 3 essais (flaky RPC nœuds dynamiques: `@RigidBody3D@...` / `Main/StaticBody3DBomb/MultiplayerSynchronizer`), ce qui maintient `UI full` non stable.
 2026-04-12
 - Outils: migration des scripts UI Python vers le binaire Godot `4.6.2` avec fallback configurable via `GODOT_BIN` (valeur par défaut `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`).
-- Rendu: stabilisation de la luminosité inter-version dans `defaults/world_environment.tres` (tonemap/exposition/brightness explicites) et lumière directionnelle explicite dans `levels/hub_level.tscn`.
+- Rendu: stabilisation de la luminosité inter-version dans `defaults/world_environment.tres` (tonemap/exposition/brightness explicites) et lumière directionnelle explicite dans `levels/hub/hub_level.tscn`.
 - Documentation: ajout du chemin binaire de référence et de la surcharge `GODOT_BIN` dans `ARCHITECTURE_PROJET.md` et `test/UI/README.md`.
 - UI stress: robustesse augmentée dans `test/UI/test_replication_stress_ui.py` (timeout adaptatif, désactivation explicite des scarabées de fond) et migration du scénario `replication_stress` vers les groupes de pickups stables dans `player/components/player_ui_test_driver.gd`.
 - Validation 4.6.2: GUT complet `99/99` vert, `UI smoke` vert, `UI full` exécute 10/11 scénarios puis reste exposé au flaky connu `test_beetle_door_charge_ui.sh` (RPC nœuds dynamiques) ; exécution isolée de `test_beetle_door_charge_ui.sh` verte.
 - Validation 4.6.2: `test/UI/test_replication_stress_ui.sh` reste en échec (fichiers `replication_stress_client_*` non produits), cas préexistant/structurel de ce scénario de charge à investiguer séparément.
-- Rendu 4.6.2 (ajustement 2): réduction nette des ombres bouchées via `DirectionalLight3D` (opacité d’ombre abaissée, blur augmenté) + ajout d’une `DirectionalLightFill` sans ombre dans `levels/hub_level.tscn`.
+- Rendu 4.6.2 (ajustement 2): réduction nette des ombres bouchées via `DirectionalLight3D` (opacité d’ombre abaissée, blur augmenté) + ajout d’une `DirectionalLightFill` sans ombre dans `levels/hub/hub_level.tscn`.
 - Rendu 4.6.2 (ajustement 2): hausse de l’éclairage global et de l’exposition dans `defaults/world_environment.tres` (`ambient_light_energy`, `tonemap_exposure`, `adjustment_brightness`) pour éviter les silhouettes noires.
 - Validation post-correctif rendu: démarrage headless OK, GUT `99/99` vert et `UI smoke` vert sous `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`.
 

@@ -9,15 +9,20 @@ It has: <br/>
 
 ## Recent Project Changes
 
+- Level scenes were reorganized to reduce ambiguity:
+  - `levels/hub/` contains the hub scene and hub interactives
+  - `levels/zones/scierie/` contains the scierie scene and its Terrain3D assets/data
+  - `levels/zones/verger/` contains the verger scene and its local sub-scenes
+  - `levels/zones/finale/` groups breche + reactor and their local sub-scenes
 - `ZoneScierie` now uses the `Terrain3D` plugin for terrain rendering and collision.
 - The Terrain3D integration lives in:
   - `addons/terrain_3d/`
-  - `levels/zones/zone_scierie.tscn`
-  - `levels/zones/zone_scierie_terrain_material.tres`
-  - `levels/zones/zone_scierie_terrain_assets.tres`
-  - `levels/zones/zone_scierie_terrain_data/`
+  - `levels/zones/scierie/zone_scierie.tscn`
+  - `levels/zones/scierie/zone_scierie_terrain_material.tres`
+  - `levels/zones/scierie/zone_scierie_terrain_assets.tres`
+  - `levels/zones/scierie/zone_scierie_terrain_data/`
 - The scierie terrain runtime also depends on `environment/terrain3d_runtime.gd`.
-- Terrain edits must be done in `levels/zones/zone_scierie.tscn`, not in `main/main.tscn`.
+- Terrain edits must be done in `levels/zones/scierie/zone_scierie.tscn`, not in `main/main.tscn`.
 - Two helper scripts were added for this workflow:
   - `tools/generate_zone_scierie_terrain.gd`
   - `tools/backup_zone_scierie_terrain.gd`
@@ -25,6 +30,7 @@ It has: <br/>
 ## Editor Notes
 
 - `main/main.tscn` should keep `ZoneScierie` as a clean instance without child overrides.
+- Hub editing now starts from `levels/hub/hub_level.tscn`, not a root-level `levels/hub_level.tscn`.
 - If Godot crashes while editing Terrain3D, reopen `zone_scierie.tscn` directly before checking `main/main.tscn`.
 - The project currently uses Godot `4.6.2` locally; Terrain3D editor stability should be validated carefully after terrain edits.
 

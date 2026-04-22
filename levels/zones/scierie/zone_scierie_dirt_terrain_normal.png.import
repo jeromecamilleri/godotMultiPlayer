@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://de8b88eone6mo"
-path.s3tc="res://.godot/imported/zone_scierie_dirt_terrain.png-e7ea1800fc55f6e25fcd454382876f42.s3tc.ctex"
-path.etc2="res://.godot/imported/zone_scierie_dirt_terrain.png-e7ea1800fc55f6e25fcd454382876f42.etc2.ctex"
+uid="uid://hl885wku8p0"
+path.s3tc="res://.godot/imported/zone_scierie_dirt_terrain_normal.png-87c45f5499df5d41c38686467d8e98a9.s3tc.ctex"
+path.etc2="res://.godot/imported/zone_scierie_dirt_terrain_normal.png-87c45f5499df5d41c38686467d8e98a9.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://levels/zones/zone_scierie_dirt_terrain.png"
-dest_files=["res://.godot/imported/zone_scierie_dirt_terrain.png-e7ea1800fc55f6e25fcd454382876f42.s3tc.ctex", "res://.godot/imported/zone_scierie_dirt_terrain.png-e7ea1800fc55f6e25fcd454382876f42.etc2.ctex"]
+source_file="res://levels/zones/scierie/zone_scierie_dirt_terrain_normal.png"
+dest_files=["res://.godot/imported/zone_scierie_dirt_terrain_normal.png-87c45f5499df5d41c38686467d8e98a9.s3tc.ctex", "res://.godot/imported/zone_scierie_dirt_terrain_normal.png-87c45f5499df5d41c38686467d8e98a9.etc2.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

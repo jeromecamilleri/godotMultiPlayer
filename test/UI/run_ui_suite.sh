@@ -105,16 +105,17 @@ else
         add_test "test/UI/test_inventory_transfer_multiplayer_ui.sh"
         add_test "test/UI/test_inventory_player_proximity_ui.sh"
         ;;
-      levels/portal/*|main/match_director.gd|main/ui_test_scenario_server_pilot.gd|levels/zones/*|main/mission_zone_*)
+      main/rigid_body_3d.gd|main/cube_activator.gd|player/components/player_interactions.gd|main/mission_cube_*|levels/zones/finale/*)
+        add_test "test/UI/test_cube_mission_ui.sh"
+        add_test "test/UI/test_cube_mission_lock_ui.sh"
+        add_test "test/UI/test_portal_progression_reactor_ui.sh"
+        ;;
+      levels/portal/*|main/match_director.gd|main/ui_test_scenario_server_pilot.gd|levels/hub/*|levels/zones/scierie/*|levels/zones/verger/*)
         add_test "test/UI/test_portal_unlock_ui.sh"
         add_test "test/UI/test_portal_progression_breche_ui.sh"
         add_test "test/UI/test_portal_progression_reactor_ui.sh"
         ;;
-      main/rigid_body_3d.gd|main/cube_activator.gd|player/components/player_interactions.gd|main/mission_cube_*)
-        add_test "test/UI/test_cube_mission_ui.sh"
-        add_test "test/UI/test_cube_mission_lock_ui.sh"
-        ;;
-      enemies/beetle_*|enemies/bee_*|enemies/enemy_*|main/mission_*enemies*)
+      enemies/beetle_*|enemies/bee_*|enemies/enemy_*|main/mission_*enemies*|levels/zones/verger/*enemies*|levels/zones/finale/*enemies*)
         add_test "test/UI/test_beetle_targeting_ui.sh"
         add_test "test/UI/test_beetle_door_charge_ui.sh"
         ;;

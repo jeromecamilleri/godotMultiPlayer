@@ -6,7 +6,7 @@ extends SceneTree
 #   /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s res://tools/generate_zone_scierie_terrain.gd
 #
 # What this script does:
-# - clears res://levels/zones/zone_scierie_terrain_data
+# - clears res://levels/zones/scierie/zone_scierie_terrain_data
 # - generates a compact island centered on the scierie gameplay area
 # - keeps the portal, pickups, crates and landmark on stable ground near y=4
 # - saves 4 terrain regions (64x64 each) for a small island footprint
@@ -22,7 +22,7 @@ extends SceneTree
 # the Terrain3D editor and main/main.tscn use the same world coordinates.
 # Keep ZONE_WORLD_OFFSET in sync with that saved scene transform.
 
-const DATA_DIR := "res://levels/zones/zone_scierie_terrain_data"
+const DATA_DIR := "res://levels/zones/scierie/zone_scierie_terrain_data"
 const HEIGHT_SIZE := 128
 const WORLD_HALF_SIZE := HEIGHT_SIZE * 0.5
 const BASE_HEIGHT := 4.0

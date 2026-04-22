@@ -1,9 +1,9 @@
 [gd_resource type="Terrain3DAssets" format=3 uid="uid://c3wh06syuv3qp"]
 
-[ext_resource type="Texture2D" uid="uid://crsmqgis1du6n" path="res://levels/zones/zone_scierie_grass_terrain.png" id="1_grass_albedo"]
-[ext_resource type="Texture2D" uid="uid://vircjvqhj1tf" path="res://levels/zones/zone_scierie_grass_terrain_normal.png" id="2_grass_normal"]
-[ext_resource type="Texture2D" uid="uid://de8b88eone6mo" path="res://levels/zones/zone_scierie_dirt_terrain.png" id="3_dirt_albedo"]
-[ext_resource type="Texture2D" uid="uid://hl885wku8p0" path="res://levels/zones/zone_scierie_dirt_terrain_normal.png" id="4_dirt_normal"]
+[ext_resource type="Texture2D" uid="uid://crsmqgis1du6n" path="res://levels/zones/scierie/zone_scierie_grass_terrain.png" id="1_grass_albedo"]
+[ext_resource type="Texture2D" uid="uid://vircjvqhj1tf" path="res://levels/zones/scierie/zone_scierie_grass_terrain_normal.png" id="2_grass_normal"]
+[ext_resource type="Texture2D" uid="uid://de8b88eone6mo" path="res://levels/zones/scierie/zone_scierie_dirt_terrain.png" id="3_dirt_albedo"]
+[ext_resource type="Texture2D" uid="uid://hl885wku8p0" path="res://levels/zones/scierie/zone_scierie_dirt_terrain_normal.png" id="4_dirt_normal"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s0mjn"]
 transparency = 4

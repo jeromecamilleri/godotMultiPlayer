@@ -1,7 +1,7 @@
 extends GutTest
 
 const MAIN_SCENE := preload("res://main/main.tscn")
-const ZONE_SCIERIE_SCENE := preload("res://levels/zones/zone_scierie.tscn")
+const ZONE_SCIERIE_SCENE := preload("res://levels/zones/scierie/zone_scierie.tscn")
 const TERRAIN3D_DEPRECATION_TEXT := "instance_reset_physics_interpolation() is deprecated."
 const TERRAIN3D_TEXTURE_WARNING_TEXT := "normal texture is not connected to a file."
 

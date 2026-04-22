@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crsmqgis1du6n"
-path.s3tc="res://.godot/imported/zone_scierie_grass_terrain.png-8ce0323a51384c96b9899e2258afb96b.s3tc.ctex"
-path.etc2="res://.godot/imported/zone_scierie_grass_terrain.png-8ce0323a51384c96b9899e2258afb96b.etc2.ctex"
+uid="uid://de8b88eone6mo"
+path.s3tc="res://.godot/imported/zone_scierie_dirt_terrain.png-c5fe0d5d410c50a1f5e0a5d641a3e5d9.s3tc.ctex"
+path.etc2="res://.godot/imported/zone_scierie_dirt_terrain.png-c5fe0d5d410c50a1f5e0a5d641a3e5d9.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://levels/zones/zone_scierie_grass_terrain.png"
-dest_files=["res://.godot/imported/zone_scierie_grass_terrain.png-8ce0323a51384c96b9899e2258afb96b.s3tc.ctex", "res://.godot/imported/zone_scierie_grass_terrain.png-8ce0323a51384c96b9899e2258afb96b.etc2.ctex"]
+source_file="res://levels/zones/scierie/zone_scierie_dirt_terrain.png"
+dest_files=["res://.godot/imported/zone_scierie_dirt_terrain.png-c5fe0d5d410c50a1f5e0a5d641a3e5d9.s3tc.ctex", "res://.godot/imported/zone_scierie_dirt_terrain.png-c5fe0d5d410c50a1f5e0a5d641a3e5d9.etc2.ctex"]
 
 [params]
 

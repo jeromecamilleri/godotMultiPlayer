@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://dpebmn1qpmvjj"]
 
 [ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
-[ext_resource type="PackedScene" uid="uid://b1op0hyburm7r" path="res://main/mission_zone_scierie_interactives.tscn" id="2_interactives"]
+[ext_resource type="PackedScene" uid="uid://b1op0hyburm7r" path="res://levels/zones/scierie/scierie_interactives.tscn" id="2_interactives"]
 [ext_resource type="Script" uid="uid://bxr81smuee1ws" path="res://enemies/beetle_director.gd" id="3_beetdir"]
 [ext_resource type="Script" uid="uid://cognf0x6knrce" path="res://environment/terrain3d_runtime.gd" id="4_terrain_runtime"]
-[ext_resource type="Terrain3DAssets" uid="uid://c3wh06syuv3qp" path="res://levels/zones/zone_scierie_terrain_assets.tres" id="5_terrain_assets"]
-[ext_resource type="Terrain3DMaterial" uid="uid://bf3ybnrm0r48f" path="res://levels/zones/zone_scierie_terrain_material.tres" id="6_terrain_material"]
+[ext_resource type="Terrain3DAssets" uid="uid://c3wh06syuv3qp" path="res://levels/zones/scierie/zone_scierie_terrain_assets.tres" id="5_terrain_assets"]
+[ext_resource type="Terrain3DMaterial" uid="uid://bf3ybnrm0r48f" path="res://levels/zones/scierie/zone_scierie_terrain_material.tres" id="6_terrain_material"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_anchor_support"]
 size = Vector3(34, 0.6, 22)
@@ -30,7 +30,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
 [node name="Ground" type="Node3D" parent="." unique_id=1574487434]
 
 [node name="Terrain" type="Terrain3D" parent="Ground" unique_id=125052958]
-data_directory = "res://levels/zones/zone_scierie_terrain_data"
+data_directory = "res://levels/zones/scierie/zone_scierie_terrain_data"
 material = ExtResource("6_terrain_material")
 assets = ExtResource("5_terrain_assets")
 top_level = true

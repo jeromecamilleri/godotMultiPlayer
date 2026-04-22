@@ -1,8 +1,8 @@
 extends GutTest
 
 const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
-const BRECHE_INTERACTIVES_SCENE := preload("res://main/mission_zone_breche_interactives.tscn")
-const HUB_INTERACTIVES_SCENE := preload("res://main/mission_hub_interactives.tscn")
+const BRECHE_INTERACTIVES_SCENE := preload("res://levels/zones/finale/breche_interactives.tscn")
+const HUB_INTERACTIVES_SCENE := preload("res://levels/hub/hub_interactives.tscn")
 const WOOD_ITEM := preload("res://inventory/items/wood.tres")
 const APPLE_ITEM := preload("res://inventory/items/apple.tres")
 

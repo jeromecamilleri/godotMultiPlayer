@@ -16,10 +16,10 @@ Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotPr
 
 - Intégration du plugin `Terrain3D` dans `ZoneScierie`.
 - Remplacement du sol statique de la scierie par un terrain piloté par:
-  - `levels/zones/zone_scierie.tscn`
-  - `levels/zones/zone_scierie_terrain_material.tres`
-  - `levels/zones/zone_scierie_terrain_assets.tres`
-  - `levels/zones/zone_scierie_terrain_data/`
+  - `levels/zones/scierie/zone_scierie.tscn`
+  - `levels/zones/scierie/zone_scierie_terrain_material.tres`
+  - `levels/zones/scierie/zone_scierie_terrain_assets.tres`
+  - `levels/zones/scierie/zone_scierie_terrain_data/`
   - `environment/terrain3d_runtime.gd`
 - Ajout d'outils locaux pour ce flux:
   - `tools/generate_zone_scierie_terrain.gd`
@@ -41,6 +41,21 @@ Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotPr
 - `voip/`: voix en jeu.
 - `test/`: tests GUT et E2E UI.
 
+### Organisation des niveaux
+
+L'arborescence `levels/` est maintenant regroupée par zone métier:
+
+- `levels/hub/`: hub principal et sous-scènes du hub
+- `levels/zones/scierie/`: scène de scierie, Terrain3D, textures et data associées
+- `levels/zones/verger/`: scène verger et ses sous-scènes locales
+- `levels/zones/finale/`: brèche + réacteur + sous-scènes de la mission finale
+
+Objectif du refactoring:
+
+- éviter un `hub_level.tscn` isolé à la racine de `levels/`
+- garder ensemble les assets spécifiques à la scierie
+- regrouper `ZoneBreche` et `ZoneReactor` dans un même dossier fonctionnel
+
 ## Scène racine
 
 ### `main/main.tscn`
@@ -58,11 +73,11 @@ Noeuds principaux:
 - `FallChecker` -> [`main/fall_checker.gd`](/home/camillej/godotProjects/godot-multiplayer/main/fall_checker.gd)
 - `MatchDirector` -> [`main/match_director.gd`](/home/camillej/godotProjects/godot-multiplayer/main/match_director.gd)
 - `UiTestScenarioServerPilot` -> [`main/ui_test_scenario_server_pilot.gd`](/home/camillej/godotProjects/godot-multiplayer/main/ui_test_scenario_server_pilot.gd)
-- `HubLevel` -> [`levels/hub_level.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/hub_level.tscn)
-- `ZoneScierie` -> [`levels/zones/zone_scierie.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_scierie.tscn)
-- `ZoneVerger` -> [`levels/zones/zone_verger.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_verger.tscn)
-- `ZoneBreche` -> [`levels/zones/zone_breche.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_breche.tscn)
-- `ZoneReactor` -> [`levels/zones/zone_reactor.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/zone_reactor.tscn)
+- `HubLevel` -> [`levels/hub/hub_level.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/hub/hub_level.tscn)
+- `ZoneScierie` -> [`levels/zones/scierie/zone_scierie.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/scierie/zone_scierie.tscn)
+- `ZoneVerger` -> [`levels/zones/verger/zone_verger.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/verger/zone_verger.tscn)
+- `ZoneBreche` -> [`levels/zones/finale/zone_breche.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/zone_breche.tscn)
+- `ZoneReactor` -> [`levels/zones/finale/zone_reactor.tscn`](/home/camillej/godotProjects/godot-multiplayer/levels/zones/finale/zone_reactor.tscn)
 
 Le `HubLevel` contient notamment:
 
@@ -89,7 +104,7 @@ Les autres zones portent désormais les objectifs spécialisés:
 - `Ground/Terrain` est `top_level`, donc son repère monde doit rester cohérent avec l'ancrage de la scène
 - l'ancrage attendu de la scène source est `x = 120`
 - `main/main.tscn` doit instancier `ZoneScierie` sans overrides sur ses enfants
-- les modifications de terrain, portail ou repères de zone doivent être faites dans `levels/zones/zone_scierie.tscn`
+- les modifications de terrain, portail ou repères de zone doivent être faites dans `levels/zones/scierie/zone_scierie.tscn`
 - `main/main.tscn` sert uniquement à vérifier l'intégration, pas à repositionner des enfants de la scierie
 
 Conséquence pratique:
@@ -97,18 +112,18 @@ Conséquence pratique:
 - si `main` et `zone_scierie` n'affichent pas le même placement, vérifier d'abord l'absence de noeuds `parent="ZoneScierie/...` dans `main/main.tscn`
 - après un crash éditeur Terrain3D, repartir de `zone_scierie.tscn` avant de contrôler `main`
 
-Sous-scènes mission désormais extraites depuis `main/` :
+Sous-scènes mission désormais regroupées près de leur zone :
 
-- `main/mission_cube_beetle_director.tscn` : encapsule le `BeetleDirector` et ses ancres de défense autour de l'Activator.
-- `main/mission_cube_goal_zone.tscn` : encapsule la plateforme `Activator` et sa zone `CubeActivator`.
-- `main/mission_hub_enemies.tscn` : encapsule le runtime `Enemies` du hub (abeilles + `BeetleDirector`).
-- `main/mission_zone_verger_enemies.tscn` : encapsule les abeilles dédiées au verger.
-- `main/mission_zone_breche_enemies.tscn` : encapsule le `BeetleDirector` et ses ancres de défense de la brèche.
-- `main/mission_cube_physics_objects.tscn` : encapsule `PhysicsObjects` et les cubes physiques de mission.
-- `main/mission_hub_interactives.tscn` : encapsule les interactifs du hub.
-- `main/mission_zone_scierie_interactives.tscn` : encapsule les ressources/caisses de la scierie.
-- `main/mission_zone_verger_interactives.tscn` : encapsule les ressources du verger.
-- `main/mission_zone_breche_interactives.tscn` : encapsule les caisses bloqueuses et les `BombDoor` de la brèche.
+- `levels/zones/finale/reactor_beetle_director.tscn` : encapsule le `BeetleDirector` et ses ancres de défense autour de l'Activator.
+- `levels/zones/finale/reactor_goal_zone.tscn` : encapsule la plateforme `Activator` et sa zone `CubeActivator`.
+- `main/mission_hub_enemies.tscn` : encapsule encore un runtime `Enemies` hub historique, distinct du rangement principal des scènes de niveau.
+- `levels/zones/verger/verger_enemies.tscn` : encapsule les abeilles dédiées au verger.
+- `levels/zones/finale/breche_enemies.tscn` : encapsule le `BeetleDirector` et ses ancres de défense de la brèche.
+- `levels/zones/finale/reactor_physics_objects.tscn` : encapsule `PhysicsObjects` et les cubes physiques de mission.
+- `levels/hub/hub_interactives.tscn` : encapsule les interactifs du hub.
+- `levels/zones/scierie/scierie_interactives.tscn` : encapsule les ressources/caisses de la scierie.
+- `levels/zones/verger/verger_interactives.tscn` : encapsule les ressources du verger.
+- `levels/zones/finale/breche_interactives.tscn` : encapsule les caisses bloqueuses et les `BombDoor` de la brèche.
 
 Leur racine conserve les mêmes noms (`Enemies`, `PhysicsObjects`, `BeetleDirector`, `Interactives`) afin de préserver les chemins existants et les tests.
 
@@ -328,14 +343,14 @@ Recommandation initiale par zone de code modifiée :
 - `inventory/*`, `ui/inventory_*`, `ui/*inventory*`
 : lancer `test_inventory_chest_ui.sh`, `test_inventory_transfer_multiplayer_ui.sh`, `test_inventory_player_proximity_ui.sh`
 
-- `levels/portal/*`, `main/match_director.gd`, `main/ui_test_scenario_server_pilot.gd`, `levels/zones/*`, `main/mission_zone_*`
+- `levels/portal/*`, `main/match_director.gd`, `main/ui_test_scenario_server_pilot.gd`, `levels/hub/*`, `levels/zones/scierie/*`, `levels/zones/verger/*`
 : lancer `test_portal_unlock_ui.sh`, `test_portal_progression_breche_ui.sh`, `test_portal_progression_reactor_ui.sh`
 : `test_portal_unlock_ui.sh` est conservé pour compatibilité et exécute la phase `breche` de `portal_progression`.
 
-- `main/rigid_body_3d.gd`, `main/cube_activator.gd`, `player/components/player_interactions.gd`, `main/mission_cube_*`
+- `main/rigid_body_3d.gd`, `main/cube_activator.gd`, `player/components/player_interactions.gd`, `main/mission_cube_*`, `levels/zones/finale/*`
 : lancer `test_cube_mission_ui.sh`, `test_cube_mission_lock_ui.sh`
 
-- `enemies/beetle_*`, `enemies/bee_*`, `enemies/enemy_*`, `main/mission_*enemies*`
+- `enemies/beetle_*`, `enemies/bee_*`, `enemies/enemy_*`, `main/mission_*enemies*`, `levels/zones/verger/*enemies*`, `levels/zones/finale/*enemies*`
 : lancer `test_beetle_targeting_ui.sh`, `test_beetle_door_charge_ui.sh`
 
 - `main/bomb_door.gd`, `environment/box/*`
