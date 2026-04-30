@@ -4,6 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://vircjvqhj1tf" path="res://levels/zones/scierie/zone_scierie_grass_terrain_normal.png" id="2_grass_normal"]
 [ext_resource type="Texture2D" uid="uid://de8b88eone6mo" path="res://levels/zones/scierie/zone_scierie_dirt_terrain.png" id="3_dirt_albedo"]
 [ext_resource type="Texture2D" uid="uid://hl885wku8p0" path="res://levels/zones/scierie/zone_scierie_dirt_terrain_normal.png" id="4_dirt_normal"]
+[ext_resource type="Texture2D" uid="uid://coph7manheioq" path="res://levels/zones/scierie/zone_scierie_rock_terrain.png" id="5_rock_albedo"]
+[ext_resource type="Texture2D" uid="uid://coph7ma1kuqln" path="res://levels/zones/scierie/zone_scierie_rock_terrain_normal.png" id="6_rock_normal"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s0mjn"]
 transparency = 4
@@ -34,6 +36,12 @@ id = 1
 albedo_texture = ExtResource("3_dirt_albedo")
 normal_texture = ExtResource("4_dirt_normal")
 
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_rock"]
+name = "Rock"
+id = 2
+albedo_texture = ExtResource("5_rock_albedo")
+normal_texture = ExtResource("6_rock_normal")
+
 [resource]
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_ev1jp")])
-texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_grass"), SubResource("Terrain3DTextureAsset_dirt")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_grass"), SubResource("Terrain3DTextureAsset_dirt"), SubResource("Terrain3DTextureAsset_rock")])

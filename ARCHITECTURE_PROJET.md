@@ -21,10 +21,20 @@ Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotPr
   - `levels/zones/scierie/zone_scierie_terrain_assets.tres`
   - `levels/zones/scierie/zone_scierie_terrain_data/`
   - `environment/terrain3d_runtime.gd`
+- Textures Terrain3D disponibles pour la scierie:
+  - `Grass` vert
+  - `Dirt` marron
+  - `Rock` gris, pour les flancs rocheux et zones minérales
 - Ajout d'outils locaux pour ce flux:
   - `tools/generate_zone_scierie_terrain.gd`
   - `tools/backup_zone_scierie_terrain.gd`
 - Ajustement du plan d'eau du hub dans `main/main.tscn` pour entourer les îles principales sans recouvrir la scierie.
+- Ajout d'un mode nage visuel côté joueur:
+  - `player/camera_controller.gd` expose les réglages `Swim Camera` pour remonter/éloigner/incliner la caméra quand le joueur est dans l'eau.
+  - `player/model/character_skin.gd` expose les réglages `Swim Pose` pour lisser la transition debout/nage et ajuster tête/bras sans modifier les collisions.
+- Amélioration visuelle de l'eau du hub via `defaults/water/ocean_water.gdshader`:
+  - vagues animées, normales dynamiques, variation de couleur et écume stylisée
+  - l'effet reste visuel: la détection d'eau continue de venir de `HubLevel/Env/WaterArea`
 - Ajout de tests de régression sur l'ancrage scierie, le portail retour, le plan d'eau et l'absence d'overrides `ZoneScierie/*` dans `main`.
 - Rappel GUT local: la CLI installée accepte `-gselect` et `-gunit_test_name`, pas `-gfilter`.
 
@@ -106,6 +116,7 @@ Les autres zones portent désormais les objectifs spécialisés:
 - `main/main.tscn` doit instancier `ZoneScierie` sans overrides sur ses enfants
 - les modifications de terrain, portail ou repères de zone doivent être faites dans `levels/zones/scierie/zone_scierie.tscn`
 - `main/main.tscn` sert uniquement à vérifier l'intégration, pas à repositionner des enfants de la scierie
+- le rendu de scierie doit rester porté par Terrain3D; éviter les plans d'eau locaux et les meshes de berge fixes tant qu'ils ne suivent pas la surface Terrain3D
 
 Conséquence pratique:
 

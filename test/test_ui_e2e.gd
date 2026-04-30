@@ -54,6 +54,7 @@ func _should_run_ui_test(test_key: String) -> bool:
 		"portal_unlock": true,
 		"portal_progression_breche": true,
 		"cube_mission": true,
+		"swim_pose": true,
 	}
 	return bool(smoke_tests.get(test_key, false))
 
@@ -70,6 +71,20 @@ func test_ui_e2e_inventory_chest() -> void:
 		return
 	var result := _run_ui_script("test/UI/test_inventory_chest_ui.sh")
 	_assert_e2e_result("test_inventory_chest_ui.sh", result)
+
+
+func test_ui_e2e_swim_pose() -> void:
+	if OS.get_name() != "Linux":
+		assert_true(true, "E2E UI ignoré : Linux uniquement.")
+		return
+	if OS.get_environment("RUN_UI_E2E").is_empty():
+		assert_true(true, "E2E UI ignoré : définir RUN_UI_E2E=1 pour lancer (ex. lancer Godot depuis un terminal avec cette variable).")
+		return
+	if not _should_run_ui_test("swim_pose"):
+		assert_true(true, "E2E UI ignoré par profil %s." % _ui_e2e_profile())
+		return
+	var result := _run_ui_script("test/UI/test_swim_pose_ui.sh")
+	_assert_e2e_result("test_swim_pose_ui.sh", result)
 
 
 func test_ui_e2e_inventory_transfer_multiplayer() -> void:

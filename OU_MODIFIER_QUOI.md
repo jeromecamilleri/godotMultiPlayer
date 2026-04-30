@@ -254,6 +254,7 @@ Tu touches ici pour:
 
 - sculpter ou peindre le terrain de la scierie
 - changer les textures `Grass` / `Dirt`
+- ajuster l'habillage visuel des berges via Terrain3D plutôt qu'avec un plan d'eau local ou des meshes fixes au-dessus du terrain
 - régénérer une île de scierie
 - faire un backup avant une session d'édition Terrain3D
 - comprendre un décalage entre `zone_scierie.tscn` et `main/main.tscn`

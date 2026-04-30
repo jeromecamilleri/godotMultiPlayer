@@ -26,6 +26,7 @@ It has: <br/>
 - Two helper scripts were added for this workflow:
   - `tools/generate_zone_scierie_terrain.gd`
   - `tools/backup_zone_scierie_terrain.gd`
+- The scierie currently stays visually driven by Terrain3D only; avoid local water planes or fixed overlay shore meshes there because they can visually cover enemies, terrain, and editor texture feedback.
 
 ## Editor Notes
 

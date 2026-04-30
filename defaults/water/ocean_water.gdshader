@@ -15,6 +15,11 @@ uniform float choppy_strength : hint_range(0.0, 1.0) = 0.25;
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.15;
 uniform float normal_detail : hint_range(0.1, 8.0) = 2.2;
 uniform float normal_speed : hint_range(0.0, 6.0) = 1.4;
+uniform vec4 foam_color : source_color = vec4(0.78, 0.95, 1.0, 0.42);
+uniform float foam_strength : hint_range(0.0, 1.0) = 0.32;
+uniform float foam_tiling : hint_range(0.1, 48.0) = 18.0;
+uniform float foam_speed : hint_range(0.0, 6.0) = 0.9;
+uniform float color_ripple_strength : hint_range(0.0, 1.0) = 0.18;
 
 varying vec3 world_pos;
 varying float wave_mix;
@@ -23,7 +28,19 @@ float wave_height_at(vec2 p, float t) {
 	float w1 = sin(p.x * 1.7 + t);
 	float w2 = cos(p.y * 2.3 - t * 1.15);
 	float w3 = sin((p.x + p.y) * 1.2 + t * 0.7);
-	return (w1 * 0.5 + w2 * 0.35 + w3 * 0.15) * wave_height;
+	float w4 = sin((p.x * 2.4 - p.y * 0.8) + t * 1.45);
+	float broad = w1 * 0.42 + w2 * 0.30 + w3 * 0.18;
+	float small = w4 * 0.10;
+	return (broad + small) * wave_height;
+}
+
+float foam_pattern(vec2 uv, float t) {
+	vec2 p = uv * foam_tiling;
+	float streak_a = sin(p.x + p.y * 0.35 + t);
+	float streak_b = sin(p.x * 0.55 - p.y * 1.15 - t * 1.4);
+	float cells = sin(p.x * 1.9 + t * 0.7) * cos(p.y * 1.6 - t);
+	float ridges = smoothstep(0.82, 1.0, streak_a * 0.55 + streak_b * 0.3 + cells * 0.15);
+	return ridges;
 }
 
 void vertex() {
@@ -60,14 +77,18 @@ void fragment() {
 	NORMAL_MAP = tangent_normal * 0.5 + 0.5;
 
 	float height_mix = clamp((world_pos.y + 6.0) / 12.0, 0.0, 1.0) * 0.6 + wave_mix * 0.4;
+	float color_ripple = sin((p.x - TIME * 0.45) * 0.9) * cos((p.y + TIME * 0.35) * 1.1);
+	height_mix = clamp(height_mix + color_ripple * color_ripple_strength, 0.0, 1.0);
 	vec3 base = mix(deep_color.rgb, shallow_color.rgb, height_mix);
 
 	float fresnel = pow(1.0 - max(dot(normalize(NORMAL), normalize(VIEW)), 0.0), 3.0);
 	vec3 final_color = base + vec3(0.22, 0.33, 0.45) * fresnel * fresnel_strength;
+	float foam = foam_pattern(UV, TIME * foam_speed) * foam_strength;
+	final_color = mix(final_color, foam_color.rgb, foam);
 
 	ALBEDO = final_color;
 	METALLIC = metallic_amount;
 	ROUGHNESS = max(0.02, roughness_amount - 0.03);
 	SPECULAR = 0.95;
-	ALPHA = mix(deep_color.a, shallow_color.a, fresnel * 0.7);
+	ALPHA = clamp(mix(deep_color.a, shallow_color.a, fresnel * 0.7) + foam * foam_color.a, 0.0, 1.0);
 }

@@ -45,6 +45,9 @@ blend_point_1/node = SubResource("AnimationNodeAnimation_ynydo")
 blend_point_1/pos = 0.0
 min_space = 0.0
 
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_swim"]
+animation = &"swim"
+
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_5sbif"]
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_sawiy"]
@@ -85,11 +88,12 @@ states/jump/node = SubResource("AnimationNodeAnimation_fy3xa")
 states/jump/position = Vector2(179, 207)
 states/move/node = SubResource("AnimationNodeBlendSpace1D_cfy75")
 states/move/position = Vector2(531, 90)
+states/swim/node = SubResource("AnimationNodeAnimation_swim")
+states/swim/position = Vector2(528, 307)
 transitions = ["Start", "idle", SubResource("AnimationNodeStateMachineTransition_5sbif"), "idle", "move", SubResource("AnimationNodeStateMachineTransition_sawiy"), "move", "idle", SubResource("AnimationNodeStateMachineTransition_xu61x"), "jump", "fall", SubResource("AnimationNodeStateMachineTransition_2yld2"), "idle", "jump", SubResource("AnimationNodeStateMachineTransition_ad878"), "fall", "ground_impact", SubResource("AnimationNodeStateMachineTransition_63es0"), "ground_impact", "idle", SubResource("AnimationNodeStateMachineTransition_bsdcg"), "ground_impact", "move", SubResource("AnimationNodeStateMachineTransition_rbpx6"), "move", "jump", SubResource("AnimationNodeStateMachineTransition_42lpg")]
-graph_offset = Vector2(4, -47)
+graph_offset = Vector2(4, 29.585772)
 
 [resource]
-graph_offset = Vector2(-417.44946, 210.80411)
 nodes/output/position = Vector2(780, 80)
 nodes/Add2/node = SubResource("AnimationNodeAdd2_766tv")
 nodes/Add2/position = Vector2(260, 80)
@@ -98,7 +102,7 @@ nodes/Add2/position = Vector2(260, 80)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_u6r87")
 nodes/Animation/position = Vector2(-160, 80)
 "nodes/Animation 2/node" = SubResource("AnimationNodeAnimation_080es")
-"nodes/Animation 2/position" = Vector2(-160, 200)
+"nodes/Animation 2/position" = Vector2(-240, 240)
 "nodes/Animation 3/node" = SubResource("AnimationNodeAnimation_cakye")
 "nodes/Animation 3/position" = Vector2(20, 520)
 nodes/PunchOneShot/node = SubResource("AnimationNodeOneShot_rfqjk")

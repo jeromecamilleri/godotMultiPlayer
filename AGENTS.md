@@ -95,10 +95,10 @@ Never stop after a single attempt.
   godot --path .
 
 * Run unit tests (GUT):
-  ./run_tests.sh
+  HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gexit
 
 * Run specific tests:
-  ./run_tests.sh --filter <test_name>
+  HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=<script> -gunit_test_name=<test_name> -gexit
 
 * Check logs:
   tail -f logs/game.log

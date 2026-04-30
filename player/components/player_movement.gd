@@ -113,7 +113,10 @@ func apply_combat_and_vertical_forces(player, is_just_attacking: bool, is_just_j
 
 
 func update_character_animation(player, is_just_jumping: bool) -> void:
-	if is_just_jumping:
+	if player.is_swimming():
+		set_sliding_state(player, false)
+		player._character_skin.set_swimming.rpc(true)
+	elif is_just_jumping:
 		set_sliding_state(player, false)
 		player._character_skin.jump.rpc()
 	elif not player.is_on_floor() and player.velocity.y < 0:

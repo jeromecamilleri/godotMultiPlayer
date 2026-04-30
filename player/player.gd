@@ -98,6 +98,7 @@ var sync_delta: float
 var _is_dead := false
 var _lives := 5
 var _coins := 0
+var _is_swimming := false
 var _last_hit_time_sec := -100.0
 var _default_collision_layer := 1
 var _default_collision_mask := 1
@@ -195,6 +196,7 @@ func _register_unused_debug_fields() -> void:
 		_is_sliding_sync,
 		_lives,
 		_coins,
+		_is_swimming,
 		_last_hit_time_sec,
 		_is_sliding,
 		_slide_visual_factor,
@@ -235,6 +237,20 @@ func spawn_bomb(pos: Vector3, throw_velocity: Vector3) -> void:
 
 func attack() -> void:
 	_combat.attack(self)
+
+
+func set_swimming(value: bool) -> void:
+	# Water is visual-only for now: FallChecker still owns real fall/respawn logic.
+	if _has_active_multiplayer_peer() and not is_multiplayer_authority():
+		return
+	if _is_swimming == value:
+		return
+	_is_swimming = value
+	_character_skin.set_swimming.rpc(value)
+
+
+func is_swimming() -> bool:
+	return _is_swimming
 
 
 func set_sync_properties() -> void:

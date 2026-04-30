@@ -6,6 +6,13 @@ extends Node3D
 @export var tilt_upper_limit := deg_to_rad(-60.0)
 @export var tilt_lower_limit := deg_to_rad(60.0)
 @export var spectator_speed := 12.0
+@export_group("Swim Camera")
+@export var swim_camera_enabled := true
+@export var swim_follow_height_offset := 1.35
+@export var swim_spring_arm_height_offset := 0.45
+@export var swim_spring_length := 6.8
+@export_range(-35.0, 35.0, 0.5, "degrees") var swim_pitch_offset_degrees := -7.0
+@export var swim_transition_speed := 5.0
 
 @onready var camera: Camera3D = $PlayerCamera
 @onready var _camera_spring_arm: SpringArm3D = $CameraSpringArm
@@ -19,9 +26,14 @@ var _anchor: CharacterBody3D
 var _euler_rotation: Vector3
 var _spectator_mode := false
 var _has_offset := false
+var _default_spring_arm_transform := Transform3D.IDENTITY
+var _default_spring_length := 0.0
+var _swim_camera_blend := 0.0
 
 
 func _ready() -> void:
+	_default_spring_arm_transform = _camera_spring_arm.transform
+	_default_spring_length = _camera_spring_arm.spring_length
 	# Remote proxies do not process local camera/input logic.
 	if not is_multiplayer_authority():
 		set_process_input(false)
@@ -87,10 +99,16 @@ func _physics_process(delta: float) -> void:
 		_rotation_input = 0.0
 		_tilt_input = 0.0
 		return
+
+	var is_swimming := _anchor.has_method("is_swimming") and bool(_anchor.call("is_swimming"))
+	_update_swim_camera_rig(is_swimming, delta)
 	
 	# Set camera controller to current ground level for the character
 	var target_position := _anchor.global_position + _offset
-	target_position.y = lerp(global_position.y, _anchor._ground_height, 0.1)
+	var ground_follow_height: float = _anchor._ground_height
+	var swim_follow_height: float = _anchor.global_position.y + swim_follow_height_offset
+	var desired_follow_height := lerpf(ground_follow_height, swim_follow_height, _swim_camera_blend)
+	target_position.y = lerp(global_position.y, desired_follow_height, 0.1)
 	global_position = target_position
 
 	camera.global_transform = _pivot.global_transform
@@ -108,6 +126,20 @@ func setup(anchor: CharacterBody3D) -> void:
 		_has_offset = true
 	camera.global_transform = camera.global_transform.interpolate_with(_pivot.global_transform, 0.1)
 	_camera_spring_arm.add_excluded_object(_anchor.get_rid())
+
+
+func _update_swim_camera_rig(is_swimming: bool, delta: float) -> void:
+	var target_blend := 1.0 if swim_camera_enabled and is_swimming else 0.0
+	_swim_camera_blend = move_toward(_swim_camera_blend, target_blend, maxf(0.0, delta * swim_transition_speed))
+
+	var target_transform := _default_spring_arm_transform
+	target_transform.origin.y += swim_spring_arm_height_offset * _swim_camera_blend
+	var pitch_offset := deg_to_rad(swim_pitch_offset_degrees * _swim_camera_blend)
+	target_transform.basis = _default_spring_arm_transform.basis * Basis(Vector3.RIGHT, pitch_offset)
+
+	var rig_lerp := clampf(delta * swim_transition_speed, 0.0, 1.0)
+	_camera_spring_arm.transform = _camera_spring_arm.transform.interpolate_with(target_transform, rig_lerp)
+	_camera_spring_arm.spring_length = lerpf(_camera_spring_arm.spring_length, lerpf(_default_spring_length, swim_spring_length, _swim_camera_blend), rig_lerp)
 
 
 func set_spectator_mode(enabled: bool) -> void:

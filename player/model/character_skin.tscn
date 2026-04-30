@@ -2213,6 +2213,81 @@ tracks/50/interp = 1
 tracks/50/loop_wrap = true
 tracks/50/keys = PackedFloat32Array(0, 1, 0.0819346, 1.62373e-07, 6.18589e-09, 0.996638)
 
+[sub_resource type="Animation" id="Animation_1hxg5"]
+resource_name = "swim"
+loop_mode = 1
+step = 0.0333
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Armature/Skeleton3D:torso")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0, 0, 0.52, 0.25, 1, 0.02, 0, 0.56, 0.5, 1, 0, 0, 0.52, 0.75, 1, -0.02, 0, 0.56, 1, 1, 0, 0, 0.52)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Armature/Skeleton3D:upperarm.L")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, -0.32888, -0.365779, -0.859329, 0.13999, 0.25, 1, -0.239629, -0.397021, -0.879078, 0.110335, 0.5, 1, -0.32888, -0.365779, -0.859329, 0.13999, 0.75, 1, -0.446961, -0.358788, -0.794182, 0.201924, 1, 1, -0.32888, -0.365779, -0.859329, 0.13999)
+tracks/2/type = "rotation_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Armature/Skeleton3D:lowerarm.L")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, -1.44111e-08, 2.02467e-08, -0.503286, 0.86412, 0.25, 1, -3.21631e-08, 2.16967e-09, -0.503286, 0.86412, 0.5, 1, -1.78036e-08, 1.89072e-08, -0.782347, 0.622843, 0.75, 1, -3.21631e-08, 2.16967e-09, -0.503286, 0.86412, 1, 1, -1.44111e-08, 2.02467e-08, -0.503286, 0.86412)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Armature/Skeleton3D:upperarm.R")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, -0.698954, 0.20459, 0.648876, 0.220379, 0.25, 1, -0.805644, 0.189328, 0.343671, 0.443828, 0.5, 1, -0.715665, 0.198763, 0.630397, 0.225648, 0.75, 1, -0.805644, 0.189328, 0.343671, 0.443828, 1, 1, -0.698954, 0.20459, 0.648876, 0.220379)
+tracks/4/type = "rotation_3d"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Armature/Skeleton3D:lowerarm.R")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = PackedFloat32Array(0, 1, -8.43815e-09, 1.73966e-09, 0.517255, 0.855832, 0.25, 1, 7.35922e-09, -2.19719e-08, 0.577876, 0.816125, 0.5, 1, 7.6289e-09, 6.50394e-09, 0.598392, 0.801204, 0.75, 1, 7.35922e-09, -2.19719e-08, 0.577876, 0.816125, 1, 1, -8.43815e-09, 1.73966e-09, 0.517255, 0.855832)
+tracks/5/type = "rotation_3d"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Armature/Skeleton3D:upperleg.L")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = PackedFloat32Array(0, 1, -0.430781, -0.172078, 0.0153494, 0.885833, 0.25, 1, -0.468815, -0.170884, 0.0142975, 0.86648, 0.5, 1, -0.430781, -0.172078, 0.0153494, 0.885833, 0.75, 1, -0.393271, -0.173033, 0.0163871, 0.902756, 1, 1, -0.430781, -0.172078, 0.0153494, 0.885833)
+tracks/6/type = "rotation_3d"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Armature/Skeleton3D:lowerleg.L")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = PackedFloat32Array(0, 1, 0.184887, 5.34306e-08, -4.72152e-08, 0.98276, 0.25, 1, 0.223106, 5.26408e-08, -6.0504e-08, 0.974794, 0.5, 1, 0.184887, 5.34306e-08, -4.72152e-08, 0.98276, 0.75, 1, 0.146363, 5.29695e-08, -3.47255e-08, 0.989231, 1, 1, 0.184887, 5.34306e-08, -4.72152e-08, 0.98276)
+tracks/7/type = "rotation_3d"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Armature/Skeleton3D:upperleg.R")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = PackedFloat32Array(0, 1, -0.365606, 0.0907073, -0.00662398, 0.92627, 0.25, 1, -0.32827, 0.0908359, -0.00817807, 0.940157, 0.5, 1, -0.365606, 0.0907073, -0.00662398, 0.92627, 0.75, 1, -0.402425, 0.0905404, -0.0050532, 0.910935, 1, 1, -0.365606, 0.0907073, -0.00662398, 0.92627)
+tracks/8/type = "rotation_3d"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Armature/Skeleton3D:lowerleg.R")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = PackedFloat32Array(0, 1, 0.158671, -5.47196e-08, 5.36117e-08, 0.987332, 0.25, 1, 0.120503, -5.39908e-08, 3.98545e-08, 0.992713, 0.5, 1, 0.158671, -5.47196e-08, 5.36117e-08, 0.987332, 0.75, 1, 0.196606, -5.51172e-08, 6.75148e-08, 0.980483, 1, 1, 0.158671, -5.47196e-08, 5.36117e-08, 0.987332)
+tracks/9/type = "rotation_3d"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("Armature/Skeleton3D:torso")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = PackedFloat32Array(0, 1, 2.67013e-08, 0.791743, 0.610854, 3.46082e-08, 0.25, 1, 0.04, 0.7908, 0.6102, 0.0308, 0.5, 1, 2.67013e-08, 0.791743, 0.610854, 3.46082e-08, 0.75, 1, -0.04, 0.7908, 0.6102, -0.0308, 1, 1, 2.67013e-08, 0.791743, 0.610854, 3.46082e-08)
+
 [sub_resource type="Animation" id="Animation_mcme0"]
 resource_name = "walk"
 length = 0.8
@@ -2601,6 +2676,7 @@ _data = {
 &"jump": SubResource("Animation_83u3k"),
 &"run": SubResource("Animation_8540a"),
 &"simple_punch": SubResource("Animation_73jd5"),
+&"swim": SubResource("Animation_1hxg5"),
 &"walk": SubResource("Animation_mcme0")
 }
 
@@ -2617,18 +2693,72 @@ main_animation_player = NodePath("gdbot/AnimationPlayer")
 
 [node name="gdbot" parent="." unique_id=1031881459 instance=ExtResource("2_v8h3f")]
 
-[node name="gdbot_mesh" parent="gdbot/Armature/Skeleton3D" parent_id_path=PackedInt32Array(1031881459, 654422435) index="0" unique_id=1951361438]
+[node name="Skeleton3D" parent="gdbot/Armature" parent_id_path=PackedInt32Array(1031881459, 1093619817) index="0" unique_id=1741493629]
+bones/2/position = Vector3(0, 0, 0.53182375)
+bones/2/rotation = Quaternion(-0.011719406, 0.7312594, 0.6819113, -0.010928556)
+bones/3/rotation = Quaternion(0.99841654, 0.056253374, -7.5106975e-08, -1.6848812e-09)
+bones/4/rotation = Quaternion(-0.4450574, -0.017899383, 0.062585644, 0.89313304)
+bones/5/rotation = Quaternion(0.75191516, 3.817981e-08, -1.9520283e-07, 0.65926)
+bones/7/rotation = Quaternion(-0.03706736, 0.018141929, 0.06766982, 0.9968539)
+bones/8/rotation = Quaternion(0.34528756, -4.703052e-08, 1.2074022e-07, 0.938497)
+bones/10/rotation = Quaternion(-0.51175237, -0.49357945, -0.48279458, 0.51127124)
+bones/11/rotation = Quaternion(-5.501965e-10, 1.9547459e-08, -0.04748174, 0.9988722)
+bones/13/rotation = Quaternion(0.012213012, 1.6182406e-07, 1.7285307e-08, 0.99992543)
+bones/14/rotation = Quaternion(-0.08541517, 1.15230735e-10, -1.955865e-08, 0.99634546)
+bones/16/rotation = Quaternion(-0.64489615, -0.22153743, -0.7026274, 0.2033347)
+bones/17/rotation = Quaternion(-9.718925e-09, 8.553729e-09, -0.574322, 0.8186295)
+bones/19/rotation = Quaternion(-0.48356426, -0.0078051947, -0.0021049613, 0.87527156)
+bones/20/rotation = Quaternion(-0.37470883, -1.6788792e-07, -1.4019993e-07, 0.92714256)
+bones/21/rotation = Quaternion(-0.47684088, -0.12973897, -0.0109858, 0.86929286)
+bones/22/rotation = Quaternion(-0.37470797, 7.14597e-07, 2.2508413e-08, 0.92714286)
+bones/23/rotation = Quaternion(-0.4835763, 0.0039900923, 0.0010761507, 0.87529254)
+bones/24/rotation = Quaternion(-0.37470797, 5.669459e-07, 1.7969899e-07, 0.92714286)
+bones/25/rotation = Quaternion(-0.47911882, 0.08739918, -0.013818796, 0.87327874)
+bones/26/rotation = Quaternion(-0.37470883, 3.0543085e-08, -7.935257e-08, 0.92714256)
+bones/27/rotation = Quaternion(-0.34589103, 0.8011, -0.02361548, 0.48789403)
+bones/28/rotation = Quaternion(-0.37470797, -3.4529896e-07, -5.361679e-07, 0.92714286)
+bones/29/rotation = Quaternion(-0.64489615, -0.22153743, -0.7026274, 0.2033347)
+bones/30/rotation = Quaternion(-9.718925e-09, 8.553729e-09, -0.574322, 0.8186295)
+bones/32/rotation = Quaternion(0.019150896, -0.036788594, -0.46135092, 0.88624775)
+bones/33/rotation = Quaternion(-0.5265863, 0.47384074, 0.47018975, 0.5264061)
+bones/34/rotation = Quaternion(-1.2331473e-10, 5.4659615e-09, 0.0017559779, 0.99999845)
+bones/37/rotation = Quaternion(-0.7156649, 0.198763, 0.63039684, 0.22564794)
+bones/38/rotation = Quaternion(-9.882585e-10, 9.261239e-09, 0.5319988, 0.8467451)
+bones/40/rotation = Quaternion(-0.48356426, 0.0078052343, 0.0021050212, 0.87527156)
+bones/41/rotation = Quaternion(-0.37470883, 1.4600793e-07, 1.3611893e-07, 0.92714256)
+bones/42/rotation = Quaternion(-0.47684088, 0.12973897, 0.010985897, 0.86929286)
+bones/43/rotation = Quaternion(-0.37470797, -6.8998594e-07, -2.6526404e-08, 0.92714286)
+bones/44/rotation = Quaternion(-0.4835763, -0.0039900825, -0.0010761308, 0.87529254)
+bones/45/rotation = Quaternion(-0.37470797, -5.830489e-07, -1.8773495e-07, 0.92714286)
+bones/46/rotation = Quaternion(-0.47911882, -0.08739918, 0.013818796, 0.87327874)
+bones/47/rotation = Quaternion(-0.37470883, -9.087166e-09, 6.162037e-08, 0.92714256)
+bones/48/rotation = Quaternion(-0.34589103, -0.8011, 0.02361548, 0.48789403)
+bones/49/rotation = Quaternion(-0.37470797, 3.09567e-07, 5.4715696e-07, 0.92714286)
+bones/50/rotation = Quaternion(-0.7156649, 0.198763, 0.63039684, 0.22564794)
+bones/51/rotation = Quaternion(-9.882585e-10, 9.261239e-09, 0.5319988, 0.8467451)
+bones/53/rotation = Quaternion(-0.029191487, -0.05607644, 0.46082482, 0.88523656)
+bones/54/position = Vector3(-0.130811, -0.06981237, 0.24997334)
+bones/54/rotation = Quaternion(-0.50191474, -1.3993215e-16, 2.367211e-17, 0.8649171)
+bones/55/position = Vector3(4.1247986e-08, 2.1943812e-08, 1.3809381e-07)
+bones/56/rotation = Quaternion(1.2575237e-24, 0, 1, -3.9683643e-25)
+bones/58/position = Vector3(0.130811, -0.15165825, 0.1460135)
+bones/58/rotation = Quaternion(-0.069943115, 0, 0, 0.99755096)
+bones/59/position = Vector3(9.967975e-09, 9.5726875e-09, -6.436991e-08)
+bones/60/rotation = Quaternion(0, 0, 1, 1.3099457e-26)
+
+[node name="gdbot_mesh" parent="gdbot/Armature/Skeleton3D" index="0" unique_id=1148527922]
 surface_material_override/1 = ExtResource("3_fvn82")
 surface_material_override/2 = ExtResource("3_oijnk")
 surface_material_override/3 = ExtResource("4_5srhf")
 
-[node name="AnimationPlayer" parent="gdbot" index="1" unique_id=360788341]
+[node name="AnimationPlayer" parent="gdbot" index="1" unique_id=2080594653]
 libraries/ = SubResource("AnimationLibrary_c1lpt")
 "libraries/Godot Custom Animations" = SubResource("AnimationLibrary_8q8s6")
 autoplay = &"ground_impact"
 playback_default_blend_time = 0.1
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=599380857]
+active = false
 root_node = NodePath("../gdbot")
 tree_root = ExtResource("3_hscum")
 anim_player = NodePath("../gdbot/AnimationPlayer")

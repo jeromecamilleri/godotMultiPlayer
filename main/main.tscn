@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" path="res://levels/zones/finale/zone_breche.tscn" id="36_zone_breche"]
 [ext_resource type="PackedScene" path="res://levels/zones/finale/zone_reactor.tscn" id="37_zone_reactor"]
 [ext_resource type="Script" uid="uid://woki35yt1nry" path="res://main/ui_test_scenario_server_pilot.gd" id="38_uitestpilot"]
+[ext_resource type="Script" path="res://environment/water_area.gd" id="39_water_area"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
@@ -38,6 +39,9 @@ albedo_color = Color(1, 0.439216, 0.117647, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bd01"]
 size = Vector3(3.7902527, 4.055664, 0.7084961)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_water_area"]
+size = Vector3(330, 8, 280)
 
 [node name="Main" type="Node" unique_id=2042604208]
 
@@ -190,7 +194,14 @@ transparency = 0.87
 mesh = SubResource("PlaneMesh_n3o0a")
 surface_material_override/0 = ExtResource("15_wat01")
 
-[node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=162002003]
+[node name="WaterArea" type="Area3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="40" unique_id=602239732 groups=["water_areas"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, -2.6828079, -30)
+script = ExtResource("39_water_area")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HubLevel/Env/WaterArea" unique_id=602239733]
+shape = SubResource("BoxShape3D_water_area")
+
+[node name="PhysicsObjects" type="Node3D" parent="HubLevel/Env" parent_id_path=PackedInt32Array(1150027112, 1512434995) index="41" unique_id=162002003]
 
 [node name="ZoneScierie" parent="." unique_id=1900001001 instance=ExtResource("34_zone_scierie")]
 

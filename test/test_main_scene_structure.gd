@@ -85,6 +85,47 @@ func test_zone_scierie_terrain_uses_same_world_anchor_in_zone_and_main() -> void
 	assert_eq(zone_only_terrain_global, main_terrain.global_position, "Le Terrain3D doit garder le même repère global entre la scène source et main.")
 
 
+# Vérifie que la scène scierie reste centrée sur Terrain3D.
+# Les meshes décoratifs de berge sont exclus tant qu'ils ne suivent pas réellement la surface
+# Terrain3D: sinon ils peuvent masquer les textures dans l'éditeur ou en jeu.
+func test_zone_scierie_uses_terrain3d_without_overlay_shore_meshes() -> void:
+	var root := Node3D.new()
+	add_child_autofree(root)
+
+	var zone_only := ZONE_SCIERIE_SCENE.instantiate()
+	root.add_child(zone_only)
+	_handle_known_terrain3d_engine_warning()
+	await wait_process_frames(3)
+
+	var terrain := zone_only.get_node_or_null("Ground/Terrain")
+	assert_null(zone_only.get_node_or_null("Env/SwampWater"), "La scierie ne doit pas ajouter de plan d'eau local qui recouvre le gameplay.")
+	assert_null(zone_only.get_node_or_null("Env/ShoreDetails"), "La scierie ne doit pas ajouter de plaques de berge au-dessus du Terrain3D.")
+	assert_not_null(terrain, "La scierie doit garder son noeud Terrain3D.")
+	if terrain != null:
+		assert_not_null(terrain.get("assets"), "Terrain3D doit garder sa ressource d'assets pour afficher les textures dans l'editeur.")
+		assert_not_null(terrain.get("material"), "Terrain3D doit garder son materiau dedie.")
+
+
+func test_zone_scierie_terrain_assets_expose_grass_dirt_and_rock_textures() -> void:
+	var assets := load("res://levels/zones/scierie/zone_scierie_terrain_assets.tres")
+	assert_not_null(assets, "La scierie doit charger sa ressource Terrain3DAssets.")
+	if assets == null:
+		return
+
+	var texture_list: Array = assets.get("texture_list")
+	assert_eq(3, texture_list.size(), "La scierie doit exposer Grass, Dirt et Rock dans Terrain3D.")
+	if texture_list.size() < 3:
+		return
+
+	var expected_names := ["Grass", "Dirt", "Rock"]
+	for index in range(expected_names.size()):
+		var texture_asset: Resource = texture_list[index] as Resource
+		assert_eq(expected_names[index], texture_asset.get("name"), "Les textures Terrain3D doivent garder un ordre stable dans le dock.")
+		assert_eq(index, texture_asset.get("id"), "L'id Terrain3D doit rester aligné avec le slot peint.")
+		assert_not_null(texture_asset.get("albedo_texture"), "%s doit avoir une texture albedo." % expected_names[index])
+		assert_not_null(texture_asset.get("normal_texture"), "%s doit avoir une normal map." % expected_names[index])
+
+
 # Garde-fou gameplay: les points de spawn des scarabées doivent toujours retomber sur une
 # collision valide. En pratique le raycast retombe actuellement sur AnchorSupport, qui sert
 # de support stable côté éditeur autour du plateau Terrain3D.
@@ -232,6 +273,55 @@ func test_hub_water_plane_wraps_main_islands_without_covering_scierie() -> void:
 
 	var scierie_portal := main.get_node("ZoneScierie/Portals/Portal_Scierie_To_Hub") as Node3D
 	assert_true(scierie_portal.global_position.x > water_max_x, "La scierie doit rester hors du plan d'eau malgre l'agrandissement.")
+
+
+func test_hub_water_uses_animated_shader_without_changing_collision() -> void:
+	var root := Node3D.new()
+	add_child_autofree(root)
+
+	var main := MAIN_SCENE.instantiate()
+	root.add_child(main)
+	_handle_known_terrain3d_engine_warning()
+	await wait_process_frames(3)
+
+	var water := main.get_node("HubLevel/Env/Water") as MeshInstance3D
+	var water_area := main.get_node("HubLevel/Env/WaterArea") as Area3D
+	var mesh := water.mesh as PlaneMesh
+	var material := water.get_surface_override_material(0) as ShaderMaterial
+	assert_not_null(mesh, "Le plan d'eau doit rester un PlaneMesh visuel.")
+	assert_not_null(material, "Le plan d'eau doit utiliser un ShaderMaterial anime.")
+	assert_not_null(water_area, "La collision/detection d'eau doit rester separee du shader visuel.")
+	if mesh != null:
+		assert_gte(mesh.subdivide_width, 80, "Le shader de vagues a besoin d'un plan suffisamment subdivise.")
+		assert_gte(mesh.subdivide_depth, 80, "Le shader de vagues a besoin d'un plan suffisamment subdivise.")
+	if material != null:
+		assert_gt(float(material.get_shader_parameter("wave_height")), 0.25, "Les vagues doivent rester visibles.")
+		assert_gt(float(material.get_shader_parameter("normal_speed")), 0.5, "Les normales doivent animer les reflets.")
+		assert_gt(float(material.get_shader_parameter("foam_strength")), 0.0, "L'eau doit garder une ecume stylisee visible.")
+		assert_gt(float(material.get_shader_parameter("color_ripple_strength")), 0.0, "L'eau doit garder une variation de couleur animee.")
+
+
+func test_hub_water_area_drives_swim_without_replacing_fall_checker() -> void:
+	var root := Node3D.new()
+	add_child_autofree(root)
+
+	var main := MAIN_SCENE.instantiate()
+	root.add_child(main)
+	_handle_known_terrain3d_engine_warning()
+	await wait_process_frames(3)
+
+	var water_area := main.get_node_or_null("HubLevel/Env/WaterArea") as Area3D
+	var water_shape_node := main.get_node_or_null("HubLevel/Env/WaterArea/CollisionShape3D") as CollisionShape3D
+	var fall_checker := main.get_node("FallChecker") as FallChecker
+	assert_not_null(water_area, "Le plan d'eau doit avoir une Area3D dediee pour declencher l'animation swim.")
+	assert_not_null(water_shape_node, "WaterArea doit exposer une collision de detection.")
+	if water_area != null and water_shape_node != null:
+		assert_true(water_area.is_in_group("water_areas"), "WaterArea doit etre identifiable sans etre confondue avec FallChecker.")
+		var box := water_shape_node.shape as BoxShape3D
+		assert_not_null(box)
+		if box != null:
+			var water_bottom := water_area.global_position.y - (box.size.y * 0.5)
+			assert_gt(water_bottom, fall_checker.fall_height, "WaterArea doit s'arreter au-dessus du seuil FallChecker pour laisser le respawn fonctionner.")
 
 
 # Test purement structurel sur le fichier texte de main.tscn.
