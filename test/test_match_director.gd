@@ -124,14 +124,27 @@ func test_score_updates_are_reflected_in_snapshot() -> void:
 	assert_true(director.get_snapshot_text().find("peer_3: 7") >= 0, "Snapshot must include updated score per peer")
 
 
-func test_unregister_last_peer_marks_lost_while_running() -> void:
+func test_unregister_last_peer_does_not_mark_mission_failed_while_timer_remains() -> void:
 	var director := await _create_director(5.0)
 	director.register_peer(5)
 	await wait_process_frames(1)
 	director.unregister_peer(5)
 	await wait_process_frames(1)
 
-	assert_eq("LOST", director.get_state_name(), "Removing the last peer during a running match should set LOST")
+	assert_eq("RUNNING", director.get_state_name(), "Un despawn/depart transitoire ne doit pas afficher MISSION ECHOUEE tant que le timer continue.")
+
+
+func test_all_players_downed_does_not_mark_mission_failed_before_timer() -> void:
+	var director := await _create_director(5.0)
+	director.register_peer(7)
+	await wait_process_frames(1)
+
+	director.set_player_lives(7, 0, "test_downed")
+	await wait_process_frames(1)
+
+	var snapshot: String = director.get_snapshot_text()
+	assert_eq("RUNNING", director.get_state_name(), "Un joueur KO doit laisser la mission active pour le revive tant que le timer reste positif.")
+	assert_true(snapshot.find("peer_7: 0") >= 0, "Le snapshot doit tout de meme exposer les vies serveur a 0.")
 
 
 func test_report_player_fell_decrements_lives_and_counts_deaths() -> void:

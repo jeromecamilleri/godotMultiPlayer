@@ -1,14 +1,11 @@
 [gd_scene format=3 uid="uid://mqnlrs6hn6g6"]
 
 [ext_resource type="Script" uid="uid://0md441jj7nd1" path="res://main/connection.gd" id="1_hlrxf"]
-[ext_resource type="Script" uid="uid://ccjxxprksl8a3" path="res://voip/voip_manager.gd" id="2_u8axh"]
 [ext_resource type="PackedScene" uid="uid://enpjmjm7ayyu" path="res://levels/hub/hub_level.tscn" id="3_0cpj8"]
 [ext_resource type="PackedScene" uid="uid://2ne27phhv0kl" path="res://user_data/user_data_manager.tscn" id="3_rwvlu"]
-[ext_resource type="PackedScene" uid="uid://bjywb13vy4hl4" path="res://voip/voip_user.tscn" id="3_tfkyd"]
 [ext_resource type="Script" uid="uid://4k8fb5pxls8n" path="res://main/player_spawner.gd" id="4_edyrb"]
 [ext_resource type="PackedScene" uid="uid://cvl4jsitsxp0u" path="res://ui/ui.tscn" id="4_fvou2"]
 [ext_resource type="PackedScene" uid="uid://ciqrpd5675boy" path="res://player/player.tscn" id="5_wb2xi"]
-[ext_resource type="Script" uid="uid://c80b7p8uwqx3y" path="res://voip/microphone.gd" id="6_fgpqb"]
 [ext_resource type="Script" uid="uid://bxld3dpqvf1jf" path="res://main/fall_checker.gd" id="9_vk48u"]
 [ext_resource type="Script" uid="uid://cjhhwy4gshixw" path="res://main/match_director.gd" id="10_md001"]
 [ext_resource type="PackedScene" uid="uid://bilg3cgxxv2h5" path="res://addons/kenney_platformer_kit/block.glb" id="11_n3o0a"]
@@ -24,8 +21,6 @@
 [ext_resource type="PackedScene" uid="uid://b5e5klqe8gc52" path="res://levels/zones/finale/zone_reactor.tscn" id="37_zone_reactor"]
 [ext_resource type="Script" uid="uid://woki35yt1nry" path="res://main/ui_test_scenario_server_pilot.gd" id="38_uitestpilot"]
 [ext_resource type="Script" uid="uid://bbkmbloe2w5nx" path="res://environment/water_area.gd" id="39_water_area"]
-
-[sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_40kex"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_n3o0a"]
 subdivide_width = 120
@@ -52,17 +47,6 @@ host = "127.0.0.1"
 use_localhost_in_editor = true
 
 [node name="UserDataManager" parent="." unique_id=930632718 instance=ExtResource("3_rwvlu")]
-
-[node name="VoipManager" type="Node" parent="." unique_id=113474187 node_paths=PackedStringArray("player_spawner")]
-script = ExtResource("2_u8axh")
-user_scn = ExtResource("3_tfkyd")
-player_spawner = NodePath("../PlayerSpawner")
-
-[node name="Microphone" type="AudioStreamPlayer" parent="." unique_id=1741440737]
-stream = SubResource("AudioStreamMicrophone_40kex")
-autoplay = true
-bus = &"Record"
-script = ExtResource("6_fgpqb")
 
 [node name="UI" parent="." unique_id=2058958318 instance=ExtResource("4_fvou2")]
 hide_ui_and_connect = false

@@ -26,11 +26,12 @@ signal connect_client
 @onready var _context_hint_label: Label = get_node_or_null("InGameUI/ContextHintLabel") as Label
 @onready var _player_inventory_panel: Control = get_node_or_null("InGameUI/PlayerInventoryPanel") as Control
 @onready var _external_inventory_panel: Control = get_node_or_null("InGameUI/TargetInventoryPanel") as Control
-@onready var _player_list_margin: Control = get_node_or_null("InGameUI/MarginContainer") as Control
 @onready var _inventory_toggle_button: Button = get_node_or_null("InGameUI/InventoryToggleButton") as Button
 @onready var _inventory_toggle_hint: Label = get_node_or_null("InGameUI/InventoryToggleHint") as Label
 @onready var _match_result_backdrop: ColorRect = get_node_or_null("InGameUI/MatchResultBackdrop") as ColorRect
 @onready var _match_result_banner: Label = get_node_or_null("InGameUI/MatchResultBanner") as Label
+@onready var _user_data_manager: UserDataManager = get_node_or_null("../UserDataManager") as UserDataManager
+@onready var _player_name_edit: LineEdit = get_node_or_null("MainMenu/Buttons/PlayerNameConfig/PlayerNameEdit") as LineEdit
 @onready var _server_ip_edit: LineEdit = get_node_or_null("MainMenu/Buttons/EndpointConfig/ServerIpEdit") as LineEdit
 @onready var _server_port_spinbox: SpinBox = get_node_or_null("MainMenu/Buttons/EndpointConfig/ServerPortSpinBox") as SpinBox
 @onready var _main_menu: Control = $MainMenu
@@ -137,6 +138,7 @@ func _process(_delta: float) -> void:
 
 func start_server_emit() -> void:
 	_apply_main_menu_endpoint_config()
+	_apply_main_menu_player_name_config()
 	start_server.emit()
 	$MainMenu.visible = false
 	$InGameUI.visible = true
@@ -145,6 +147,7 @@ func start_server_emit() -> void:
 
 func connect_client_emit() -> void:
 	_apply_main_menu_endpoint_config()
+	_apply_main_menu_player_name_config()
 	connect_client.emit()
 	hide_ui()
 
@@ -242,10 +245,6 @@ func _refresh_server_status_visibility() -> void:
 		_external_inventory_panel.visible = false
 	elif is_instance_valid(_external_inventory_panel):
 		_external_inventory_panel.z_index = 20
-	if is_instance_valid(_player_list_margin):
-		var local_player := _get_local_player()
-		var inventory_open := local_player != null and local_player.is_inventory_mode_open()
-		_player_list_margin.visible = $InGameUI.visible and not inventory_open
 	if is_instance_valid(_inventory_toggle_button):
 		var local_player := _get_local_player()
 		var inventory_open := local_player != null and local_player.is_inventory_mode_open()
@@ -623,6 +622,8 @@ func _register_test_ids() -> void:
 		_server_button.set_meta("test_id", "start_server_button")
 	if is_instance_valid(_client_button):
 		_client_button.set_meta("test_id", "start_client_button")
+	if is_instance_valid(_player_name_edit):
+		_player_name_edit.set_meta("test_id", "player_name_input")
 	if is_instance_valid(_endpoint_reminder_label):
 		_endpoint_reminder_label.set_meta("test_id", "endpoint_reminder")
 	if is_instance_valid(_inventory_toggle_button):
@@ -1177,6 +1178,11 @@ func _on_inventory_toggle_button_pressed() -> void:
 
 
 func _sync_main_menu_endpoint_fields() -> void:
+	if is_instance_valid(_player_name_edit):
+		var nickname := UserDataManager.DEFAULT_NICKNAME
+		if is_instance_valid(_user_data_manager):
+			nickname = _user_data_manager.get_pending_local_nickname()
+		_player_name_edit.text = nickname
 	if is_instance_valid(_server_ip_edit):
 		_server_ip_edit.text = _connection.get_runtime_host()
 	if is_instance_valid(_server_port_spinbox):
@@ -1191,3 +1197,12 @@ func _apply_main_menu_endpoint_config() -> void:
 	if is_instance_valid(_server_port_spinbox):
 		port_value = int(_server_port_spinbox.value)
 	_connection.configure_runtime_endpoint(host_text, port_value)
+
+
+func _apply_main_menu_player_name_config() -> void:
+	if not is_instance_valid(_user_data_manager):
+		return
+	var nickname := _user_data_manager.get_pending_local_nickname()
+	if is_instance_valid(_player_name_edit):
+		nickname = _player_name_edit.text
+	_user_data_manager.configure_local_nickname(nickname)

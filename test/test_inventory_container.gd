@@ -17,6 +17,15 @@ func _serialize_payloads(payloads: Array[Dictionary]) -> Array[Dictionary]:
 	return chest.get_inventory_component().serialize_contents()
 
 
+func test_inventory_container_label_is_readable_through_foreground_decoration() -> void:
+	var chest: InventoryContainer3D = autofree(CHEST_SCENE.instantiate()) as InventoryContainer3D
+	var label := chest.get_node("Label3D") as Label3D
+
+	assert_true(label.no_depth_test, "Le label coffre doit rester lisible meme si un arbre passe devant.")
+	assert_true(label.outline_size >= 12, "Le label coffre doit garder un contour assez fort pour les fonds clairs.")
+	assert_true(label.font_size >= 36, "Le label coffre doit rester lisible a distance.")
+
+
 func test_inventory_delta_tracks_only_changed_slots() -> void:
 	var chest := _spawn_chest()
 	var before: Array[Dictionary] = _serialize_payloads([

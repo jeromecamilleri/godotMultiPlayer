@@ -5,7 +5,7 @@
 Multiplayer Godot 3D cooperative game.
 
 Architecture is server-authoritative with RPC-based synchronization.
-Core systems include: networking, player lifecycle, inventory, UI, enemies, and VOIP.
+Core systems include: networking, player lifecycle, inventory, UI, and enemies.
 
 Main entry point:
 
@@ -29,7 +29,7 @@ When solving a task or bug:
 
 1. Identify the subsystem:
 
-   * network / match / player / inventory / UI / enemy / VOIP
+   * network / match / player / inventory / UI / enemy
 
 2. Locate authoritative logic:
 

@@ -22,3 +22,4 @@ billboard = 1
 text = "MISSION COFFRE\nDEPOSEZ BOIS + POMMES\n(APPUI I)"
 font_size = 32
 outline_size = 12
+no_depth_test = true

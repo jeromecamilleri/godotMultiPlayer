@@ -51,10 +51,13 @@ script = ExtResource("1")
 shape = SubResource("1")
 
 [node name="Label3D" type="Label3D" parent="." unique_id=913453930]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
 billboard = 1
 text = "Coffre"
-outline_size = 8
+font_size = 40
+outline_size = 16
+modulate = Color(1, 1, 1, 1)
+no_depth_test = true
 
 [node name="Inventory" type="Node" parent="." unique_id=58094250]
 script = ExtResource("2")

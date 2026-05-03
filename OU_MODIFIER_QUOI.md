@@ -285,19 +285,9 @@ Tu touches ici pour:
 - déplacer l'Activator ou le cube principal
 - régler les scarabées de la phase finale
 
-## Si tu modifies la VOIP
+## Ancienne VOIP
 
-Fichiers à regarder:
-
-- [`voip/voip_manager.gd`](/home/camillej/godotProjects/godot-multiplayer/voip/voip_manager.gd)
-- [`voip/voip_user.gd`](/home/camillej/godotProjects/godot-multiplayer/voip/voip_user.gd)
-- [`voip/voip_user.tscn`](/home/camillej/godotProjects/godot-multiplayer/voip/voip_user.tscn)
-- [`voip/microphone.gd`](/home/camillej/godotProjects/godot-multiplayer/voip/microphone.gd)
-
-Tu touches ici pour:
-
-- changer la capture micro
-- ajuster l'envoi Opus
+La VOIP a été retirée du runtime. Les sons de gameplay restent dans leurs scènes respectives, mais il n'y a plus de capture micro, d'envoi Opus, de volume voix par joueur ni d'indicateur de parole.
 - ancrer différemment la voix dans le monde
 - ajouter des indicateurs vocaux
 

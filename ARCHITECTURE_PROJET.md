@@ -4,7 +4,7 @@
 
 - Nom du projet: `MutliplayerTemplate`
 - Scène principale: `res://main/main.tscn`
-- Type de projet: jeu Godot multijoueur coopératif en 3D, avec UI en jeu, inventaire, ennemis, VOIP et logique de partie.
+- Type de projet: jeu Godot multijoueur coopératif en 3D, avec UI en jeu, inventaire, ennemis et logique de partie.
 - Binaire local de référence (tests/validation): `/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64` (Godot 4.7 compile local)
 - Plugin terrain ajouté au projet: `addons/terrain_3d/` pour la zone `ZoneScierie`
 
@@ -49,7 +49,6 @@ Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotPr
 - `levels/`: scènes de niveau et zones interactives.
 - `enemies/`: ennemis et leurs comportements.
 - `user_data/`: données utilisateur réseau/répliquées.
-- `voip/`: voix en jeu.
 - `test/`: tests GUT et E2E UI.
 
 ### Organisation des niveaux
@@ -77,7 +76,6 @@ Noeuds principaux:
 
 - `Connection` -> [`main/connection.gd`](/home/camillej/godotProjects/godot-multiplayer/main/connection.gd)
 - `UserDataManager` -> [`user_data/user_data_manager.tscn`](/home/camillej/godotProjects/godot-multiplayer/user_data/user_data_manager.tscn)
-- `VoipManager` -> [`voip/voip_manager.gd`](/home/camillej/godotProjects/godot-multiplayer/voip/voip_manager.gd)
 - `UI` -> [`ui/ui.tscn`](/home/camillej/godotProjects/godot-multiplayer/ui/ui.tscn)
 - `Players` -> conteneur des joueurs spawnés
 - `PlayerSpawner` -> [`main/player_spawner.gd`](/home/camillej/godotProjects/godot-multiplayer/main/player_spawner.gd)
@@ -677,7 +675,7 @@ Grandes fonctions:
 - `_apply_explosion_damage()`
 - `_notify_bomb_reactives()`
 
-## User data et VOIP
+## User data
 
 ### `user_data/user_data_manager.gd`
 
@@ -694,21 +692,6 @@ Grandes fonctions:
 - `user_data_spawned()`
 - `user_data_despawned()`
 - `try_get_user_data()`
-
-### `voip/voip_manager.gd`
-
-Responsabilité:
-
-- capturer et envoyer des chunks Opus côté client
-- créer/supprimer les `VoipUser` distants
-- ancrer chaque flux audio au joueur correspondant
-
-Grandes fonctions:
-
-- `peer_connected()` / `peer_disconnected()`
-- `player_spawned()`
-- `_process()`: collecte et envoi audio
-- `opus_data_received()`: réception et dispatch
 
 ## Flux général d'exécution
 

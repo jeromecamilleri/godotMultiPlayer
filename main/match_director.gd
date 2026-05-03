@@ -201,10 +201,6 @@ func unregister_player(peer_id: int) -> void:
 	_deaths_by_peer.erase(peer_id)
 	_team_progress["players_alive"] = _count_alive_players()
 
-	# A running match with no players is considered lost/aborted.
-	if _state == MatchState.RUNNING and _connected_peers.is_empty():
-		report_team_lost("no_players_connected")
-		return
 	_emit_snapshot()
 
 
@@ -270,10 +266,7 @@ func set_player_lives(peer_id: int, lives: int, _reason: String = "") -> int:
 	if clamped_lives < previous:
 		_deaths_by_peer[peer_id] = int(_deaths_by_peer.get(peer_id, 0)) + (previous - clamped_lives)
 	_team_progress["players_alive"] = _count_alive_players()
-	if clamped_lives == 0 and _state == MatchState.RUNNING and int(_team_progress.get("players_alive", 0)) == 0:
-		report_team_lost("all_players_dead")
-	else:
-		_emit_snapshot()
+	_emit_snapshot()
 	return clamped_lives
 
 

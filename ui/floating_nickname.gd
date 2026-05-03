@@ -2,7 +2,6 @@ extends Control
 
 @export var user_data_events: UserDataEvents
 @export var label: Label
-@export var speaking_indicator: Control
 @export var anchor: Node3D
 @export var offset: Vector3
 
@@ -28,8 +27,8 @@ func _ready() -> void:
 	if multiplayer.peer_disconnected.is_connected(_on_peer_list_changed) == false:
 		multiplayer.peer_disconnected.connect(_on_peer_list_changed)
 
-	# Then subscribe to replicated user data so free-form nickname edits
-	# (e.g. via change_name action) update the floating label in real time.
+	# Then subscribe to replicated user data so the nickname chosen before
+	# the match starts is shown consistently above the avatar.
 	var id := get_multiplayer_authority()
 	var manager := user_data_events.user_data_manager
 	if not is_instance_valid(manager):
@@ -93,14 +92,12 @@ func _get_compact_player_index(authority_id: int) -> int:
 
 
 func retrieve_user_data(id: int, _user_data: UserData) -> void:
-	# User-data path provides replicated nickname/speaking state for this avatar.
+	# User-data path provides replicated nickname state for this avatar.
 	if id != get_multiplayer_authority(): return
 	
 	user_data = _user_data
 	user_data.nickname_changed.connect(nickname_changed)
-	user_data.speaking_changed.connect(speaking_changed)
 	nickname_changed(user_data.nickname)
-	speaking_changed(user_data.speaking)
 
 
 func nickname_changed(nickname: String) -> void:
@@ -111,10 +108,6 @@ func nickname_changed(nickname: String) -> void:
 		return
 	_base_label_text = trimmed
 	_refresh_label()
-
-
-func speaking_changed(speaking: bool) -> void:
-	speaking_indicator.visible = speaking
 
 
 func set_downed_state(downed: bool) -> void:

@@ -15,6 +15,17 @@ func test_player_scene_charge():
 	assert_not_null(PLAYER_SCENE)
 
 
+func test_player_camera_keeps_distant_world_labels_sharp() -> void:
+	var player := PLAYER_SCENE.instantiate()
+	add_child_autofree(player)
+
+	var camera := player.get_node("CameraController/PlayerCamera") as Camera3D
+	var attributes := camera.attributes as CameraAttributesPractical
+
+	assert_not_null(attributes)
+	assert_false(attributes.dof_blur_far_enabled, "La camera joueur ne doit pas flouter les labels 3D distants.")
+
+
 func test_character_skin_swim_animation_has_motion_tracks() -> void:
 	# The swim clip is edited locally in character_skin.tscn, so keep a guard against
 	# accidentally saving it as an empty animation from the Godot animation panel.
