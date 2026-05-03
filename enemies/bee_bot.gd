@@ -11,6 +11,8 @@ const PUFF_SCENE := preload("smoke_puff/smoke_puff.tscn")
 @export var patrol_radius := 2.5
 @export var patrol_angular_speed := 1.2
 @export var patrol_height_offset := 0.0
+@export var aim_turn_speed := 8.0
+@export var aim_height_offset := 1.0
 
 @onready var _reaction_animation_player: AnimationPlayer = $ReactionLabel/AnimationPlayer
 @onready var _flying_animation_player: AnimationPlayer = $MeshRoot/AnimationPlayer
@@ -56,14 +58,14 @@ func _physics_process(delta: float) -> void:
 	if _alive:
 		# AI behavior is authority-only: acquire target, patrol, rotate, and shoot.
 		_update_target_from_overlaps()
-		if patrol_circle and _target == null:
+		if patrol_circle:
 			_update_patrol_circle(delta)
 
 		if _target != null:
 			if sleeping:
 				sleeping = false
-			var target_transform := transform.looking_at(_target.global_position)
-			transform = transform.interpolate_with(target_transform, 0.1)
+			var aim_point := _target.global_position + Vector3.UP * aim_height_offset
+			_look_toward_aim_point(aim_point, delta)
 
 			if not _is_ui_test_bee_fire_disabled():
 				_shoot_count += delta
@@ -72,8 +74,7 @@ func _physics_process(delta: float) -> void:
 					_shoot_count -= shoot_timer
 
 					var origin := global_position
-					var target := _target.global_position + Vector3.UP
-					var aim_direction := (target - global_position).normalized()
+					var aim_direction := (aim_point - global_position).normalized()
 					_spawn_bee_bullet.rpc(origin, aim_direction)
 
 	_sync_bee_transform.rpc(global_transform)
@@ -145,6 +146,10 @@ func apply_director_config(bee_config: Dictionary) -> void:
 		shoot_timer = float(bee_config["shoot_timer"])
 	if bee_config.has("bullet_speed"):
 		bullet_speed = float(bee_config["bullet_speed"])
+	if bee_config.has("patrol_center") and bee_config["patrol_center"] is Vector3:
+		_patrol_center = bee_config["patrol_center"]
+	if bee_config.has("patrol_height_offset"):
+		patrol_height_offset = float(bee_config["patrol_height_offset"])
 
 
 func get_assigned_target_peer_id() -> int:
@@ -337,6 +342,15 @@ func _update_patrol_circle(delta: float) -> void:
 	var next_position: Vector3 = _patrol_center + offset
 	next_position.y = _patrol_center.y + patrol_height_offset
 	global_position = next_position
+
+
+func _look_toward_aim_point(aim_point: Vector3, delta: float) -> void:
+	var to_aim := aim_point - global_position
+	if to_aim.length_squared() <= 0.0001:
+		return
+	var target_transform := global_transform.looking_at(aim_point, Vector3.UP)
+	var turn_alpha := clampf(aim_turn_speed * delta, 0.0, 1.0)
+	global_basis = global_basis.slerp(target_transform.basis, turn_alpha).orthonormalized()
 
 
 @rpc("authority", "call_local", "reliable")

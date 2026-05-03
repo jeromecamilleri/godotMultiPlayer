@@ -6,6 +6,8 @@
 [ext_resource type="Texture2D" uid="uid://hl885wku8p0" path="res://levels/zones/scierie/zone_scierie_dirt_terrain_normal.png" id="4_dirt_normal"]
 [ext_resource type="Texture2D" uid="uid://coph7manheioq" path="res://levels/zones/scierie/zone_scierie_rock_terrain.png" id="5_rock_albedo"]
 [ext_resource type="Texture2D" uid="uid://coph7ma1kuqln" path="res://levels/zones/scierie/zone_scierie_rock_terrain_normal.png" id="6_rock_normal"]
+[ext_resource type="Texture2D" uid="uid://bnrkjlb8ahhwc" path="res://levels/zones/scierie/zone_scierie_flower_grass_terrain.png" id="7_flower_grass_albedo"]
+[ext_resource type="Texture2D" uid="uid://w5ilmsdjxnar" path="res://levels/zones/scierie/zone_scierie_flower_grass_terrain_normal.png" id="8_flower_grass_normal"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s0mjn"]
 transparency = 4
@@ -42,6 +44,12 @@ id = 2
 albedo_texture = ExtResource("5_rock_albedo")
 normal_texture = ExtResource("6_rock_normal")
 
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_flower_grass"]
+name = "FlowerGrass"
+id = 3
+albedo_texture = ExtResource("7_flower_grass_albedo")
+normal_texture = ExtResource("8_flower_grass_normal")
+
 [resource]
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_ev1jp")])
-texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_grass"), SubResource("Terrain3DTextureAsset_dirt"), SubResource("Terrain3DTextureAsset_rock")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_grass"), SubResource("Terrain3DTextureAsset_dirt"), SubResource("Terrain3DTextureAsset_rock"), SubResource("Terrain3DTextureAsset_flower_grass")])

@@ -106,18 +106,18 @@ func test_zone_scierie_uses_terrain3d_without_overlay_shore_meshes() -> void:
 		assert_not_null(terrain.get("material"), "Terrain3D doit garder son materiau dedie.")
 
 
-func test_zone_scierie_terrain_assets_expose_grass_dirt_and_rock_textures() -> void:
+func test_zone_scierie_terrain_assets_expose_expected_textures() -> void:
 	var assets := load("res://levels/zones/scierie/zone_scierie_terrain_assets.tres")
 	assert_not_null(assets, "La scierie doit charger sa ressource Terrain3DAssets.")
 	if assets == null:
 		return
 
 	var texture_list: Array = assets.get("texture_list")
-	assert_eq(3, texture_list.size(), "La scierie doit exposer Grass, Dirt et Rock dans Terrain3D.")
-	if texture_list.size() < 3:
+	assert_eq(4, texture_list.size(), "La scierie doit exposer Grass, Dirt, Rock et FlowerGrass dans Terrain3D.")
+	if texture_list.size() < 4:
 		return
 
-	var expected_names := ["Grass", "Dirt", "Rock"]
+	var expected_names := ["Grass", "Dirt", "Rock", "FlowerGrass"]
 	for index in range(expected_names.size()):
 		var texture_asset: Resource = texture_list[index] as Resource
 		assert_eq(expected_names[index], texture_asset.get("name"), "Les textures Terrain3D doivent garder un ordre stable dans le dock.")

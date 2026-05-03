@@ -5,6 +5,7 @@ const BEETLE_DIRECTOR_SCRIPT := preload("res://enemies/beetle_director.gd")
 const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 const BEETLE_SCENE := preload("res://enemies/beetle_bot.tscn")
 const PORTAL_SCENE := preload("res://levels/portal/portal.tscn")
+const ZONE_VERGER_SCENE := preload("res://levels/zones/verger/zone_verger.tscn")
 
 
 func test_enemy_instances_expose_common_director_contract() -> void:
@@ -101,3 +102,18 @@ func test_bee_director_can_gate_population_by_portal_and_zone_presence() -> void
 
 	player.position = Vector3(10.0, 0.0, 0.0)
 	assert_eq(2, int(bee_director.call("_get_desired_bee_count")), "Le directeur d'abeilles ne doit pas despawn les ennemis déjà actifs quand la zone devient vide.")
+
+
+func test_verger_bee_director_defends_apple_without_waiting_for_player_presence() -> void:
+	var zone := ZONE_VERGER_SCENE.instantiate()
+	add_child_autofree(zone)
+
+	var director := zone.get_node_or_null("Enemies")
+	assert_not_null(director, "Le verger doit exposer un BeeDirector.")
+	assert_eq(NodePath("../Interactives/ApplePickup"), director.get("activation_center_path"), "L'activation du verger doit etre centree sur la pomme.")
+	assert_eq(NodePath("../Interactives/ApplePickup"), director.get("defense_center_path"), "Les abeilles du verger doivent defendre explicitement la pomme.")
+	assert_false(bool(director.get("activation_requires_player_presence")), "Les abeilles doivent etre pretes des que le portail verger est ouvert, sans apparition tardive au contact joueur.")
+
+	var config: Dictionary = director.call("_build_bee_config", 2)
+	var apple := zone.get_node("Interactives/ApplePickup") as Node3D
+	assert_eq(apple.global_position, config.get("patrol_center", Vector3.INF), "La patrouille des abeilles doit tourner autour de la pomme.")

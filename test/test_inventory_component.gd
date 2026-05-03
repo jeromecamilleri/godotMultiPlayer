@@ -3,6 +3,7 @@ extends GutTest
 const InventoryComponentScript := preload("res://inventory/inventory_component.gd")
 const APPLE_DEF = preload("res://inventory/items/apple.tres")
 const WOOD_DEF = preload("res://inventory/items/wood.tres")
+const APPLE_WORLD_ITEM_SCENE := preload("res://inventory/world_items/apple_pickup.tscn")
 
 
 func test_add_payload_stacks_and_respects_slot_limit() -> void:
@@ -52,3 +53,22 @@ func test_serialize_and_reload_contents() -> void:
 
 	assert_eq(4, restored.count_item("apple"))
 	assert_eq(7, restored.count_item("wood"))
+
+
+func test_apple_payload_uses_specific_pickup_scene() -> void:
+	# Dropped apples must keep the apple-shaped pickup instead of falling back to the generic yellow sphere.
+	var payload: Dictionary = APPLE_DEF.to_inventory_payload(1)
+
+	assert_eq("res://inventory/world_items/apple_pickup.tscn", String(payload.get("world_item_scene", "")))
+
+
+func test_apple_pickup_scene_keeps_world_item_contract_and_branch_visuals() -> void:
+	var apple_pickup := APPLE_WORLD_ITEM_SCENE.instantiate()
+	add_child_autofree(apple_pickup)
+
+	assert_true(apple_pickup.has_node("CollisionShape3D"), "La scene specifique doit garder la collision attendue par WorldItem.")
+	assert_true(apple_pickup.has_node("MeshInstance3D"), "La pomme doit garder le noeud mesh attendu par WorldItem.")
+	assert_true(apple_pickup.has_node("Label3D"), "La scene specifique doit garder le label attendu par WorldItem.")
+	assert_true(apple_pickup.has_node("BranchVisual/Branch"), "La pomme doit etre visuellement accrochee a une branche.")
+	assert_true(apple_pickup.has_node("Stem"), "La pomme doit avoir une tige lisible.")
+	assert_true(apple_pickup.has_node("Leaf"), "La pomme doit avoir une feuille lisible.")

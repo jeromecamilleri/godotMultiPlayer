@@ -342,8 +342,7 @@ func _on_tick() -> void:
 
 	_time_left_sec = maxf(0.0, _time_left_sec - tick_interval_sec)
 	if _time_left_sec <= 0.0:
-		# Minimal cooperative objective for now: survive until timer reaches zero.
-		report_team_won("timer_completed")
+		report_team_lost("timer_expired")
 		return
 	_update_zone_progression()
 	_emit_snapshot()
@@ -454,7 +453,7 @@ func _update_zone_progression() -> void:
 		mission_phase = 2
 	if _portal_reactor_unlocked:
 		mission_phase = 3
-	if int(_team_progress.get("cube_activator_reached", 0)) > 0 or _state == MatchState.WON:
+	if int(_team_progress.get("cube_activator_reached", 0)) > 0:
 		mission_phase = 4
 	_team_progress["mission_phase"] = mission_phase
 

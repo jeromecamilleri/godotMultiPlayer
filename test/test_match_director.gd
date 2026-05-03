@@ -103,14 +103,16 @@ func test_register_peer_auto_starts_running() -> void:
 	assert_true(director.get_snapshot_text().find("state: RUNNING") >= 0, "Snapshot must expose running state")
 
 
-func test_timer_reaching_zero_sets_won() -> void:
+func test_timer_reaching_zero_sets_lost() -> void:
 	var director := await _create_director(0.25)
 	director.register_peer(1)
 	await wait_seconds(0.5)
 	await wait_process_frames(2)
 
-	assert_eq("WON", director.get_state_name(), "Timer completion should mark the team as WON")
-	assert_true(director.get_snapshot_text().find("state: WON") >= 0, "Snapshot must expose won state")
+	var snapshot: String = director.get_snapshot_text()
+	assert_eq("LOST", director.get_state_name(), "Timer expiration doit echouer la mission si l'objectif final n'est pas atteint.")
+	assert_true(snapshot.find("state: LOST") >= 0, "Le snapshot doit exposer l'echec par expiration du timer.")
+	assert_true(snapshot.find("result_reason: timer_expired") >= 0, "La raison permet a l'UI de ne pas afficher mission reussie.")
 
 
 func test_score_updates_are_reflected_in_snapshot() -> void:
@@ -216,3 +218,17 @@ func test_zone_progression_exposes_collect_breche_reactor_phases() -> void:
 	var snapshot_reactor: String = director.get_snapshot_text()
 	assert_true(snapshot_reactor.find("portal_reactor_unlocked: 1") >= 0, "Le portail reactor doit s'ouvrir quand toutes les BombDoor sont ouvertes.")
 	assert_true(snapshot_reactor.find("mission_phase: 3") >= 0, "Le directeur doit exposer la phase REACTOR.")
+
+
+func test_timer_expiration_keeps_current_mission_phase() -> void:
+	var director := await _create_director(5.0)
+	director.register_peer(31)
+	await wait_process_frames(1)
+
+	director.call("_update_zone_progression")
+	director.call("report_team_lost", "timer_expired")
+	var snapshot: String = director.get_snapshot_text()
+
+	assert_true(snapshot.find("state: LOST") >= 0, "L'expiration doit rester un echec de match.")
+	assert_true(snapshot.find("mission_phase: 1") >= 0, "L'expiration ne doit pas transformer une collecte incomplete en phase finale.")
+	assert_false(snapshot.find("mission_phase: 4") >= 0, "La phase 4 est reservee au cube pose sur l'Activator.")

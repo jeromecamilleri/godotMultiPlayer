@@ -44,11 +44,21 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	camera = get_viewport().get_camera_3d()
-	if not is_instance_valid(camera): return
+	if not is_instance_valid(camera) or not is_instance_valid(anchor):
+		visible = false
+		return
 	
 	var anchor_pos = anchor.global_position + offset
-	visible = not camera.is_position_behind(anchor_pos)
+	if camera.is_position_behind(anchor_pos) or _is_on_camera_projection_plane(camera, anchor_pos):
+		visible = false
+		return
+	visible = true
 	position = camera.unproject_position(anchor_pos)
+
+
+func _is_on_camera_projection_plane(source_camera: Camera3D, world_position: Vector3) -> bool:
+	var camera_space_position := source_camera.global_transform.affine_inverse() * world_position
+	return is_zero_approx(camera_space_position.z)
 
 
 func _on_peer_list_changed(_id: int) -> void:

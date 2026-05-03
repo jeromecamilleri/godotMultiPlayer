@@ -123,7 +123,7 @@ else
         add_test "test/UI/test_portal_progression_reactor_ui.sh"
         add_test "test/UI/test_cube_mission_ui.sh"
         ;;
-      player/*|main/player_spawner.gd|main/connection.gd|ui/ui.gd|ui/ui.tscn)
+      player/*|main/player_spawner.gd|main/connection.gd|ui/ui.gd|ui/ui.tscn|ui/floating_nickname.gd)
         add_smoke_suite
         ;;
     esac

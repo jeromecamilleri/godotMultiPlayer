@@ -15,6 +15,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from godot_runtime_config import NATIVE_GODOT_PATH, RENDERING_DRIVER
+
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUT_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/inventory-ui-x11")
@@ -28,7 +30,6 @@ for old_file in OUT_DIR.iterdir():
         old_file.unlink()
 
 RUN_LOG_PATH = OUT_DIR / "run.log"
-NATIVE_GODOT_PATH = Path(os.environ.get("GODOT_BIN", "/dataSSD/Godot_v4.6.2-stable_linux.x86_64"))
 USE_XVFB = True
 XVFB_DISPLAY = ":99"
 
@@ -93,7 +94,7 @@ def log_process_snapshot() -> None:
     )
     log("process_snapshot_begin")
     for line in completed.stdout.splitlines():
-        if any(token in line for token in ("Xvfb", "openbox", "Godot_v4.6.2-stable_linux.x86_64", "godot-multiplayer")):
+        if any(token in line for token in ("Xvfb", "openbox", "godot.linuxbsd.editor.x86_64", "godot-multiplayer")):
             log(line)
     log("process_snapshot_end")
 
@@ -160,7 +161,7 @@ def stale_runtime_pids() -> list[int]:
 
 def launch_command() -> list[str]:
     if NATIVE_GODOT_PATH.exists():
-        return [str(NATIVE_GODOT_PATH), "--rendering-driver", "opengl3", "--path", str(ROOT_DIR)]
+        return [str(NATIVE_GODOT_PATH), "--rendering-driver", RENDERING_DRIVER, "--path", str(ROOT_DIR)]
     return ["flatpak", "run", "org.godotengine.Godot", "--path", str(ROOT_DIR)]
 
 

@@ -92,13 +92,13 @@ Never stop after a single attempt.
 ## Commands
 
 * Run project:
-  godot --path .
+  /dataSSD/godot/bin/godot.linuxbsd.editor.x86_64 --path .
 
 * Run unit tests (GUT):
-  HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gexit
+  HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/godot/bin/godot.linuxbsd.editor.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gexit
 
 * Run specific tests:
-  HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=<script> -gunit_test_name=<test_name> -gexit
+  HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/godot/bin/godot.linuxbsd.editor.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=<script> -gunit_test_name=<test_name> -gexit
 
 * Check logs:
   tail -f logs/game.log
@@ -164,6 +164,7 @@ Required when:
 * UI behavior changes
 * visual workflows are modified
 * user interactions change
+* HUD, inventory, mission tracker, camera, visible animation, water, or terrain rendering changes
 
 Examples:
 
@@ -172,6 +173,8 @@ Examples:
 * displaying match state
 
 Optional if change is minor, REQUIRED if UX flow changes.
+
+When touching HUD display, inventory UI, mission tracker, camera behavior, visible animation, water rendering, or terrain rendering, run the targeted UI test in `test/UI/` in addition to GUT. Do not rely only on GUT wrappers for these visible changes.
 
 ---
 

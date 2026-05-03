@@ -23,6 +23,8 @@ const FILES_TO_COPY := [
 	"res://levels/zones/scierie/zone_scierie_dirt_terrain_normal.png",
 	"res://levels/zones/scierie/zone_scierie_rock_terrain.png",
 	"res://levels/zones/scierie/zone_scierie_rock_terrain_normal.png",
+	"res://levels/zones/scierie/zone_scierie_flower_grass_terrain.png",
+	"res://levels/zones/scierie/zone_scierie_flower_grass_terrain_normal.png",
 ]
 const DATA_DIR := "res://levels/zones/scierie/zone_scierie_terrain_data"
 const BACKUP_ROOT := "user://terrain_backups"

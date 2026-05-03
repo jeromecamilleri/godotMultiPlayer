@@ -1,0 +1,121 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://inventory/world_item.gd" id="1_world_item"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_pickup"]
+radius = 0.45
+
+[sub_resource type="SphereMesh" id="SphereMesh_apple"]
+radius = 0.34
+height = 0.58
+radial_segments = 16
+rings = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_apple_red"]
+albedo_color = Color(0.86, 0.06, 0.035, 1)
+roughness = 0.62
+
+[sub_resource type="SphereMesh" id="SphereMesh_top_indent"]
+radius = 0.11
+height = 0.06
+radial_segments = 12
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_indent"]
+albedo_color = Color(0.18, 0.045, 0.025, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_stem"]
+top_radius = 0.025
+bottom_radius = 0.04
+height = 0.28
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bark"]
+albedo_color = Color(0.34, 0.18, 0.08, 1)
+roughness = 0.9
+
+[sub_resource type="SphereMesh" id="SphereMesh_leaf"]
+radius = 0.12
+height = 0.04
+radial_segments = 12
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_leaf"]
+albedo_color = Color(0.14, 0.55, 0.12, 1)
+roughness = 0.75
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_branch"]
+top_radius = 0.055
+bottom_radius = 0.075
+height = 1.15
+radial_segments = 8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_twig"]
+top_radius = 0.018
+bottom_radius = 0.035
+height = 0.45
+radial_segments = 7
+
+[node name="ApplePickup" type="Area3D"]
+script = ExtResource("1_world_item")
+monitoring = true
+monitorable = true
+collision_layer = 1
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="BranchVisual" type="Node3D" parent="."]
+position = Vector3(0, 0.54, 0)
+
+[node name="Branch" type="MeshInstance3D" parent="BranchVisual"]
+position = Vector3(0, 0.06, 0)
+rotation = Vector3(0, 0, 1.5707964)
+mesh = SubResource("CylinderMesh_branch")
+surface_material_override/0 = SubResource("StandardMaterial3D_bark")
+
+[node name="TwigLeft" type="MeshInstance3D" parent="BranchVisual"]
+position = Vector3(-0.26, -0.04, 0.03)
+rotation = Vector3(0.45, 0.2, 0.82)
+mesh = SubResource("CylinderMesh_twig")
+surface_material_override/0 = SubResource("StandardMaterial3D_bark")
+
+[node name="TwigRight" type="MeshInstance3D" parent="BranchVisual"]
+position = Vector3(0.28, -0.02, -0.02)
+rotation = Vector3(-0.35, -0.25, -0.75)
+mesh = SubResource("CylinderMesh_twig")
+surface_material_override/0 = SubResource("StandardMaterial3D_bark")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.12, 0)
+scale = Vector3(1.0, 0.9, 1.0)
+mesh = SubResource("SphereMesh_apple")
+surface_material_override/0 = SubResource("StandardMaterial3D_apple_red")
+
+[node name="TopIndent" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.405, 0)
+scale = Vector3(1.25, 1, 1.25)
+mesh = SubResource("SphereMesh_top_indent")
+surface_material_override/0 = SubResource("StandardMaterial3D_indent")
+
+[node name="Stem" type="MeshInstance3D" parent="."]
+position = Vector3(0.025, 0.59, 0)
+rotation = Vector3(0.18, 0, -0.28)
+mesh = SubResource("CylinderMesh_stem")
+surface_material_override/0 = SubResource("StandardMaterial3D_bark")
+
+[node name="Leaf" type="MeshInstance3D" parent="."]
+position = Vector3(0.17, 0.62, 0.03)
+rotation = Vector3(0.25, 0.1, -0.55)
+scale = Vector3(1.55, 0.55, 0.75)
+mesh = SubResource("SphereMesh_leaf")
+surface_material_override/0 = SubResource("StandardMaterial3D_leaf")
+
+[node name="Label3D" type="Label3D" parent="."]
+position = Vector3(0, 1.04, 0)
+billboard = 1
+font_size = 32
+outline_size = 8
+text = "Pomme"

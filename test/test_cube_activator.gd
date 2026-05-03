@@ -47,3 +47,24 @@ func test_cube_activator_completes_objective_and_wins_match() -> void:
 	var snapshot: String = director.get_snapshot_text()
 	assert_true(snapshot.find("cube_activator_reached: 1") >= 0, "Le directeur doit enregistrer l'objectif coop.")
 	assert_true(snapshot.find("state: WON") >= 0, "L'activateur doit permettre de terminer la mission.")
+
+
+func test_cube_activator_uses_cube_snap_radius_when_body_entered_is_missed() -> void:
+	var world := Node3D.new()
+	add_child_autofree(world)
+
+	var activator: Area3D = CUBE_ACTIVATOR_SCRIPT.new() as Area3D
+	world.add_child(activator)
+	activator.global_position = Vector3.ZERO
+
+	var cube: PullableCube = PULL_CUBE_SCRIPT.new() as PullableCube
+	assert_not_null(cube)
+	cube.server_peer_id = multiplayer.get_unique_id()
+	cube.coop_goal_snap_radius = 5.5
+	world.add_child(cube)
+	cube.global_position = Vector3(5.0, 0.0, 0.0)
+	await wait_process_frames(1)
+
+	activator._physics_process(0.016)
+
+	assert_true(cube.is_goal_reached(), "Le cube doit atteindre l'objectif par rayon de snap meme sans signal body_entered.")

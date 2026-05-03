@@ -2,7 +2,7 @@
 
 Date: 2026-04-15T23:28:00+02:00
 Repo commit: `98cdd3d` (worktree non clean)
-Godot: `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`
+Godot: `/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64` (4.7 compile local)
 
 ## Objectif
 Figer des valeurs de référence pour détecter plus tard une dégradation nette sur le stress de réplication multijoueur.

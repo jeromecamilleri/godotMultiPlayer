@@ -15,6 +15,25 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 
+func _physics_process(_delta: float) -> void:
+	if _activated and trigger_once:
+		return
+	if not _is_server_instance():
+		return
+	for body in get_tree().get_nodes_in_group("pullable_cubes"):
+		if not (body is PullableCube):
+			continue
+		var cube := body as PullableCube
+		if cube.is_goal_reached():
+			continue
+		var snap_radius := float(cube.get("coop_goal_snap_radius"))
+		if snap_radius <= 0.0:
+			continue
+		if cube.global_position.distance_to(global_position) <= snap_radius:
+			_complete_cube_goal(cube)
+			return
+
+
 func _on_body_entered(body: Node) -> void:
 	if _activated and trigger_once:
 		return
@@ -25,6 +44,10 @@ func _on_body_entered(body: Node) -> void:
 	var cube := body as PullableCube
 	if cube == null:
 		return
+	_complete_cube_goal(cube)
+
+
+func _complete_cube_goal(cube: PullableCube) -> void:
 	var target_position := cube.global_position
 	if snap_cube_to_center:
 		target_position = global_position + Vector3(0.0, vertical_snap_offset, 0.0)

@@ -12,6 +12,8 @@ const BEE_SCENE := preload("res://enemies/bee_bot.tscn")
 @export var shoot_timer_step_per_extra_player := 0.18
 @export var base_bullet_speed := 6.0
 @export var bullet_speed_step_per_extra_player := 0.85
+@export var defense_center_path: NodePath
+@export var defense_height_offset := 1.15
 
 var _spawn_anchors: Array[Transform3D] = []
 var _spawned_bee_names: Array[String] = []
@@ -161,7 +163,16 @@ func _build_bee_config(player_scaled_bee_count: int) -> Dictionary:
 	return {
 		"shoot_timer": shoot_timer,
 		"bullet_speed": bullet_speed,
+		"patrol_center": _resolve_defense_center(),
+		"patrol_height_offset": defense_height_offset,
 	}
+
+
+func _resolve_defense_center() -> Vector3:
+	var defense_center_node := _resolve_reference_node(defense_center_path)
+	if defense_center_node != null:
+		return defense_center_node.global_position
+	return _resolve_activation_center()
 
 
 func _is_ui_test_bee_disabled() -> bool:

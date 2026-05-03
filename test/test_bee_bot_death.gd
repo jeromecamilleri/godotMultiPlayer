@@ -65,3 +65,37 @@ func test_bee_bot_kill_reports_score_to_match_director() -> void:
 	await wait_process_frames(1)
 
 	assert_true(director.get_snapshot_text().find("peer_42: 1") >= 0, "Bee kill should grant +1 score to attacker")
+
+
+func test_bee_bot_director_config_updates_patrol_center_and_height() -> void:
+	var bee_scene: PackedScene = preload("res://enemies/bee_bot.tscn")
+	var test_root := Node3D.new()
+	add_child_autofree(test_root)
+	var bee: Node = bee_scene.instantiate()
+	test_root.add_child(bee)
+	await wait_process_frames(2)
+
+	bee.call("apply_director_config", {
+		"patrol_center": Vector3(3.0, 4.0, -6.0),
+		"patrol_height_offset": 1.25,
+	})
+
+	assert_eq(Vector3(3.0, 4.0, -6.0), bee.get("_patrol_center"), "La config du directeur doit pouvoir ancrer la patrouille sur la pomme.")
+	assert_eq(1.25, float(bee.get("patrol_height_offset")), "La config du directeur doit regler la hauteur de garde.")
+
+
+func test_bee_bot_looks_toward_bullet_aim_point() -> void:
+	var bee_scene: PackedScene = preload("res://enemies/bee_bot.tscn")
+	var test_root := Node3D.new()
+	add_child_autofree(test_root)
+	var bee := bee_scene.instantiate() as Node3D
+	test_root.add_child(bee)
+	await wait_process_frames(2)
+
+	bee.global_position = Vector3.ZERO
+	var aim_point := Vector3(5.0, 1.0, -8.0)
+	bee.call("_look_toward_aim_point", aim_point, 1.0)
+
+	var expected_direction := (aim_point - bee.global_position).normalized()
+	var visual_forward := -bee.global_basis.z.normalized()
+	assert_gt(visual_forward.dot(expected_direction), 0.98, "L'abeille doit regarder dans la meme direction que sa bullet.")

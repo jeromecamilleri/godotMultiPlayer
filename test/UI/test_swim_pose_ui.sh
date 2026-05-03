@@ -5,7 +5,8 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 OUT_DIR="${1:-/tmp/swim-pose-ui}"
-GODOT_BIN="${GODOT_BIN:-/dataSSD/Godot_v4.6.2-stable_linux.x86_64}"
+GODOT_BIN="${GODOT_BIN:-/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64}"
+GODOT_RENDERING_DRIVER="${GODOT_RENDERING_DRIVER:-vulkan}"
 DISPLAY_ID="${SWIM_POSE_UI_DISPLAY:-:98}"
 
 rm -rf "$OUT_DIR"
@@ -24,7 +25,7 @@ DISPLAY="$DISPLAY_ID" openbox >"$OUT_DIR/openbox.log" 2>&1 &
 sleep 0.5
 
 DISPLAY="$DISPLAY_ID" "$GODOT_BIN" \
-	--rendering-driver opengl3 \
+	--rendering-driver "$GODOT_RENDERING_DRIVER" \
 	--path "$ROOT_DIR" \
 	-s "res://test/UI/swim_pose_visual_probe.gd" \
 	-- "$OUT_DIR" \

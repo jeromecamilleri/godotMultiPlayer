@@ -219,8 +219,17 @@ func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 				director.report_objective_progress(goal_objective_id, 1)
 			if director.has_method("report_team_won"):
 				director.report_team_won(goal_objective_id)
+	if is_multiplayer_authority() and _has_active_multiplayer_peer():
+		call_deferred("_push_goal_state_to_connected_peers")
 	# Freeze so the cube remains clearly parked on the goal.
 	freeze = true
+
+
+func _push_goal_state_to_connected_peers() -> void:
+	if not is_multiplayer_authority() or not _has_active_multiplayer_peer():
+		return
+	for peer_id in multiplayer.get_peers():
+		_push_current_state_to_peer(peer_id)
 
 
 func _request_current_state_when_connected() -> void:

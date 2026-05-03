@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://inventory/items/wood.tres" id="5_wood"]
 [ext_resource type="PackedScene" uid="uid://cmwyiep10m4u4" path="res://environment/box/box.tscn" id="6_box"]
 [ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="7_bomb_door"]
+[ext_resource type="PackedScene" path="res://inventory/world_items/apple_pickup.tscn" id="8_apple_pickup"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_bd01"]
 size = Vector3(4, 4, 1)
@@ -22,7 +23,7 @@ size = Vector3(3.7902527, 4.055664, 0.7084961)
 [node name="Coin" parent="." instance=ExtResource("1_coin")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.677925, 4.6177497, 6.7908463)
 
-[node name="ApplePickup" parent="." groups=["mission_resource_pickups", "mission_apple_pickups"] instance=ExtResource("2_world")]
+[node name="ApplePickup" parent="." groups=["mission_resource_pickups", "mission_apple_pickups"] instance=ExtResource("8_apple_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.267, 4.42, 8.454)
 item_definition = ExtResource("4_apple")
 quantity = 3

@@ -5,7 +5,7 @@
 - Nom du projet: `MutliplayerTemplate`
 - Scène principale: `res://main/main.tscn`
 - Type de projet: jeu Godot multijoueur coopératif en 3D, avec UI en jeu, inventaire, ennemis, VOIP et logique de partie.
-- Binaire local de référence (tests/validation): `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`
+- Binaire local de référence (tests/validation): `/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64` (Godot 4.7 compile local)
 - Plugin terrain ajouté au projet: `addons/terrain_3d/` pour la zone `ZoneScierie`
 
 Pour les scripts UI Python, ce chemin peut être surchargé avec la variable d'environnement `GODOT_BIN`.
@@ -25,6 +25,7 @@ Le point d'entrée réel est la scène [`main/main.tscn`](/home/camillej/godotPr
   - `Grass` vert
   - `Dirt` marron
   - `Rock` gris, pour les flancs rocheux et zones minérales
+  - `FlowerGrass` vert clair avec petites taches de fleurs colorées
 - Ajout d'outils locaux pour ce flux:
   - `tools/generate_zone_scierie_terrain.gd`
   - `tools/backup_zone_scierie_terrain.gd`
@@ -203,7 +204,11 @@ Pour les validations ciblées avec la version de GUT embarquée dans ce dépôt:
 
 Exemple valide:
 
-- `HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/Godot_v4.6.2-stable_linux.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=test_ui_e2e.gd -gunit_test_name=test_ui_e2e_cube_mission -gexit`
+- `HOME=/tmp XDG_DATA_HOME=/tmp /dataSSD/godot/bin/godot.linuxbsd.editor.x86_64 --headless --path . -s addons/gut/gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=test_ui_e2e.gd -gunit_test_name=test_ui_e2e_cube_mission -gexit`
+
+## Validation UI ciblée
+
+Dès qu'une modification touche un affichage HUD, l'inventaire, le mission tracker, la caméra, une animation visible, l'eau ou le terrain, lancer le test UI ciblé correspondant en plus de GUT. Les wrappers GUT `test_ui_e2e` ne suffisent pas pour valider seuls ces changements visibles.
 
 ## Systèmes principaux
 

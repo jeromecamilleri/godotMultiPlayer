@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 
+from godot_runtime_config import NATIVE_GODOT_PATH, RENDERING_DRIVER
+
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUT_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/portal-logistics-ui")
@@ -23,7 +25,6 @@ for old_file in OUT_DIR.iterdir():
         old_file.unlink()
 
 RUN_LOG_PATH = OUT_DIR / "run.log"
-NATIVE_GODOT_PATH = Path(os.environ.get("GODOT_BIN", "/dataSSD/Godot_v4.6.2-stable_linux.x86_64"))
 XVFB_DISPLAY = ":99"
 RUNTIME_NAME = "MutliplayerTemplate (DEBUG)"
 RUNTIME_SEARCH = "MutliplayerTemplate"
@@ -230,7 +231,7 @@ def launch_runtime_instance(label: str, role: str) -> None:
         "UI_TEST_INSTANCE_ROLE": role,
         "UI_TEST_AUTO_ROLE": "server" if role == "server" else "client",
     }
-    cmd = [str(NATIVE_GODOT_PATH), "--rendering-driver", "opengl3", "--path", str(ROOT_DIR)]
+    cmd = [str(NATIVE_GODOT_PATH), "--rendering-driver", RENDERING_DRIVER, "--path", str(ROOT_DIR)]
     phase("Lancement Godot", f"instance={label} role={role}")
     log(f"launch_cmd[{label}]={' '.join(cmd)}")
     log(f"launch_role[{label}]={role}")

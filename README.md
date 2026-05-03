@@ -33,7 +33,7 @@ It has: <br/>
 - `main/main.tscn` should keep `ZoneScierie` as a clean instance without child overrides.
 - Hub editing now starts from `levels/hub/hub_level.tscn`, not a root-level `levels/hub_level.tscn`.
 - If Godot crashes while editing Terrain3D, reopen `zone_scierie.tscn` directly before checking `main/main.tscn`.
-- The project currently uses Godot `4.6.2` locally; Terrain3D editor stability should be validated carefully after terrain edits.
+- The project currently uses a compiled Godot `4.7` local build at `/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64`; Terrain3D editor stability should be validated carefully after terrain edits.
 
 ## Test Notes
 

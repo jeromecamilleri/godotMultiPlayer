@@ -102,11 +102,12 @@ Note optimisation pour la phase reactor:
 Prérequis : Linux, Xvfb, xdotool, ImageMagick (`import`), python3, PIL.
 
 Le binaire Godot utilisé par les scripts UI est configurable via `GODOT_BIN`.
-Par défaut : `/dataSSD/Godot_v4.6.2-stable_linux.x86_64`.
+Par défaut : `/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64`.
+Le backend de rendu est configurable via `GODOT_RENDERING_DRIVER`; par défaut, les tests UI utilisent `vulkan` avec Godot 4.7 pour éviter le chemin GLES3/Terrain3D incompatible avec cette build.
 Exemple :
 
 ```bash
-GODOT_BIN=/dataSSD/Godot_v4.6.2-stable_linux.x86_64 ./test/UI/run_ui_suite.sh --profile smoke
+GODOT_BIN=/dataSSD/godot/bin/godot.linuxbsd.editor.x86_64 ./test/UI/run_ui_suite.sh --profile smoke
 ```
 
 ## Intégration à la suite GUT
