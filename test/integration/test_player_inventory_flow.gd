@@ -5,6 +5,7 @@ const WORLD_ITEM_SCENE: PackedScene = preload("res://inventory/world_item.tscn")
 const CHEST_SCENE: PackedScene = preload("res://inventory/inventory_container.tscn")
 const APPLE_DEF = preload("res://inventory/items/apple.tres")
 const WOOD_DEF = preload("res://inventory/items/wood.tres")
+const MATCH_DIRECTOR_SCRIPT: GDScript = preload("res://main/match_director.gd")
 
 
 func _spawn_world() -> Node3D:
@@ -93,3 +94,31 @@ func test_player_can_transfer_with_chest() -> void:
 	await wait_process_frames(2)
 	assert_eq(2, player.get_inventory_component().count_item("wood"))
 	assert_eq(3, chest.get_inventory_component().count_item("wood"))
+
+
+func test_transfer_to_mission_hub_chest_scores_delivered_resources() -> void:
+	var world := await _spawn_world()
+	var director: MatchDirector = MATCH_DIRECTOR_SCRIPT.new() as MatchDirector
+	director.force_server_mode = true
+	director.auto_start_match = false
+	director.hub_chest_seed_apples = 0
+	world.add_child(director)
+	await wait_process_frames(1)
+
+	var player := await _spawn_player(world)
+	var chest = CHEST_SCENE.instantiate()
+	chest.inventory_name = "Coffre mission"
+	chest.add_to_group("mission_hub_chests")
+	world.get_node("Interactives").add_child(chest)
+	await wait_process_frames(2)
+
+	player.get_inventory_component().add_payload(APPLE_DEF.to_inventory_payload(2))
+	player.set_focused_inventory_target(chest)
+	await wait_process_frames(1)
+
+	player.request_transfer_to_target(0, 2)
+	await wait_process_frames(2)
+
+	var snapshot: String = director.get_snapshot_text()
+	assert_true(snapshot.find("peer_2: 10") >= 0, "Deux pommes livrees doivent donner 10 points au joueur.")
+	assert_true(snapshot.find("team_score: 10") >= 0, "Deux pommes livrees doivent donner 10 points a l'equipe.")

@@ -6,10 +6,12 @@ signal connect_client
 @export var hide_ui_and_connect: bool
 @onready var _server_status_label: Label = $InGameUI/ServerStatus
 @onready var _match_timer_label: Label = get_node_or_null("InGameUI/MatchTimer") as Label
+@onready var _player_stats_label: Label = get_node_or_null("InGameUI/PlayerStats") as Label
 @onready var _connection: Connection = get_node("../Connection") as Connection
 @onready var _match_director: Node = get_node_or_null("../MatchDirector")
 @onready var _network_stats_label: Label = get_node_or_null("InGameUI/NetworkStats") as Label
 @onready var _endpoint_reminder_label: Label = get_node_or_null("InGameUI/EndpointReminder") as Label
+@onready var _server_black_backdrop: ColorRect = get_node_or_null("InGameUI/ServerBlackBackdrop") as ColorRect
 @onready var _server_hud_backdrop: Control = get_node_or_null("InGameUI/ServerHudBackdrop") as Control
 @onready var _server_match_stats_label: Label = get_node_or_null("InGameUI/ServerMatchStats") as Label
 @onready var _server_client_stats_label: Label = get_node_or_null("InGameUI/ServerClientStats") as Label
@@ -61,6 +63,7 @@ func _ready():
 			_match_status_text = _match_director.get_snapshot_text()
 	_update_server_status_label()
 	_update_match_timer_label()
+	_update_player_stats_label()
 	_update_network_stats_label()
 	_update_endpoint_reminder_label()
 	_update_server_match_stats_label()
@@ -101,7 +104,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	var key_event := event as InputEventKey
-	if key_event.keycode == KEY_F3:
+	if key_event.keycode == KEY_F1:
 		_debug_overlay_enabled = not _debug_overlay_enabled
 		_refresh_server_status_visibility()
 		_update_debug_overlay()
@@ -129,6 +132,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_refresh_inventory_panels()
+	_update_player_stats_label()
 	_update_debug_overlay()
 	_update_mission_event_toast()
 	_update_context_hint()
@@ -169,6 +173,7 @@ func _on_server_status_changed(status_text: String) -> void:
 	_connection_status_text = status_text
 	_update_server_status_label()
 	_update_match_timer_label()
+	_update_player_stats_label()
 	_update_endpoint_reminder_label()
 	_update_server_match_stats_label()
 	_update_server_client_stats_label()
@@ -206,6 +211,9 @@ func _refresh_server_status_visibility() -> void:
 	if is_instance_valid(_match_timer_label):
 		_match_timer_label.visible = $InGameUI.visible and not _is_server_instance()
 		_match_timer_label.z_index = 10
+	if is_instance_valid(_player_stats_label):
+		_player_stats_label.visible = $InGameUI.visible and not _is_server_instance()
+		_player_stats_label.z_index = 10
 	if is_instance_valid(_mission_tracker_backdrop):
 		_mission_tracker_backdrop.visible = $InGameUI.visible and not _is_server_instance()
 	if is_instance_valid(_mission_tracker_title):
@@ -213,9 +221,11 @@ func _refresh_server_status_visibility() -> void:
 	if is_instance_valid(_mission_tracker_body):
 		_mission_tracker_body.visible = $InGameUI.visible and not _is_server_instance()
 	if is_instance_valid(_network_stats_label):
-		_network_stats_label.visible = $InGameUI.visible and not _is_server_instance()
+		_network_stats_label.visible = false
 	if is_instance_valid(_endpoint_reminder_label):
 		_endpoint_reminder_label.visible = $InGameUI.visible
+	if is_instance_valid(_server_black_backdrop):
+		_server_black_backdrop.visible = $InGameUI.visible and _is_server_instance()
 	if is_instance_valid(_server_hud_backdrop):
 		_server_hud_backdrop.visible = $InGameUI.visible and _is_server_instance()
 	if is_instance_valid(_server_match_stats_label):
@@ -274,6 +284,12 @@ func _update_match_timer_label() -> void:
 	_match_timer_label.text = "%s %02d:%02d" % [state_name, minutes, seconds]
 
 
+func _update_player_stats_label() -> void:
+	if not is_instance_valid(_player_stats_label):
+		return
+	_player_stats_label.text = _format_local_player_stats_text()
+
+
 func _update_network_stats_label() -> void:
 	if not is_instance_valid(_network_stats_label):
 		return
@@ -305,9 +321,10 @@ func _build_mission_phase_data() -> Dictionary:
 	var cube_goal_reached := _objective_int(objectives, "cube_activator_reached", 0) > 0
 
 	if state_name == "WON" and (cube_goal_reached or result_reason == "cube_activator_reached"):
+		var team_score := _extract_snapshot_value("team_score")
 		return {
 			"title": "MISSION ACCOMPLIE",
-			"body": "Le cube est sur l'Activator. Exfiltration ou nouvelle partie.",
+			"body": "Le cube est sur l'Activator.\nScore equipe: %s\nExfiltration ou nouvelle partie." % team_score,
 		}
 
 	if mission_phase <= 1:
@@ -744,7 +761,7 @@ func _update_debug_overlay() -> void:
 
 func _build_debug_overlay_text() -> String:
 	var sections: Array[String] = []
-	sections.append("DEBUG F3")
+	sections.append("DEBUG F1")
 	sections.append(_build_debug_match_section())
 	sections.append(_build_debug_network_section())
 	sections.append(_build_debug_inventory_section())
@@ -758,6 +775,7 @@ func _build_debug_match_section() -> String:
 	lines.append("etat=%s" % _extract_state_name(_match_status_text))
 	lines.append("chrono=%s" % _format_match_clock())
 	lines.append("joueurs=%s" % _extract_snapshot_value("players"))
+	lines.append("score equipe=%s" % _extract_snapshot_value("team_score"))
 	lines.append("vies=%s" % _format_snapshot_compact_section("lives"))
 	lines.append("scores=%s" % _format_snapshot_compact_section("score"))
 	lines.append("morts=%s" % _format_snapshot_compact_section("deaths"))
@@ -949,7 +967,7 @@ func _format_debug_objectives_summary() -> String:
 			continue
 		if trimmed.begins_with("peer_"):
 			continue
-		if trimmed.begins_with("state:") or trimmed.begins_with("time_left:") or trimmed.begins_with("players:") or trimmed == "MATCH" or trimmed == "score:" or trimmed == "lives:" or trimmed == "deaths:":
+		if trimmed.begins_with("state:") or trimmed.begins_with("result_reason:") or trimmed.begins_with("time_left:") or trimmed.begins_with("players:") or trimmed.begins_with("team_score:") or trimmed == "MATCH" or trimmed == "score:" or trimmed == "lives:" or trimmed == "deaths:":
 			continue
 		var parts := trimmed.split(":")
 		if parts.size() < 2:
@@ -974,6 +992,29 @@ func _format_snapshot_compact_section(section_name: String) -> String:
 	for peer_id in peer_ids:
 		items.append("J%d:%s" % [peer_id, str(section_values.get(peer_id, "-"))])
 	return ", ".join(items)
+
+
+func _format_local_player_stats_text() -> String:
+	var peer_id := _get_local_peer_id()
+	if peer_id <= 0:
+		return "Vies: -   Score: -"
+	var lives := _extract_snapshot_section("lives")
+	var scores := _extract_snapshot_section("score")
+	return "Vies: %s   Score: %s" % [
+		str(lives.get(peer_id, "-")),
+		str(scores.get(peer_id, "0")),
+	]
+
+
+func _get_local_peer_id() -> int:
+	var local_player := _get_local_player()
+	if local_player != null:
+		return local_player.get_multiplayer_authority()
+	if _has_active_multiplayer_peer():
+		return multiplayer.get_unique_id()
+	return -1
+
+
 func _extract_time_left_seconds(snapshot_text: String) -> float:
 	for line in snapshot_text.split("\n"):
 		if not line.begins_with("time_left:"):
@@ -999,13 +1040,13 @@ func _format_match_status_for_hud() -> String:
 	var minutes: int = total_seconds / 60
 	var seconds: int = total_seconds % 60
 	var players := _extract_snapshot_value("players")
-	var score := _extract_snapshot_value("score")
-	return "MATCH\netat: %s\nchrono: %02d:%02d\njoueurs: %s\nscore: %s" % [
+	var team_score := _extract_snapshot_value("team_score")
+	return "MATCH\netat: %s\nchrono: %02d:%02d\njoueurs: %s\nscore equipe: %s" % [
 		state_name,
 		minutes,
 		seconds,
 		players,
-		score,
+		team_score,
 	]
 
 

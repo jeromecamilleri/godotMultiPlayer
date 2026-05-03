@@ -205,6 +205,11 @@ func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 		return
 	_state_revision += 1
 	_goal_reached = true
+	var contributor_peer_ids: Array[int] = []
+	for peer_id in _attached_peers.keys():
+		var id := int(peer_id)
+		if id > 0:
+			contributor_peer_ids.append(id)
 	if goal_position != Vector3.INF:
 		global_position = goal_position
 	linear_velocity = Vector3.ZERO
@@ -217,6 +222,8 @@ func complete_goal(goal_position: Vector3 = Vector3.INF) -> void:
 		if is_instance_valid(director):
 			if director.has_method("report_objective_progress"):
 				director.report_objective_progress(goal_objective_id, 1)
+			if director.has_method("report_cube_goal_completed"):
+				director.report_cube_goal_completed(contributor_peer_ids, goal_objective_id)
 			if director.has_method("report_team_won"):
 				director.report_team_won(goal_objective_id)
 	if is_multiplayer_authority() and _has_active_multiplayer_peer():

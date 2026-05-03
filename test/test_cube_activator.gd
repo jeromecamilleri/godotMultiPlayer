@@ -35,6 +35,8 @@ func test_cube_activator_completes_objective_and_wins_match() -> void:
 	cube.server_peer_id = multiplayer.get_unique_id()
 	world.add_child(cube)
 	cube.global_position = Vector3(3.2, 0.0, 0.2)
+	cube._attached_peers[2] = {"active": true, "intent": Vector3.RIGHT, "last_seen_ms": Time.get_ticks_msec()}
+	cube._attached_peers[3] = {"active": true, "intent": Vector3.RIGHT, "last_seen_ms": Time.get_ticks_msec()}
 	await wait_process_frames(2)
 
 	activator._on_body_entered(cube)
@@ -46,6 +48,9 @@ func test_cube_activator_completes_objective_and_wins_match() -> void:
 
 	var snapshot: String = director.get_snapshot_text()
 	assert_true(snapshot.find("cube_activator_reached: 1") >= 0, "Le directeur doit enregistrer l'objectif coop.")
+	assert_true(snapshot.find("team_score: 100") >= 0, "Le cube doit fortement recompenser le score equipe.")
+	assert_true(snapshot.find("peer_2: 50") >= 0, "Les joueurs qui poussent le cube doivent partager le score personnel.")
+	assert_true(snapshot.find("peer_3: 50") >= 0, "Les joueurs qui poussent le cube doivent partager le score personnel.")
 	assert_true(snapshot.find("state: WON") >= 0, "L'activateur doit permettre de terminer la mission.")
 
 

@@ -3,7 +3,7 @@ class_name PlayerLifecycleComponent
 
 
 func setup(player) -> void:
-	player._lives_overlay.visible = player.is_multiplayer_authority()
+	player._lives_overlay.visible = false
 	_update_lives_label(player)
 	player._death_overlay.visible = false
 

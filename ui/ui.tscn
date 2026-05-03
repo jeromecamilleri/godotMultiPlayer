@@ -104,6 +104,16 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 
+[node name="ServerBlackBackdrop" type="ColorRect" parent="InGameUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
 [node name="MouseMode" type="Control" parent="InGameUI" unique_id=1647404799]
 anchors_preset = 0
 script = ExtResource("2_rhohj")
@@ -179,17 +189,14 @@ vertical_alignment = 0
 
 [node name="MatchTimer" type="Label" parent="InGameUI" unique_id=208006434]
 layout_mode = 1
-anchors_preset = 10
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -160.0
-offset_top = 20.0
-offset_right = 160.0
-offset_bottom = 56.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 32
+anchors_preset = 0
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 470.0
+offset_bottom = 66.0
+theme_override_font_sizes/font_size = 30
 text = "TIME 00:00"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="MissionTrackerBackdrop" type="ColorRect" parent="InGameUI"]
 layout_mode = 1
@@ -197,16 +204,28 @@ anchors_preset = 0
 offset_left = 24.0
 offset_top = 18.0
 offset_right = 490.0
-offset_bottom = 168.0
+offset_bottom = 260.0
 color = Color(0.05, 0.08, 0.11, 0.82)
+
+[node name="PlayerStats" type="Label" parent="InGameUI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 40.0
+offset_top = 68.0
+offset_right = 470.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Vies: -   Score: -"
+horizontal_alignment = 0
+vertical_alignment = 0
 
 [node name="MissionTrackerTitle" type="Label" parent="InGameUI"]
 layout_mode = 1
 anchors_preset = 0
 offset_left = 40.0
-offset_top = 30.0
+offset_top = 102.0
 offset_right = 470.0
-offset_bottom = 62.0
+offset_bottom = 134.0
 theme_override_font_sizes/font_size = 22
 text = "MISSION"
 horizontal_alignment = 0
@@ -215,9 +234,9 @@ horizontal_alignment = 0
 layout_mode = 1
 anchors_preset = 0
 offset_left = 40.0
-offset_top = 66.0
+offset_top = 138.0
 offset_right = 470.0
-offset_bottom = 160.0
+offset_bottom = 248.0
 theme_override_font_sizes/font_size = 16
 text = "Suivi d'objectif en attente..."
 autowrap_mode = 3
@@ -284,6 +303,7 @@ stream = ExtResource("8_mission_sfx")
 volume_db = -10.0
 
 [node name="NetworkStats" type="Label" parent="InGameUI"]
+visible = false
 layout_mode = 1
 anchors_preset = 10
 anchor_left = 0.5
@@ -313,29 +333,33 @@ horizontal_alignment = 0
 [node name="DebugOverlayBackdrop" type="ColorRect" parent="InGameUI"]
 visible = false
 layout_mode = 1
-anchors_preset = 3
-anchor_top = 1.0
-anchor_right = 0.0
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = -352.0
-offset_right = 484.0
+offset_left = -560.0
+offset_top = 18.0
+offset_right = -24.0
 offset_bottom = -104.0
-grow_vertical = 0
+grow_horizontal = 0
+grow_vertical = 2
 color = Color(0.03, 0.04, 0.06, 0.86)
 
 [node name="DebugOverlayLabel" type="Label" parent="InGameUI"]
 visible = false
 layout_mode = 1
-anchors_preset = 3
-anchor_top = 1.0
-anchor_right = 0.0
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = -340.0
-offset_right = 468.0
+offset_left = -544.0
+offset_top = 30.0
+offset_right = -40.0
 offset_bottom = -120.0
-grow_vertical = 0
+grow_horizontal = 0
+grow_vertical = 2
 theme_override_font_sizes/font_size = 14
 text = ""
 clip_text = true

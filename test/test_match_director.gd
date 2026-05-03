@@ -121,7 +121,9 @@ func test_score_updates_are_reflected_in_snapshot() -> void:
 	director.add_score_for_peer(3, 7)
 	await wait_process_frames(1)
 
-	assert_true(director.get_snapshot_text().find("peer_3: 7") >= 0, "Snapshot must include updated score per peer")
+	var snapshot: String = director.get_snapshot_text()
+	assert_true(snapshot.find("peer_3: 7") >= 0, "Snapshot must include updated score per peer")
+	assert_true(snapshot.find("team_score: 7") >= 0, "Snapshot must include the aggregated team score")
 
 
 func test_unregister_last_peer_does_not_mark_mission_failed_while_timer_remains() -> void:
@@ -167,8 +169,50 @@ func test_enemy_kill_reports_score_and_objective_progress() -> void:
 	await wait_process_frames(1)
 	var snapshot: String = director.get_snapshot_text()
 
-	assert_true(snapshot.find("peer_11: 1") >= 0, "Killer should receive +1 score")
+	assert_true(snapshot.find("peer_11: 10") >= 0, "Killer should receive enemy kill score")
+	assert_true(snapshot.find("team_score: 10") >= 0, "Enemy kill must also increment the team score")
 	assert_true(snapshot.find("bees_killed: 1") >= 0, "Enemy objective progress should be incremented")
+
+
+func test_enemy_kill_without_attacker_still_increments_team_score() -> void:
+	var director := await _create_director(5.0)
+	director.register_peer(12)
+	await wait_process_frames(1)
+	director.report_enemy_killed("beetle_bot")
+	await wait_process_frames(1)
+	var snapshot: String = director.get_snapshot_text()
+
+	assert_true(snapshot.find("team_score: 10") >= 0, "A server-confirmed enemy kill without attacker still belongs to the team score.")
+	assert_true(snapshot.find("peer_12: 0") >= 0, "Anonymous team score must not create a false personal score.")
+
+
+func test_resource_delivery_scores_only_new_hub_chest_progress() -> void:
+	var director := await _create_director(5.0)
+	director.register_peer(13)
+	await wait_process_frames(1)
+	var inventory := _make_fake_inventory(6, 2)
+	add_child_autofree(inventory)
+	var chest := _make_fake_chest(inventory)
+	add_child_autofree(chest)
+
+	inventory.set("wood", 8)
+	director.report_resource_deposited(13, "wood", 2)
+	await wait_process_frames(1)
+	var wood_snapshot: String = director.get_snapshot_text()
+	assert_true(wood_snapshot.find("peer_13: 4") >= 0, "Deux bois livres doivent donner 4 points au joueur.")
+	assert_true(wood_snapshot.find("team_score: 4") >= 0, "Deux bois livres doivent donner 4 points a l'equipe.")
+
+	director.report_resource_deposited(13, "wood", 2)
+	await wait_process_frames(1)
+	var repeated_snapshot: String = director.get_snapshot_text()
+	assert_true(repeated_snapshot.find("peer_13: 4") >= 0, "Redeposer une progression deja comptee ne doit pas rescorrer.")
+
+	inventory.set("apple", 3)
+	director.report_resource_deposited(13, "apple", 1)
+	await wait_process_frames(1)
+	var apple_snapshot: String = director.get_snapshot_text()
+	assert_true(apple_snapshot.find("peer_13: 9") >= 0, "Une pomme livree doit ajouter 5 points au joueur.")
+	assert_true(apple_snapshot.find("team_score: 9") >= 0, "Une pomme livree doit ajouter 5 points a l'equipe.")
 
 
 func test_dev_spawn_zone_reactor_unlocks_required_portals_on_match_start() -> void:

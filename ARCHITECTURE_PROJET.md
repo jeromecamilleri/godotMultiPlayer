@@ -172,7 +172,7 @@ Ces repères doivent rester purement visuels :
 
 ## Debug réseau / gameplay
 
-Le HUD expose un mode debug activable avec `F3` via [`ui/ui.gd`](/home/camillej/godotProjects/godot-multiplayer/ui/ui.gd).
+Le HUD expose un mode debug activable avec `F1` via [`ui/ui.gd`](/home/camillej/godotProjects/godot-multiplayer/ui/ui.gd).
 
 Ce mode doit rester purement observateur :
 
@@ -184,11 +184,11 @@ Ce mode doit rester purement observateur :
 
 Le nœud [`main/connection.gd`](/home/camillej/godotProjects/godot-multiplayer/main/connection.gd) sert aussi de bus local de debug via le groupe `connection_service` et l'historique `record_sync_event(...)`.
 
-Quand possible, préférer aussi `get_recent_sync_event_entries()` pour récupérer une vue structurée (`source`, `detail`, `text`, `metadata`) exploitable par l'overlay `F3` et les tests.
+Quand possible, préférer aussi `get_recent_sync_event_entries()` pour récupérer une vue structurée (`source`, `detail`, `text`, `metadata`) exploitable par l'overlay `F1` et les tests.
 
 Quand un nouvel objet persistant est ajouté, penser à :
 
-- exposer des getters de debug simples si l'état est utile à lire en `F3`
+- exposer des getters de debug simples si l'état est utile à lire en `F1`
 - enregistrer un événement de sync sur les transitions importantes
 - conserver la logique gameplay autoritaire côté serveur
 
@@ -315,7 +315,7 @@ Interprétation :
 - `request_current_state_from_server()` : point d'entrée client unique pour demander un resync au serveur
 - `push_current_state_to_peer(peer_id)` : point d'entrée serveur unique pour pousser l'état courant à un peer
 - `get_state_revision()` : entier monotone ou révision équivalente permettant de savoir si l'état durable a changé
-- `get_debug_sync_summary()` : résumé texte court utilisable dans l'overlay `F3` et les tests
+- `get_debug_sync_summary()` : résumé texte court utilisable dans l'overlay `F1` et les tests
 
 Règles de mise en oeuvre :
 

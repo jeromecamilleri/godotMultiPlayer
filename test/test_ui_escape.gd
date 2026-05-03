@@ -115,10 +115,10 @@ func _escape_event() -> InputEventKey:
 	return event
 
 
-func _f3_event() -> InputEventKey:
+func _f1_event() -> InputEventKey:
 	var event := InputEventKey.new()
 	event.pressed = true
-	event.keycode = KEY_F3
+	event.keycode = KEY_F1
 	return event
 
 
@@ -148,7 +148,7 @@ func test_escape_server_triggers_server_exit() -> void:
 	assert_false(ui.exit_client_called, "Escape cote serveur ne doit pas lancer la sortie client")
 
 
-func test_f3_toggle_affiche_et_masque_le_debug_overlay() -> void:
+func test_f1_toggle_affiche_et_masque_le_debug_overlay() -> void:
 	var ctx: Dictionary = await _build_ui_context()
 	var ui: TestUI = ctx["ui"] as TestUI
 	var debug_label := ui.get_node("InGameUI/DebugOverlayLabel") as Label
@@ -157,19 +157,19 @@ func test_f3_toggle_affiche_et_masque_le_debug_overlay() -> void:
 
 	assert_false(debug_label.visible)
 
-	ui._unhandled_input(_f3_event())
+	ui._unhandled_input(_f1_event())
 	await wait_process_frames(1)
-	assert_true(debug_label.visible, "F3 doit afficher l'overlay debug.")
-	assert_string_contains(debug_label.text, "DEBUG F3")
+	assert_true(debug_label.visible, "F1 doit afficher l'overlay debug.")
+	assert_string_contains(debug_label.text, "DEBUG F1")
 	assert_string_contains(debug_label.text, "MATCH")
 	assert_string_contains(debug_label.text, "RESEAU")
 	assert_string_contains(debug_label.text, "SYNCS")
 	assert_string_contains(debug_label.text, "events (1)")
 	assert_string_contains(debug_label.text, "coin | consomme")
 
-	ui._unhandled_input(_f3_event())
+	ui._unhandled_input(_f1_event())
 	await wait_process_frames(1)
-	assert_false(debug_label.visible, "Un second F3 doit masquer l'overlay debug.")
+	assert_false(debug_label.visible, "Un second F1 doit masquer l'overlay debug.")
 
 
 func test_show_ui_without_multiplayer_peer_does_not_raise_disconnect_errors() -> void:

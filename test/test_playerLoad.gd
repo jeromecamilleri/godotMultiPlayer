@@ -26,6 +26,16 @@ func test_player_camera_keeps_distant_world_labels_sharp() -> void:
 	assert_false(attributes.dof_blur_far_enabled, "La camera joueur ne doit pas flouter les labels 3D distants.")
 
 
+func test_player_lives_overlay_is_hidden_because_hud_groups_persistent_stats() -> void:
+	var player := PLAYER_SCENE.instantiate()
+	add_child_autofree(player)
+	await wait_process_frames(2)
+
+	var lives_overlay := player.get_node("LivesOverlay") as CanvasLayer
+	assert_not_null(lives_overlay)
+	assert_false(lives_overlay.visible, "Les vies persistantes doivent etre affichees dans le panneau HUD sombre, pas en overlay separe.")
+
+
 func test_character_skin_swim_animation_has_motion_tracks() -> void:
 	# The swim clip is edited locally in character_skin.tscn, so keep a guard against
 	# accidentally saving it as an empty animation from the Godot animation panel.

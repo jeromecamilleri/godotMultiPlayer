@@ -590,8 +590,14 @@ func _server_transfer_inventory_to_target(target_path: NodePath, slot_index: int
 	if target_inventory == null:
 		DebugLog.gameplay("inventory: transfer_to rejected because target inventory was not found")
 		return
+	var target_node := get_node_or_null(target_path)
+	var transferred_payload: Dictionary = inventory.get_slot(slot_index)
+	if not transferred_payload.is_empty():
+		transferred_payload["quantity"] = clampi(quantity, 1, int(transferred_payload.get("quantity", 1)))
 	var transferred: bool = inventory.transfer_to(target_inventory, slot_index, quantity)
 	DebugLog.gameplay("inventory: transfer_to result=%s" % str(transferred))
+	if transferred:
+		_report_mission_resource_deposit(target_node, transferred_payload)
 
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -707,6 +713,18 @@ func _get_inventory_component_from_path(target_path: NodePath):
 	if component is Node:
 		return component
 	return null
+
+
+func _report_mission_resource_deposit(target_node: Node, payload: Dictionary) -> void:
+	if not is_instance_valid(target_node) or not target_node.is_in_group("mission_hub_chests"):
+		return
+	var item_id := String(payload.get("item_id", ""))
+	if item_id != "wood" and item_id != "apple":
+		return
+	var director := get_tree().get_first_node_in_group("match_director")
+	if not is_instance_valid(director) or not director.has_method("report_resource_deposited"):
+		return
+	director.call("report_resource_deposited", get_multiplayer_authority(), item_id, int(payload.get("quantity", 1)))
 
 
 func _get_inventory_drop_position() -> Vector3:

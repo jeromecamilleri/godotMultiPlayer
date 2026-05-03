@@ -26,9 +26,14 @@ enum MatchState {
 @export var portal_unlock_apples_step_per_extra_player := 1
 @export var hub_chest_seed_wood := 6
 @export var hub_chest_seed_apples := 2
+@export var enemy_kill_score := 10
+@export var wood_delivered_score := 2
+@export var apple_delivered_score := 5
+@export var cube_goal_score := 100
 
 var _state: int = MatchState.LOBBY
 var _time_left_sec: float = 0.0
+var _team_score := 0
 var _score_by_peer: Dictionary = {} # {Peer ID: score}
 var _lives_by_peer: Dictionary = {} # {Peer ID: lives}
 var _deaths_by_peer: Dictionary = {} # {Peer ID: deaths}
@@ -44,6 +49,9 @@ var _snapshot_revision := 0
 var _portal_breche_unlocked := false
 var _portal_reactor_unlocked := false
 var _result_reason := ""
+var _scored_chest_wood_delivered := 0
+var _scored_chest_apples_delivered := 0
+var _rewarded_objectives: Dictionary = {}
 
 
 func _ready() -> void:
@@ -116,6 +124,10 @@ func reset_to_lobby() -> void:
 		_deaths_by_peer[peer_id] = 0
 	for peer_id in _score_by_peer.keys():
 		_score_by_peer[peer_id] = 0
+	_team_score = 0
+	_scored_chest_wood_delivered = 0
+	_scored_chest_apples_delivered = 0
+	_rewarded_objectives.clear()
 	_team_progress["relays_activated"] = 0
 	_team_progress["bees_killed"] = 0
 	_team_progress["players_alive"] = _connected_peers.size()
@@ -158,12 +170,35 @@ func report_team_lost(reason: String = "team_eliminated") -> void:
 	_emit_snapshot()
 
 
-func add_score_for_peer(peer_id: int, delta: int = 1) -> void:
+func add_score_for_peer(peer_id: int, delta: int = 1, include_team: bool = true) -> void:
 	if not _is_server_instance():
 		return
 	if not _score_by_peer.has(peer_id):
 		_score_by_peer[peer_id] = 0
 	_score_by_peer[peer_id] = int(_score_by_peer[peer_id]) + delta
+	if include_team:
+		add_team_score(delta, false)
+	_emit_snapshot()
+
+
+func add_team_score(delta: int = 1, emit_snapshot: bool = true) -> void:
+	if not _is_server_instance():
+		return
+	_team_score = maxi(0, _team_score + delta)
+	if emit_snapshot:
+		_emit_snapshot()
+
+
+func _award_points(peer_id: int, delta: int, reason: String = "") -> void:
+	if delta <= 0:
+		return
+	if peer_id > 0:
+		if not _score_by_peer.has(peer_id):
+			_score_by_peer[peer_id] = 0
+		_score_by_peer[peer_id] = int(_score_by_peer[peer_id]) + delta
+	add_team_score(delta, false)
+	if not reason.is_empty():
+		_record_sync_event("score", "%s +%d%s" % [reason, delta, " J%d" % peer_id if peer_id > 0 else " equipe"])
 	_emit_snapshot()
 
 
@@ -239,9 +274,58 @@ func report_enemy_killed(enemy_type: String, killer_id: int = -1) -> void:
 	if enemy_type == "bee_bot":
 		_team_progress["bees_killed"] = int(_team_progress.get("bees_killed", 0)) + 1
 	if killer_id > 0:
-		add_score_for_peer(killer_id, 1)
+		add_score_for_peer(killer_id, enemy_kill_score)
 		return
+	add_team_score(enemy_kill_score, false)
 	_emit_snapshot()
+
+
+func report_resource_deposited(peer_id: int, item_id: String, _quantity: int = 1) -> void:
+	if not _is_server_instance():
+		return
+	_update_zone_progression()
+	match item_id:
+		"wood":
+			var delivered_wood := int(_team_progress.get("chest_wood_delivered", 0))
+			var new_wood := maxi(0, delivered_wood - _scored_chest_wood_delivered)
+			if new_wood <= 0:
+				_emit_snapshot()
+				return
+			_scored_chest_wood_delivered += new_wood
+			_award_points(peer_id, new_wood * wood_delivered_score, "bois livre x%d" % new_wood)
+		"apple":
+			var delivered_apples := int(_team_progress.get("chest_apples_delivered", 0))
+			var new_apples := maxi(0, delivered_apples - _scored_chest_apples_delivered)
+			if new_apples <= 0:
+				_emit_snapshot()
+				return
+			_scored_chest_apples_delivered += new_apples
+			_award_points(peer_id, new_apples * apple_delivered_score, "pommes livrees x%d" % new_apples)
+		_:
+			_emit_snapshot()
+
+
+func report_cube_goal_completed(contributor_peer_ids: Array[int], objective_id: String = "cube_activator_reached") -> void:
+	if not _is_server_instance():
+		return
+	var reward_key := "cube_goal:%s" % objective_id
+	if _rewarded_objectives.has(reward_key):
+		_emit_snapshot()
+		return
+	_rewarded_objectives[reward_key] = true
+	add_team_score(cube_goal_score, false)
+	var contributors := _deduplicate_positive_peer_ids(contributor_peer_ids)
+	if contributors.is_empty():
+		_record_sync_event("score", "cube +%d equipe" % cube_goal_score)
+		_emit_snapshot()
+		return
+	var base_share: int = cube_goal_score / contributors.size()
+	var remainder: int = cube_goal_score % contributors.size()
+	for i in range(contributors.size()):
+		var peer_id := int(contributors[i])
+		var personal_delta := base_share + (1 if i < remainder else 0)
+		add_score_for_peer(peer_id, personal_delta, false)
+	_record_sync_event("score", "cube +%d equipe partage=%d" % [cube_goal_score, contributors.size()])
 
 
 func report_objective_progress(objective_id: String, delta: int = 1) -> void:
@@ -298,6 +382,7 @@ func get_snapshot_text() -> String:
 	lines.append("result_reason: %s" % _result_reason)
 	lines.append("time_left: %.1fs" % _time_left_sec)
 	lines.append("players: %d" % _connected_peers.size())
+	lines.append("team_score: %d" % _team_score)
 	lines.append("score:")
 
 	var ids := PackedInt32Array(_score_by_peer.keys())
@@ -402,6 +487,17 @@ func _count_alive_players() -> int:
 		if int(_lives_by_peer.get(peer_id, initial_lives_per_player)) > 0:
 			alive += 1
 	return alive
+
+
+func _deduplicate_positive_peer_ids(peer_ids: Array[int]) -> Array[int]:
+	var unique: Array[int] = []
+	for peer_id in peer_ids:
+		var id := int(peer_id)
+		if id <= 0 or id in unique:
+			continue
+		unique.append(id)
+	unique.sort()
+	return unique
 
 
 func _update_zone_progression() -> void:
