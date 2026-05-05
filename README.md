@@ -41,6 +41,23 @@ It has: <br/>
 - Example:
   - `... gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=test_ui_e2e.gd -gunit_test_name=test_ui_e2e_cube_mission -gexit`
 
+## Local Multiplayer Launcher
+
+This branch proposes a small external launcher for local playtests: one command starts one server window and several client windows.
+
+```bash
+scripts/run_local_multiplayer.sh --clients 2 --port 5050
+```
+
+Useful options:
+
+- `--clients N` starts N client windows after the server.
+- `--host HOST` configures the client connection host.
+- `--player-prefix NAME` names clients `NAME 1`, `NAME 2`, etc.
+- `GODOT_BIN=/path/to/godot` overrides the local Godot executable.
+
+The launcher keeps the game code close to the existing UI-test path: it uses `UI_TEST_AUTO_ROLE=server|client`, `GODOT_RUNTIME_HOST`, `GODOT_RUNTIME_PORT`, and `GODOT_PLAYER_NAME` to fill the menu and start each instance.
+
 ## Release itch.io
 
 Playable release builds are generated with:

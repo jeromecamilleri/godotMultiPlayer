@@ -1223,6 +1223,9 @@ func _sync_main_menu_endpoint_fields() -> void:
 		var nickname := UserDataManager.DEFAULT_NICKNAME
 		if is_instance_valid(_user_data_manager):
 			nickname = _user_data_manager.get_pending_local_nickname()
+		var env_nickname := OS.get_environment("GODOT_PLAYER_NAME").strip_edges()
+		if not env_nickname.is_empty():
+			nickname = env_nickname
 		_player_name_edit.text = nickname
 	if is_instance_valid(_server_ip_edit):
 		_server_ip_edit.text = _connection.get_runtime_host()
@@ -1244,6 +1247,9 @@ func _apply_main_menu_player_name_config() -> void:
 	if not is_instance_valid(_user_data_manager):
 		return
 	var nickname := _user_data_manager.get_pending_local_nickname()
+	var env_nickname := OS.get_environment("GODOT_PLAYER_NAME").strip_edges()
+	if not env_nickname.is_empty():
+		nickname = env_nickname
 	if is_instance_valid(_player_name_edit):
 		nickname = _player_name_edit.text
 	_user_data_manager.configure_local_nickname(nickname)

@@ -211,7 +211,13 @@ func disconnect_all() -> void:
 func _resolve_runtime_network_config() -> void:
 	_resolved_port = port
 	_resolved_host = host
-	var env_port_text := OS.get_environment("UI_TEST_PORT").strip_edges()
+	var env_host_text := OS.get_environment("GODOT_RUNTIME_HOST").strip_edges()
+	if not env_host_text.is_empty():
+		_resolved_host = env_host_text
+
+	var env_port_text := OS.get_environment("GODOT_RUNTIME_PORT").strip_edges()
+	if env_port_text.is_empty():
+		env_port_text = OS.get_environment("UI_TEST_PORT").strip_edges()
 	if env_port_text.is_empty():
 		_apply_ui_runtime_endpoint_override()
 		return
@@ -220,9 +226,9 @@ func _resolve_runtime_network_config() -> void:
 		if env_port > 0 and env_port <= 65535:
 			_resolved_port = env_port
 		else:
-			DebugLog.net("Ignoring out-of-range UI_TEST_PORT=%d" % env_port)
+			DebugLog.net("Ignoring out-of-range runtime port=%d" % env_port)
 	else:
-		DebugLog.net("Ignoring invalid UI_TEST_PORT=%s" % env_port_text)
+		DebugLog.net("Ignoring invalid runtime port=%s" % env_port_text)
 	_apply_ui_runtime_endpoint_override()
 
 
