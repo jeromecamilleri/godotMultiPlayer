@@ -41,6 +41,33 @@ It has: <br/>
 - Example:
   - `... gut_cmdln.gd -gdir=test -ginclude_subdirs -gselect=test_ui_e2e.gd -gunit_test_name=test_ui_e2e_cube_mission -gexit`
 
+## Release itch.io
+
+Playable release builds are generated with:
+
+```bash
+scripts/release_itch.sh --export-only
+```
+
+The default target is Linux using the `MultiRobot` export preset and the local Godot 4.7 binary.
+The script runs the full GUT suite before exporting unless `--skip-tests` is passed.
+
+To publish with itch.io butler:
+
+```bash
+ITCH_TARGET=user/game scripts/release_itch.sh --publish --version 0.1.0
+```
+
+Useful options:
+
+- `--target linux|windows`
+- `--preset "Windows Desktop"`
+- `--channel linux|windows`
+- `--hidden` for the first upload of a hidden itch channel
+- `--dry-run` to print commands without exporting or publishing
+
+The build output goes to `build/itch/`, which is intentionally ignored by Git.
+
 ## Screenshots
 
 <img src="screenshots\hub.png" width="500"> <br/> <br/>
