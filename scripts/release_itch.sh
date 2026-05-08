@@ -24,7 +24,17 @@ Usage:
   exemple :   
   BUTLER_BIN=~/bin/butler \
   ITCH_TARGET=jcamille/godot-multi-player-3d-game \
-  scripts/release_itch.sh --publish --version 0.1.0
+  scripts/release_itch.sh \
+    --target windows \
+    --preset "Windows Desktop" \
+    --channel windows \
+    --publish \
+    --version 0.1.0
+  ou pour linux :
+  BUTLER_BIN=~/bin/butler \
+  ITCH_TARGET=jcamille/godot-multi-player-3d-game \
+  scripts/release_itch.sh --publish --version 0.1.0	
+
 
 
 Build Godot export(s) into build/itch and optionally publish to itch.io with butler.
