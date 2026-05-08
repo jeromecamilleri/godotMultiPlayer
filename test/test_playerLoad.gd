@@ -225,6 +225,15 @@ func test_camera_controller_swim_mode_follows_player_height_instead_of_underwate
 	assert_almost_eq(spring_arm.spring_length, 7.2, 0.01, "La longueur du bras swim doit etre reglable dans l'inspecteur.")
 
 
+func test_camera_spring_arm_keeps_world_collision_enabled() -> void:
+	var player := PLAYER_SCENE.instantiate() as Player
+	add_child_autofree(player)
+
+	var spring_arm := player.get_node("CameraController/CameraSpringArm") as SpringArm3D
+	assert_not_null(spring_arm.shape, "Le bras camera doit garder une forme de collision.")
+	assert_true((spring_arm.collision_mask & 1) != 0, "Le bras camera doit tester le layer monde pour ne pas traverser murs et plafonds.")
+
+
 func test_player_ready_and_physics_without_peer_do_not_raise_unique_id_errors() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)

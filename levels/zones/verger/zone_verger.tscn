@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://dykqq00uscsiy" path="res://levels/portal/portal.tscn" id="1_portal"]
 [ext_resource type="PackedScene" path="res://levels/zones/verger/verger_interactives.tscn" id="2_interactives"]
 [ext_resource type="PackedScene" path="res://levels/zones/verger/verger_enemies.tscn" id="3_enemies"]
+[ext_resource type="PackedScene" path="res://levels/zones/verger/habitation.tscn" id="4_habitation"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(36, 8, 28)
@@ -30,6 +31,7 @@ height = 4.8
 [node name="ZoneVerger" type="Node3D" unique_id=538217947 groups=["mission_zone_verger"]]
 
 [node name="Ground" type="Node3D" parent="." unique_id=1018940153]
+transform = Transform3D(1.5132266, 0, 0, 0, 1, 0, 0, 0, 1.9012479, 3.9558945, 0, 5.5742416)
 
 [node name="Floor" type="StaticBody3D" parent="Ground" unique_id=205171170]
 
@@ -42,24 +44,30 @@ shape = SubResource("BoxShape3D_floor")
 
 [node name="Env" type="Node3D" parent="." unique_id=527592379]
 
+[node name="Habitation" parent="Env" instance=ExtResource("4_habitation")]
+transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, -12.485729, 4, -9.9661255)
+
 [node name="Interactives" parent="." unique_id=1473395603 instance=ExtResource("2_interactives")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1681552, -0.24671912, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1681552, -0.24671912, 22.441177)
 
 [node name="Enemies" parent="." unique_id=1844377480 instance=ExtResource("3_enemies")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 42.580353)
 defense_center_path = NodePath("../Interactives/ApplePickup")
 activation_center_path = NodePath("../Interactives/ApplePickup")
 activation_radius = 16.0
 activation_portal_group = "mission_portal_hub_verger"
 
 [node name="Portals" type="Node3D" parent="." unique_id=1256398025]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.3832474, 0, -11.852051)
 
 [node name="Portal_Verger_To_Hub" parent="Portals" unique_id=2063417426 groups=["mission_portal_verger_hub", "mission_zone_verger"] instance=ExtResource("1_portal")]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 4, 12)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 4, 0.6336975)
 linked_portal_path = NodePath("../../../HubLevel/Portals/Portal_Hub_To_Verger")
 exit_distance = -2.0
 portal_title = "HUB"
 
 [node name="MissionMarkers" type="Node3D" parent="." unique_id=21820090]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.9830704, 0, -19.040985)
 
 [node name="ResourceMarker" type="Node3D" parent="MissionMarkers" unique_id=459288098]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -6)

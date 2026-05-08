@@ -2,6 +2,7 @@ extends GutTest
 
 const MAIN_SCENE := preload("res://main/main.tscn")
 const ZONE_SCIERIE_SCENE := preload("res://levels/zones/scierie/zone_scierie.tscn")
+const VERGER_OVERRIDE_APPLIER := preload("res://tools/verger_override_applier.gd")
 const TERRAIN3D_DEPRECATION_TEXT := "instance_reset_physics_interpolation() is deprecated."
 const TERRAIN3D_TEXTURE_WARNING_TEXT := "normal texture is not connected to a file."
 
@@ -331,3 +332,168 @@ func test_hub_water_area_drives_swim_without_replacing_fall_checker() -> void:
 func test_main_scene_keeps_zone_scierie_as_clean_instance_without_child_overrides() -> void:
 	var main_scene_text := FileAccess.get_file_as_string("res://main/main.tscn")
 	assert_false(main_scene_text.contains("parent=\"ZoneScierie/"), "main.tscn ne doit plus contenir d'override sur des enfants de ZoneScierie.")
+
+
+func test_main_scene_keeps_zone_verger_as_clean_instance_without_child_overrides() -> void:
+	var main_scene_text := FileAccess.get_file_as_string("res://main/main.tscn")
+	assert_false(main_scene_text.contains("parent=\"ZoneVerger/"), "main.tscn ne doit plus contenir d'override sur des enfants de ZoneVerger.")
+
+
+func test_verger_override_applier_strips_only_zone_verger_child_override_blocks() -> void:
+	var scene_text := "\n".join([
+		"[gd_scene format=3]",
+		"",
+		"[node name=\"ZoneVerger\" parent=\".\" instance=ExtResource(\"35_zone_verger\")]",
+		"transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -120)",
+		"",
+		"[node name=\"Ground\" parent=\"ZoneVerger/Ground\"]",
+		"transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 1, 2, 3)",
+		"",
+		"[node name=\"BombDoor4\" parent=\"ZoneBreche/Interactives\"]",
+		"transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 5, 6)",
+		"",
+		"[editable path=\"ZoneVerger/Interactives\"]",
+	])
+
+	var result: Dictionary = VERGER_OVERRIDE_APPLIER.strip_zone_verger_child_override_blocks(scene_text)
+	var cleaned_text := String(result["text"])
+	assert_eq(OK, int(result["error"]))
+	assert_eq(1, int(result["removed_override_blocks"]))
+	assert_false(cleaned_text.contains("parent=\"ZoneVerger/Ground\""), "Le nettoyeur doit retirer les overrides enfants de ZoneVerger.")
+	assert_true(cleaned_text.contains("parent=\"ZoneBreche/Interactives\""), "Le nettoyeur ne doit pas toucher les autres zones.")
+	assert_true(cleaned_text.contains("[editable path=\"ZoneVerger/Interactives\"]"), "Les chemins editable doivent rester pour continuer a caler dans main.")
+
+
+func test_verger_override_applier_writes_selected_transforms_to_source_scenes() -> void:
+	var temp_dir := "user://verger_override_applier_test"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(temp_dir))
+	var zone_scene_path := temp_dir.path_join("zone_verger.tscn")
+	var interactives_scene_path := temp_dir.path_join("verger_interactives.tscn")
+	var enemies_scene_path := temp_dir.path_join("verger_enemies.tscn")
+	var main_scene_path := temp_dir.path_join("main.tscn")
+
+	_save_temp_scene(zone_scene_path, _make_temp_zone_source())
+	_save_temp_scene(interactives_scene_path, _make_temp_interactives_source())
+	_save_temp_scene(enemies_scene_path, _make_temp_enemies_source())
+	var main_file := FileAccess.open(main_scene_path, FileAccess.WRITE)
+	main_file.store_string("\n".join([
+		"[gd_scene format=3]",
+		"",
+		"[node name=\"ZoneVerger\" parent=\".\"]",
+		"",
+		"[node name=\"Ground\" parent=\"ZoneVerger/Ground\"]",
+		"transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 1, 2, 3)",
+		"",
+		"[editable path=\"ZoneVerger/Interactives\"]",
+	]) + "\n")
+	main_file.close()
+
+	var selected_zone := _make_selected_zone_verger()
+	add_child_autofree(selected_zone)
+
+	var result: Dictionary = VERGER_OVERRIDE_APPLIER.apply_from_zone_verger(selected_zone, main_scene_path, {
+		"zone_verger": zone_scene_path,
+		"interactives": interactives_scene_path,
+		"enemies": enemies_scene_path,
+	})
+
+	assert_eq(OK, int(result["error"]))
+	assert_eq(10, int(result["updated_transforms"]), "L'outil doit reporter les transforms du verger, des interactives et des ennemis.")
+	assert_eq(1, int(result["removed_override_blocks"]), "L'outil doit nettoyer les overrides enfants dans main.")
+	assert_false(FileAccess.get_file_as_string(main_scene_path).contains("parent=\"ZoneVerger/"), "Le main temporaire doit etre nettoye.")
+
+	var saved_zone_scene := load(zone_scene_path) as PackedScene
+	var saved_interactives_scene := load(interactives_scene_path) as PackedScene
+	var saved_enemies_scene := load(enemies_scene_path) as PackedScene
+	var saved_zone := saved_zone_scene.instantiate()
+	var saved_interactives := saved_interactives_scene.instantiate()
+	var saved_enemies := saved_enemies_scene.instantiate()
+	add_child_autofree(saved_zone)
+	add_child_autofree(saved_interactives)
+	add_child_autofree(saved_enemies)
+
+	assert_eq(Vector3(1.0, 2.0, 3.0), (saved_zone.get_node("Ground") as Node3D).position)
+	assert_eq(Vector3(4.0, 5.0, 6.0), (saved_zone.get_node("Env/Habitation") as Node3D).position)
+	assert_eq(Vector3(7.0, 8.0, 9.0), (saved_interactives.get_node("ApplePickup") as Node3D).position)
+	assert_eq(Vector3(10.0, 11.0, 12.0), (saved_enemies.get_node("bee_bot") as Node3D).position)
+
+
+func _save_temp_scene(scene_path: String, root: Node) -> void:
+	var scene := PackedScene.new()
+	assert_eq(OK, scene.pack(root))
+	assert_eq(OK, ResourceSaver.save(scene, scene_path))
+	root.free()
+
+
+func _make_temp_zone_source() -> Node3D:
+	var zone := Node3D.new()
+	zone.name = "ZoneVerger"
+	var ground := Node3D.new()
+	ground.name = "Ground"
+	zone.add_child(ground)
+	ground.owner = zone
+	var env := Node3D.new()
+	env.name = "Env"
+	zone.add_child(env)
+	env.owner = zone
+	var habitation := Node3D.new()
+	habitation.name = "Habitation"
+	env.add_child(habitation)
+	habitation.owner = zone
+	for child_name in ["Interactives", "Enemies", "Portals", "MissionMarkers"]:
+		var child := Node3D.new()
+		child.name = child_name
+		zone.add_child(child)
+		child.owner = zone
+	var portal := Node3D.new()
+	portal.name = "Portal_Verger_To_Hub"
+	zone.get_node("Portals").add_child(portal)
+	portal.owner = zone
+	return zone
+
+
+func _make_temp_interactives_source() -> Node3D:
+	var interactives := Node3D.new()
+	interactives.name = "Interactives"
+	var apple := Node3D.new()
+	apple.name = "ApplePickup"
+	interactives.add_child(apple)
+	apple.owner = interactives
+	return interactives
+
+
+func _make_temp_enemies_source() -> Node3D:
+	var enemies := Node3D.new()
+	enemies.name = "Enemies"
+	for child_name in ["bee_bot", "bee_bot2"]:
+		var child := Node3D.new()
+		child.name = child_name
+		enemies.add_child(child)
+		child.owner = enemies
+	return enemies
+
+
+func _make_selected_zone_verger() -> Node3D:
+	var zone := _make_temp_zone_source()
+	(zone.get_node("Ground") as Node3D).position = Vector3(1.0, 2.0, 3.0)
+	(zone.get_node("Env/Habitation") as Node3D).position = Vector3(4.0, 5.0, 6.0)
+	(zone.get_node("Interactives") as Node3D).position = Vector3(13.0, 14.0, 15.0)
+	(zone.get_node("Enemies") as Node3D).position = Vector3(16.0, 17.0, 18.0)
+	(zone.get_node("Portals") as Node3D).position = Vector3(19.0, 20.0, 21.0)
+	(zone.get_node("Portals/Portal_Verger_To_Hub") as Node3D).position = Vector3(22.0, 23.0, 24.0)
+	(zone.get_node("MissionMarkers") as Node3D).position = Vector3(25.0, 26.0, 27.0)
+	var interactives := zone.get_node("Interactives") as Node3D
+	var apple := Node3D.new()
+	apple.name = "ApplePickup"
+	apple.position = Vector3(7.0, 8.0, 9.0)
+	interactives.add_child(apple)
+	apple.owner = zone
+	var enemies := zone.get_node("Enemies") as Node3D
+	for child_name in ["bee_bot", "bee_bot2"]:
+		var enemy := Node3D.new()
+		enemy.name = child_name
+		enemies.add_child(enemy)
+		enemy.owner = zone
+	(enemies.get_node("bee_bot") as Node3D).position = Vector3(10.0, 11.0, 12.0)
+	(enemies.get_node("bee_bot2") as Node3D).position = Vector3(28.0, 29.0, 30.0)
+	return zone

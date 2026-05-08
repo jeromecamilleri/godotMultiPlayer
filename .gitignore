@@ -3,3 +3,6 @@
 android
 .vscode/settings.json
 build/
+logs/
+__pycache__/
+*.py[cod]

@@ -6,6 +6,6 @@
 [node name="Interactives" type="Node3D"]
 
 [node name="ApplePickup" parent="." groups=["mission_resource_pickups", "mission_apple_pickups"] instance=ExtResource("1_world")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 4.42, -5.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 4.42, 0.34564972)
 item_definition = ExtResource("2_apple")
 quantity = 4

@@ -117,3 +117,32 @@ func test_verger_bee_director_defends_apple_without_waiting_for_player_presence(
 	var config: Dictionary = director.call("_build_bee_config", 2)
 	var apple := zone.get_node("Interactives/ApplePickup") as Node3D
 	assert_eq(apple.global_position, config.get("patrol_center", Vector3.INF), "La patrouille des abeilles doit tourner autour de la pomme.")
+
+
+func test_verger_habitation_is_static_env_without_retargeting_apple_defense() -> void:
+	var zone := ZONE_VERGER_SCENE.instantiate()
+	add_child_autofree(zone)
+
+	assert_not_null(zone.get_node_or_null("Env/Habitation"), "Le verger doit instancier l'habitation comme decor statique.")
+	assert_not_null(zone.get_node_or_null("Interactives/ApplePickup"), "La pomme doit rester dans le noeud Interactives attendu.")
+	assert_not_null(zone.get_node_or_null("Enemies/bee_bot"), "Les abeilles graines doivent rester gerees par le BeeDirector du verger.")
+	assert_true(zone.get_node("Env/Habitation/Props/Barrel").is_in_group("pushable_barrels"), "L'habitation doit reutiliser le barrel gameplay du projet au lieu d'un duplicat importe.")
+
+	var director := zone.get_node("Enemies")
+	assert_eq(NodePath("../Interactives/ApplePickup"), director.get("defense_center_path"), "L'ajout de decor ne doit pas deplacer la defense des abeilles hors de la pomme.")
+
+
+func test_verger_habitation_ceilings_block_camera_spring_arm() -> void:
+	var zone := ZONE_VERGER_SCENE.instantiate()
+	add_child_autofree(zone)
+
+	var ceiling := zone.get_node_or_null("Env/Habitation/Ceiling/Ceiling2") as StaticBody3D
+	assert_not_null(ceiling, "Les plafonds de l'habitation doivent avoir une collision pour bloquer le SpringArm3D camera.")
+	if ceiling == null:
+		return
+
+	var collision_shape := ceiling.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	assert_not_null(collision_shape, "Chaque tuile de plafond doit exposer une collision camera.")
+	if collision_shape != null:
+		assert_false(collision_shape.disabled, "La collision plafond doit rester active.")
+		assert_not_null(collision_shape.shape, "La collision plafond doit avoir une forme.")

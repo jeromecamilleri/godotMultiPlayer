@@ -16,7 +16,7 @@
 [ext_resource type="Script" uid="uid://dkou0tq58cybi" path="res://main/bomb_door.gd" id="19_bd01"]
 [ext_resource type="PackedScene" path="res://levels/hub/hub_interactives.tscn" id="30_intpkg"]
 [ext_resource type="PackedScene" uid="uid://dpebmn1qpmvjj" path="res://levels/zones/scierie/zone_scierie.tscn" id="34_zone_scierie"]
-[ext_resource type="PackedScene" path="res://levels/zones/verger/zone_verger.tscn" id="35_zone_verger"]
+[ext_resource type="PackedScene" uid="uid://bojcqmqxcy8t1" path="res://levels/zones/verger/zone_verger.tscn" id="35_zone_verger"]
 [ext_resource type="PackedScene" path="res://levels/zones/finale/zone_breche.tscn" id="36_zone_breche"]
 [ext_resource type="PackedScene" uid="uid://b5e5klqe8gc52" path="res://levels/zones/finale/zone_reactor.tscn" id="37_zone_reactor"]
 [ext_resource type="Script" uid="uid://woki35yt1nry" path="res://main/ui_test_scenario_server_pilot.gd" id="38_uitestpilot"]

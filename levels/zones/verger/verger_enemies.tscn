@@ -8,13 +8,13 @@ script = ExtResource("1_beedir")
 managed_seed_bee_paths = Array[NodePath]([NodePath("bee_bot"), NodePath("bee_bot2")])
 
 [node name="bee_bot" parent="." instance=ExtResource("2_bee")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9, 5.55, -5.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9, 5.55, -21.771492)
 patrol_circle = true
 patrol_radius = 2.7
 patrol_height_offset = 1.15
 
 [node name="bee_bot2" parent="." instance=ExtResource("2_bee")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 5.55, -5.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 5.55, -21.05223)
 patrol_circle = true
 patrol_radius = 2.7
 patrol_height_offset = 1.15

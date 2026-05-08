@@ -206,6 +206,8 @@ After changes:
 
 * Modify the smallest possible surface
 * Do not refactor unrelated code unless necessary
+* Avoid copy-pasting code, scenes, or assets when an existing project resource can be reused or extended
+* Before importing external assets, search for equivalent project assets and prefer reusing those to avoid duplicate objects
 * Keep naming consistent with existing codebase
 * Document only critical intent with short comments (authority assumptions, sync edge cases, non-obvious tradeoffs); avoid obvious or repetitive comments
 * Respect existing architecture:
