@@ -39,13 +39,11 @@ animation = &"run"
 animation = &"walk"
 
 [sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_cfy75"]
-min_space = 0.0
 blend_point_0/node = SubResource("AnimationNodeAnimation_qysix")
 blend_point_0/pos = 1.0
-blend_point_0/name = &"0"
 blend_point_1/node = SubResource("AnimationNodeAnimation_ynydo")
 blend_point_1/pos = 0.0
-blend_point_1/name = &"1"
+min_space = 0.0
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_swim"]
 animation = &"swim"

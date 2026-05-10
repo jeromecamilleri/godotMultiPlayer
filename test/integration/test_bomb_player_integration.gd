@@ -19,7 +19,7 @@ func _spawn_world() -> Node3D:
 	return world
 
 
-func test_bomb_explosion_damages_player_without_signature_errors() -> void:
+func test_world_bomb_explosion_damages_player_without_signature_errors() -> void:
 	var world: Node3D = await _spawn_world()
 	var players_root := Node3D.new()
 	players_root.name = "Players"
@@ -58,7 +58,7 @@ func test_bomb_explosion_damages_player_without_signature_errors() -> void:
 
 	var bomb: Bomb = BOMB_SCENE.instantiate() as Bomb
 	assert_not_null(bomb)
-	bomb.owner_peer_id = multiplayer.get_unique_id()
+	bomb.owner_peer_id = -1
 	bomb.explosion_radius = 4.0
 	bomb.explosion_force = 10.0
 	world.add_child(bomb)
@@ -77,3 +77,52 @@ func test_bomb_explosion_damages_player_without_signature_errors() -> void:
 	fall_checker.check_fallen()
 	await wait_process_frames(1)
 	assert_eq(4, player.get_lives(), "Lives should not bounce back after FallChecker sync")
+
+
+func test_player_owned_bomb_explosion_does_not_damage_player() -> void:
+	var world: Node3D = await _spawn_world()
+	var players_root := Node3D.new()
+	players_root.name = "Players"
+	world.add_child(players_root)
+
+	var mock_spawner := MockPlayerSpawner.new()
+	world.add_child(mock_spawner)
+
+	var director := MatchDirector.new()
+	director.force_server_mode = true
+	director.auto_start_match = false
+	director.player_spawner = mock_spawner
+	world.add_child(director)
+
+	var fall_checker := FallChecker.new()
+	fall_checker.player_spawner = mock_spawner
+	fall_checker.match_director = director
+	fall_checker.fall_height = -11.0
+	fall_checker.debug_respawn = false
+	world.add_child(fall_checker)
+	await wait_process_frames(2)
+
+	var player: Player = PLAYER_SCENE.instantiate() as Player
+	assert_not_null(player)
+	var peer_id: int = multiplayer.get_unique_id()
+	player.set_multiplayer_authority(peer_id)
+	players_root.add_child(player)
+	player.global_position = Vector3(0.7, 0.0, 0.0)
+	await wait_process_frames(2)
+	fall_checker.player_spawned(peer_id, player)
+	await wait_process_frames(1)
+
+	var bomb: Bomb = BOMB_SCENE.instantiate() as Bomb
+	assert_not_null(bomb)
+	bomb.owner_peer_id = peer_id
+	bomb.explosion_radius = 4.0
+	bomb.explosion_force = 10.0
+	world.add_child(bomb)
+	bomb.global_position = Vector3.ZERO
+	await wait_process_frames(1)
+
+	bomb._apply_explosion_damage()
+	await wait_process_frames(2)
+
+	assert_eq(5, player.get_lives(), "Une bombe posee par un joueur ne doit plus blesser les joueurs.")
+	assert_eq(5, director.get_lives(peer_id), "MatchDirector ne doit pas compter de degat joueur contre joueur.")

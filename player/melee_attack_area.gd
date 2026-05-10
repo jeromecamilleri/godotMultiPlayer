@@ -20,6 +20,8 @@ func deactivate():
 
 
 func _on_body_entered(body: Node3D) -> void:
+	if body is Player:
+		return
 	if body.is_in_group("damageables") and body.has_method("damage"):
 		# Reuse the generic damage interface so enemies/players handle authority routing.
 		var impact_point := global_position - body.global_position

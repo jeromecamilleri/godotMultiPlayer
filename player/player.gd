@@ -91,6 +91,7 @@ const WorldItemScene: PackedScene = preload("res://inventory/world_item.tscn")
 @export var _direction: Vector3 = Vector3.ZERO
 @export var _strong_direction: Vector3 = Vector3.FORWARD
 @export var _is_sliding_sync := false
+@export var _is_swimming_sync := false
 
 var position_before_sync: Vector3
 var last_sync_time_ms: int
@@ -194,6 +195,7 @@ func _register_unused_debug_fields() -> void:
 		_direction,
 		_strong_direction,
 		_is_sliding_sync,
+		_is_swimming_sync,
 		_lives,
 		_coins,
 		_is_swimming,

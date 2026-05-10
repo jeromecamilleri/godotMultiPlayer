@@ -111,6 +111,9 @@ Never stop after a single attempt.
 
 Any code change MUST be validated with tests.
 
+Tests must protect gameplay, player-visible behavior, multiplayer synchronization, or a real regression risk.
+Do not add tests that only assert implementation details introduced by the change itself without meaningful game/player value.
+
 ---
 
 ### 1. Unit Tests (GUT)

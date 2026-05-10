@@ -3,6 +3,7 @@ class_name Connection
 
 signal connected
 signal disconnected
+signal client_connection_failed(reason_text: String)
 signal server_status_changed(status_text: String)
 signal network_stats_changed(stats_text: String)
 
@@ -17,11 +18,15 @@ var _status_timer: Timer
 @export var max_clients: int
 @export var host: String
 @export var use_localhost_in_editor: bool
+@export var client_connect_timeout_seconds: float = 6.0
 
 var _resolved_port := 0
 var _resolved_host := ""
 var _ui_configured_port := -1
 var _ui_configured_host := ""
+var _client_connect_timer: Timer
+var _is_client_connecting := false
+var _pending_client_endpoint := ""
 var _latency_probe_timer: Timer
 var _last_ping_sent_ms := -1
 var _last_rtt_ms := -1
@@ -86,6 +91,7 @@ func start_server() -> void:
 
 
 func start_client() -> void:
+	_reset_client_connection_attempt()
 	var address := _resolved_host
 	if address.is_empty():
 		address = host
@@ -96,9 +102,11 @@ func start_client() -> void:
 	var err = peer.create_client(address, _resolved_port)
 	if err != OK:
 		DebugLog.net("Cannot start client to %s:%d. Err: %s" % [address, _resolved_port, str(err)])
-		disconnected.emit()
+		_fail_client_connection("Impossible de lancer la connexion vers %s:%d." % [address, _resolved_port])
 		return
 	else: DebugLog.net("Connecting to server %s:%d..." % [address, _resolved_port])
+	_pending_client_endpoint = "%s:%d" % [address, _resolved_port]
+	_is_client_connecting = true
 	record_sync_event("reseau", "connexion %s:%d" % [address, _resolved_port])
 	
 	multiplayer.multiplayer_peer = peer
@@ -106,9 +114,12 @@ func start_client() -> void:
 	multiplayer.connected_to_server.connect(connected_to_server)
 	multiplayer.server_disconnected.connect(server_connection_failure)
 	multiplayer.connection_failed.connect(server_connection_failure)
+	_start_client_connect_timeout()
 
 
 func disconnect_peer() -> void:
+	_is_client_connecting = false
+	_stop_client_connect_timeout()
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
@@ -127,6 +138,8 @@ func shutdown_server() -> void:
 
 
 func connected_to_server() -> void:
+	_is_client_connecting = false
+	_stop_client_connect_timeout()
 	DebugLog.net("Connected to server")
 	record_sync_event("reseau", "client connecte au serveur")
 	connected.emit()
@@ -134,6 +147,10 @@ func connected_to_server() -> void:
 
 
 func server_connection_failure() -> void:
+	if _is_client_connecting:
+		var endpoint := _pending_client_endpoint if not _pending_client_endpoint.is_empty() else get_runtime_endpoint_display()
+		_fail_client_connection("Aucun serveur trouve sur %s." % endpoint)
+		return
 	DebugLog.net("Disconnected")
 	record_sync_event("reseau", "deconnexion client")
 	disconnected.emit()
@@ -195,6 +212,7 @@ func _print_server_status(reason: String) -> void:
 
 
 func disconnect_all() -> void:
+	_stop_client_connect_timeout()
 	_stop_latency_probe()
 	if multiplayer.peer_connected.is_connected(peer_connected):
 		multiplayer.peer_connected.disconnect(peer_connected)
@@ -206,6 +224,54 @@ func disconnect_all() -> void:
 		multiplayer.server_disconnected.disconnect(server_connection_failure)
 	if multiplayer.connection_failed.is_connected(server_connection_failure):
 		multiplayer.connection_failed.disconnect(server_connection_failure)
+
+
+func _reset_client_connection_attempt() -> void:
+	_is_client_connecting = false
+	_pending_client_endpoint = ""
+	_stop_client_connect_timeout()
+	if multiplayer.multiplayer_peer != null and not Connection.is_peer_connected:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+
+
+func _start_client_connect_timeout() -> void:
+	_stop_client_connect_timeout()
+	if client_connect_timeout_seconds <= 0.0:
+		return
+	_client_connect_timer = Timer.new()
+	_client_connect_timer.one_shot = true
+	_client_connect_timer.wait_time = client_connect_timeout_seconds
+	_client_connect_timer.timeout.connect(_on_client_connect_timeout)
+	add_child(_client_connect_timer)
+	_client_connect_timer.start()
+
+
+func _stop_client_connect_timeout() -> void:
+	if _client_connect_timer == null:
+		return
+	_client_connect_timer.queue_free()
+	_client_connect_timer = null
+
+
+func _on_client_connect_timeout() -> void:
+	if not _is_client_connecting:
+		return
+	var endpoint := _pending_client_endpoint if not _pending_client_endpoint.is_empty() else get_runtime_endpoint_display()
+	DebugLog.net("Connection timeout to %s after %.1f seconds" % [endpoint, client_connect_timeout_seconds])
+	record_sync_event("reseau", "timeout connexion %s" % endpoint)
+	_fail_client_connection("Aucun serveur trouve sur %s apres %.0f s." % [endpoint, client_connect_timeout_seconds])
+
+
+func _fail_client_connection(reason_text: String) -> void:
+	_is_client_connecting = false
+	_stop_client_connect_timeout()
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+	client_connection_failed.emit(reason_text)
+	disconnected.emit()
+	_emit_network_stats()
 
 
 func _resolve_runtime_network_config() -> void:
@@ -275,6 +341,8 @@ func get_network_jitter_ms() -> float:
 
 
 func get_network_stats_text() -> String:
+	if multiplayer.multiplayer_peer == null:
+		return "NET offline"
 	if multiplayer.is_server():
 		return _get_server_network_stats_text()
 	if _last_rtt_ms < 0:

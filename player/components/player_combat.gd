@@ -38,7 +38,9 @@ func process_rigidbody_push_collisions(player) -> void:
 				body.apply_central_impulse(impulse)
 
 
-func damage(player, _impact_point: Vector3, force: Vector3, _attacker_peer_id: int = -1) -> void:
+func damage(player, _impact_point: Vector3, force: Vector3, attacker_peer_id: int = -1) -> void:
+	if attacker_peer_id > 0:
+		return
 	# Enemy hit must be server-authoritative so MatchDirector stays in sync.
 	if player.multiplayer.is_server():
 		apply_enemy_hit_server(player, force)

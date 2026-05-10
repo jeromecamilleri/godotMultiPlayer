@@ -115,6 +115,9 @@ properties/3/replication_mode = 1
 properties/4/path = NodePath(".:_is_sliding_sync")
 properties/4/spawn = true
 properties/4/replication_mode = 1
+properties/5/path = NodePath(".:_is_swimming_sync")
+properties/5/spawn = true
+properties/5/replication_mode = 1
 
 [node name="Player" type="CharacterBody3D" unique_id=1039672833 groups=["damageables"]]
 top_level = true

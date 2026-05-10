@@ -36,6 +36,7 @@ signal connect_client
 @onready var _player_name_edit: LineEdit = get_node_or_null("MainMenu/Buttons/PlayerNameConfig/PlayerNameEdit") as LineEdit
 @onready var _server_ip_edit: LineEdit = get_node_or_null("MainMenu/Buttons/EndpointConfig/ServerIpEdit") as LineEdit
 @onready var _server_port_spinbox: SpinBox = get_node_or_null("MainMenu/Buttons/EndpointConfig/ServerPortSpinBox") as SpinBox
+@onready var _main_menu_status_label: Label = get_node_or_null("MainMenu/Buttons/ConnectionStatus") as Label
 @onready var _main_menu: Control = $MainMenu
 @onready var _server_button: Button = get_node_or_null("MainMenu/Buttons/Server") as Button
 @onready var _client_button: Button = get_node_or_null("MainMenu/Buttons/Client") as Button
@@ -51,12 +52,16 @@ var _last_ui_test_layout_signature := ""
 var _debug_overlay_enabled := false
 var _last_objectives: Dictionary = {}
 var _mission_event_hide_at_ms := 0
+var _main_menu_status_text := ""
+var _main_menu_status_is_error := false
 
 
 func _ready():
 	_register_test_ids()
 	_connection.server_status_changed.connect(_on_server_status_changed)
 	_connection.network_stats_changed.connect(_on_network_stats_changed)
+	_connection.connected.connect(_on_connection_connected)
+	_connection.client_connection_failed.connect(_on_client_connection_failed)
 	if is_instance_valid(_match_director) and _match_director.has_signal("snapshot_changed"):
 		_match_director.snapshot_changed.connect(_on_match_snapshot_changed)
 		if _match_director.has_method("get_snapshot_text"):
@@ -74,6 +79,7 @@ func _ready():
 	_last_objectives = _extract_objectives_map()
 	_update_mission_tracker()
 	_update_context_hint()
+	_update_main_menu_status_label()
 	_sync_main_menu_endpoint_fields()
 	if is_instance_valid(_player_inventory_panel):
 		_player_inventory_panel.slot_action_requested.connect(_on_player_inventory_action_requested)
@@ -143,6 +149,7 @@ func _process(_delta: float) -> void:
 func start_server_emit() -> void:
 	_apply_main_menu_endpoint_config()
 	_apply_main_menu_player_name_config()
+	_set_main_menu_status("", false)
 	start_server.emit()
 	$MainMenu.visible = false
 	$InGameUI.visible = true
@@ -152,6 +159,7 @@ func start_server_emit() -> void:
 func connect_client_emit() -> void:
 	_apply_main_menu_endpoint_config()
 	_apply_main_menu_player_name_config()
+	_set_main_menu_status("Connexion a %s..." % _connection.get_runtime_endpoint_display(), false)
 	connect_client.emit()
 	hide_ui()
 
@@ -166,6 +174,7 @@ func show_ui() -> void:
 	$MainMenu.visible = true
 	$InGameUI.visible = false
 	_sync_main_menu_endpoint_fields()
+	_update_main_menu_status_label()
 	_refresh_server_status_visibility()
 
 
@@ -204,6 +213,29 @@ func _on_network_stats_changed(_stats_text: String) -> void:
 	_update_server_match_stats_label()
 	_update_server_client_stats_label()
 	_update_server_player_stats_label()
+
+
+func _on_connection_connected() -> void:
+	_set_main_menu_status("", false)
+
+
+func _on_client_connection_failed(reason_text: String) -> void:
+	_set_main_menu_status(reason_text, true)
+	show_ui()
+
+
+func _set_main_menu_status(status_text: String, is_error: bool) -> void:
+	_main_menu_status_text = status_text
+	_main_menu_status_is_error = is_error
+	_update_main_menu_status_label()
+
+
+func _update_main_menu_status_label() -> void:
+	if not is_instance_valid(_main_menu_status_label):
+		return
+	_main_menu_status_label.text = _main_menu_status_text
+	_main_menu_status_label.visible = not _main_menu_status_text.is_empty()
+	_main_menu_status_label.modulate = Color(1.0, 0.35, 0.28, 1.0) if _main_menu_status_is_error else Color(0.8, 0.9, 1.0, 1.0)
 
 
 func _refresh_server_status_visibility() -> void:

@@ -192,7 +192,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.9, 4, 10.7)
 [node name="WallDoorway2" parent="Building" unique_id=1741210834 instance=ExtResource("9_78gsu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.2, 0, 20.5)
 
-[node name="wall_doorway_door" parent="Building/WallDoorway2/wall_doorway2/wall_doorway" index="0" unique_id=1747370882]
+[node name="wall_doorway_door" parent="Building/WallDoorway2/wall_doorway2/wall_doorway" index="0" unique_id=2081949537]
 transform = Transform3D(-0.5, 0, -0.866025, 0, 1, 0, 0.866025, 0, -0.5, -0.820099, 0, 0)
 
 [node name="CollisionShape3D2" type="CollisionShape3D" parent="Building/WallDoorway2" unique_id=280065719]
@@ -462,13 +462,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.2, 8, 10.6)
 [node name="Props" type="Node3D" parent="." unique_id=204209503]
 
 [node name="Barrel" parent="Props" unique_id=44801073 instance=ExtResource("3_qj1uh")]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 12.930646, 0.93141127, 17.894798)
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 12.930646, 0.93141127, 18.218248)
 
 [node name="Barrel6" parent="Props" unique_id=399308507 instance=ExtResource("3_qj1uh")]
-transform = Transform3D(-0.5, 0, 0.866025, 0.866025, -4.37114e-08, 0.5, 3.78552e-08, 1, 2.18557e-08, 14.994273, 0.7955992, 18.13805)
+transform = Transform3D(-0.5, 0, 0.866025, 0.866025, -4.37114e-08, 0.5, 3.78552e-08, 1, 2.18557e-08, 14.994273, 0.7955992, 18.089735)
 
 [node name="Barrel7" parent="Props" unique_id=53740098 instance=ExtResource("3_qj1uh")]
-transform = Transform3D(0.5, 0, -0.866025, -0.866025, -4.37114e-08, -0.5, -3.78552e-08, 1, -2.18557e-08, 13.997302, 2.2247474, 17.895895)
+transform = Transform3D(0.5, 0, -0.866025, -0.866025, -4.37114e-08, -0.5, -3.78552e-08, 1, -2.18557e-08, 13.997302, 2.2247474, 18.228687)
 
 [node name="TorchMounted" parent="Props" unique_id=918620845 instance=ExtResource("16_5glaq")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 29.96, 2.07, 9.7)

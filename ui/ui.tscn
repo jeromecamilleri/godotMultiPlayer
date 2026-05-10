@@ -95,6 +95,14 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "Client"
 
+[node name="ConnectionStatus" type="Label" parent="MainMenu/Buttons"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="InGameUI" type="Control" parent="." unique_id=1153706933]
 layout_mode = 1
 anchors_preset = 15

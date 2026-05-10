@@ -61,6 +61,41 @@ func test_character_skin_can_enter_swim_state() -> void:
 	assert_true(skin.get("_swimming"), "CharacterSkin doit pouvoir activer l'etat visuel swim.")
 
 
+func test_player_replicates_swim_state_for_remote_visuals() -> void:
+	var player := PLAYER_SCENE.instantiate() as Player
+	add_child_autofree(player)
+	await wait_process_frames(2)
+
+	var synchronizer := player.get_node("MultiplayerSynchronizer") as MultiplayerSynchronizer
+	var replication_config := synchronizer.replication_config
+	var replicated_properties := replication_config.get_properties()
+
+	assert_true(replicated_properties.has(NodePath(".:_is_swimming_sync")), "L'etat nage doit etre replique pour corriger la pose des proxies et late joins.")
+
+
+func test_remote_sync_restores_standing_pose_after_swim() -> void:
+	var player := PLAYER_SCENE.instantiate() as Player
+	add_child_autofree(player)
+	await wait_process_frames(2)
+
+	var skin := player.get_node("CharacterRotationRoot/CharacterSkin") as CharacterSkin
+	skin.swim_pose_transition_speed = 100.0
+	var model_root := skin.get_node("gdbot") as Node3D
+	var normal_transform := model_root.transform
+
+	player.set("_is_swimming", true)
+	player.set("_is_swimming_sync", false)
+	skin.set_swimming(true)
+	await wait_process_frames(1)
+	assert_ne(model_root.transform, normal_transform, "Le preconditionnement doit placer le proxy en pose nage.")
+
+	player.on_synchronized()
+	await wait_process_frames(1)
+
+	assert_false(player.is_swimming(), "La synchro reseau doit remettre l'etat nage local a false.")
+	assert_eq(model_root.transform, normal_transform, "La pose visuelle distante doit revenir debout quand _is_swimming_sync=false.")
+
+
 func test_character_skin_swim_pose_lays_model_horizontal_and_restores() -> void:
 	# Swimming is not just a different limb cycle: the whole visible model must be
 	# laid down, then restored when leaving water so ground animations stay upright.

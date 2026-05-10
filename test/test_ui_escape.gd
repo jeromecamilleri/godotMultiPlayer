@@ -81,6 +81,14 @@ func _build_ui_context() -> Dictionary:
 	main_menu.name = "MainMenu"
 	ui.add_child(main_menu)
 
+	var buttons := VBoxContainer.new()
+	buttons.name = "Buttons"
+	main_menu.add_child(buttons)
+
+	var connection_status := Label.new()
+	connection_status.name = "ConnectionStatus"
+	buttons.add_child(connection_status)
+
 	var in_game := Control.new()
 	in_game.name = "InGameUI"
 	ui.add_child(in_game)
@@ -181,3 +189,19 @@ func test_show_ui_without_multiplayer_peer_does_not_raise_disconnect_errors() ->
 
 	_assert_no_disconnect_errors(self, "show_ui sans peer")
 	assert_true(ui.get_node("MainMenu").visible, "Le menu principal doit rester visible sans peer actif.")
+
+
+func test_client_connection_failure_reopens_menu_with_status_message() -> void:
+	var ctx: Dictionary = await _build_ui_context()
+	var ui: TestUI = ctx["ui"] as TestUI
+	var connection: MockConnection = ctx["connection"] as MockConnection
+	var status_label := ui.get_node("MainMenu/Buttons/ConnectionStatus") as Label
+	ui.hide_ui()
+	await wait_process_frames(1)
+
+	connection.client_connection_failed.emit("Aucun serveur trouve sur 127.0.0.1:59998 apres 6 s.")
+	await wait_process_frames(1)
+
+	assert_true(ui.get_node("MainMenu").visible, "Un echec de connexion client doit rouvrir le menu.")
+	assert_true(status_label.visible, "Le menu doit afficher la raison de l'echec.")
+	assert_string_contains(status_label.text, "Aucun serveur trouve")

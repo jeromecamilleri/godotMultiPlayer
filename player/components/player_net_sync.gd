@@ -8,12 +8,16 @@ func set_sync_properties(player) -> void:
 	player._direction = player._move_direction
 	player._strong_direction = player._last_strong_direction
 	player._is_sliding_sync = player._is_sliding
+	player._is_swimming_sync = player._is_swimming
 
 
 func on_synchronized(player) -> void:
 	player.velocity = player._velocity
 	player.position_before_sync = player.position
 	player._is_sliding = player._is_sliding_sync
+	if player._is_swimming != player._is_swimming_sync:
+		player._is_swimming = player._is_swimming_sync
+		player._character_skin.set_swimming(player._is_swimming)
 
 	var sync_time_ms: int = Time.get_ticks_msec()
 	player.sync_delta = clampf(float(sync_time_ms - player.last_sync_time_ms) / 1000, 0, player.sync_delta_max)
